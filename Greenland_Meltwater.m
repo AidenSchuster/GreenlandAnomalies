@@ -89,16 +89,15 @@ Eastwidthdeg_coast = recwidth_coast./Eastwidthdeg_coast ;
 % South
 Southlengthdeg = 111.120*Southgcoast(:,2) ;
 Southlengthdeg = recwidth_coast./Southlengthdeg ;
-
 Southlengthdeg_coast = recwidth_coast*(1/111.120) ;
 %% Find Casts within defined area
 % Western Facing Coasts
 x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
 x5_Ecoast = Eastgcoast(:,1) + (5*Eastwidthdeg_coast)/2 ;
 y5_Scoast = Southgcoast(:,2) - (5*Southlengthdeg_coast)/2 ;
-extendedcoast_W = x5_Wcoast - Westwidthdeg; % This will change depending on size of cast boxes
-extendedcoast_E = x5_Ecoast + Eastwidthdeg;
-extendedcoast_S = y5_Scoast - Southlengthdeg ;
+extendedcoast_W = x5_Wcoast - (Westwidthdeg)/2; % This will change depending on size of cast boxes
+extendedcoast_E = x5_Ecoast + (Eastwidthdeg)/2;
+extendedcoast_S = y5_Scoast - (Southlengthdeg_coast)/2 ;
 W_xcombined = [x5_Wcoast,x_Wcoast] ; % counterclockwise verticies order
 W_ycombined = [y_SWcoast,y_SWcoast] ; % counterclockwise verticies order
 W_xcombined_coast = [extendedcoast_W,x_Wcoast] ;
@@ -124,6 +123,7 @@ end
  end
 W_idx_combined = any(cat(3, W_idx{:}), 3); % combined indicies of each compartment (will be used for a unified coastal idx)
 % Eastern Facing Coasts
+
 clear('W','lengthdeg','lengthdegcoast','W_x','W_y','width','widthdeg_coast','widthdeg_lon')
 %% Isolate W variables needs to include 50km+ width casts 
 W_lon = lon(Widx_combined) ;
