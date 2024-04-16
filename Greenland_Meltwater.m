@@ -11,14 +11,14 @@ radius = 20 ; % km circle for opean ocean
 min_count = 4 ; % the minimum # of data points needed in order to plot the statistics of a cast (std dev, anomalies ect.)
 
 %% Defining West Coast of Greenland (does not include vertical sections
+aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
 clf
 hold on
-aspect_ratio = cosd(65) ;
 plot(cx,cy,'k')
 xlim([-80,-35])
 ylim([55,80])
 daspect([1 aspect_ratio 1])
-% Already selected coastline points
+% West Facing
 run = 2 ;
 for i = 1:1:1
     if run == i 
@@ -37,23 +37,24 @@ hold on
 plot(cx,cy,'k')
 xlim([-80,-35])
 ylim([55,80])
+daspect([1 aspect_ratio 1])
 run = 2 ;
 for i = 1:1:1
     if run == i 
-        Eastgcoast = ginput(8);
+        Eastgcoast = ginput(2);
         save ("Eastgcoast.mat", "Eastgcoast");
     end
 end
 load('Eastgcoast.mat')
-scatter(lon,lat,1,'MarkerFaceColor','b','MarkerEdgeAlpha','0') ;
-plot (Eastgcoast(:,1),Eastgcoast(:,2) ,'r')
-hold off
 % Work on simplified coastline (ginput) (Not in use, delete eventually)
 clf
 hold on
 plot(cx,cy,'k')
 xlim([-80,-35])
 ylim([55,80])
+% South Facing Coasts (manually define 0 compartment to connect west to
+% east
+Southgcoast = ([-44.9923,59.8683;-43.1674,59.9004]) ;
 % Already selected coastline points
 run = 2 ;
 for i = 1:1:1
@@ -63,7 +64,7 @@ for i = 1:1:1
     end
 end
 load('SWgcoast.mat')
-% Creation of Parallelograms on West Coast
+% Creation of Parallelograms on West facing Coast
 m = ((SWgcoast(2,2)-SWgcoast(1,2))/(SWgcoast(2,1)-SWgcoast(1,1))) ; %slope of simplified coastline
 width_2 = recwidth ; % for dynamic plot titles
 length_2 = reclength ; % for dynamic plot titles
@@ -72,20 +73,35 @@ reclength_coast = 20*2 ; % do not change, for defining larger polygon
 y_SWcoast = [Westgcoast(:,2)] ; 
 x_Wcoast = [Westgcoast(:,1)] ; 
 lengthdeg = km2deg(reclength) ;
-widthdeg_lon = 111.320 .*cosd(lat) ;
+widthdeg_lon = 111.120 .*cosd(lat) ;
 widthdeg_lon = recwidth./widthdeg_lon ;
 widthdeg_coast = recwidth_coast./widthdeg_lon ; % For larger polygon
 lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
-Westwidthdeg = 111.320* cosd(y_SWcoast) ;
+Westwidthdeg = 111.120* cosd(y_SWcoast) ;
 Westwidthdeg = recwidth./Westwidthdeg ;
 Westwidthdeg_coast = 111.320* cosd(y_SWcoast) ;
 Westwidthdeg_coast = recwidth_coast./Westwidthdeg_coast ;
+% East
+Eastwidthdeg = 111.120* cosd(Eastgcoast(:,2)) ;
+Eastwidthdeg = recwidth./Eastwidthdeg ;
+Eastwidthdeg_coast = 111.120* cosd(Eastgcoast(:,2)) ;
+Eastwidthdeg_coast = recwidth_coast./Eastwidthdeg_coast ;
+% South
+Southlengthdeg = 111.120*Southgcoast(:,2) ;
+Southlengthdeg = recwidth_coast./Southlengthdeg ;
+
+Southlengthdeg_coast = recwidth_coast*(1/111.120) ;
 %% Find Casts within defined area
-x5_Wcoast = x_Wcoast - 5*Westwidthdeg_coast ; % This should not change
-extendecoast = x5_Wcoast - Westwidthdeg; % This will change depending on size of cast boxes
+% Western Facing Coasts
+x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
+x5_Ecoast = Eastgcoast(:,1) + (5*Eastwidthdeg_coast)/2 ;
+y5_Scoast = Southgcoast(:,2) - (5*Southlengthdeg_coast)/2 ;
+extendedcoast_W = x5_Wcoast - Westwidthdeg; % This will change depending on size of cast boxes
+extendedcoast_E = x5_Ecoast + Eastwidthdeg;
+extendedcoast_S = y5_Scoast - Southlengthdeg ;
 W_xcombined = [x5_Wcoast,x_Wcoast] ; % counterclockwise verticies order
 W_ycombined = [y_SWcoast,y_SWcoast] ; % counterclockwise verticies order
-W_xcombined_coast = [extendecoast,x_Wcoast] ;
+W_xcombined_coast = [extendedcoast_W,x_Wcoast] ;
 for i = 1:length(W_xcombined)-1
     W = [W_xcombined(i+1,1),W_xcombined(i,1),W_xcombined(i,2),W_xcombined(i+1,2)] ;
     W_x{i} = W ;
@@ -106,8 +122,9 @@ end
     W = inpolygon(lon,lat, W_x_coast{i},W_y_coast{i}) ; %idx of all extended coastal areas (not sure if they need to be compartmentalized)
     W_idx_coast{i} = W ;
  end
-W_idx_combined = any(cat(3, W_idx{:}), 3); % combined indicies of each compartment
-clear('W','lengthdeg','lengthdegcoast','W_x','W_y','Westgcoast','width','widthdeg_coast','widthdeg_lon')
+W_idx_combined = any(cat(3, W_idx{:}), 3); % combined indicies of each compartment (will be used for a unified coastal idx)
+% Eastern Facing Coasts
+clear('W','lengthdeg','lengthdegcoast','W_x','W_y','width','widthdeg_coast','widthdeg_lon')
 %% Isolate W variables needs to include 50km+ width casts 
 W_lon = lon(Widx_combined) ;
 W_lat = lat(Widx_combined) ;
