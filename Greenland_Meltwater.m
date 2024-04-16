@@ -2,7 +2,6 @@
 cd('C:\Users\ajs82292\Desktop\Research\Matlab\Source') ;
 addpath('seawater','C:\Users\ajs82292\Desktop\Research\Matlab\Source\seawater') ;
 load("02cleanNODC.mat")
-
 %% Commonly Changed Variables for box size and day interval (set run to one
 % below if changing rectangle size)
 recwidth = 10*2 ; % km doubled as it is 10 "radius" Change value for different sized cast boxes
@@ -11,18 +10,19 @@ day_range = 15 ; % adjust this as needed, actual day range is 2*number listed
 radius = 20 ; % km circle for opean ocean
 min_count = 4 ; % the minimum # of data points needed in order to plot the statistics of a cast (std dev, anomalies ect.)
 
-%% Defining West Coast of Greenland
+%% Defining West Coast of Greenland (does not include vertical sections
 clf
 hold on
 aspect_ratio = cosd(65) ;
 plot(cx,cy,'k')
 xlim([-80,-35])
 ylim([55,80])
+daspect([1 aspect_ratio 1])
 % Already selected coastline points
 run = 2 ;
 for i = 1:1:1
     if run == i 
-        Westgcoast = ginput(8);
+        Westgcoast = ginput(6);
         save ("Westgcoast.mat", "Westgcoast");
     end
 end
@@ -48,9 +48,7 @@ load('Eastgcoast.mat')
 scatter(lon,lat,1,'MarkerFaceColor','b','MarkerEdgeAlpha','0') ;
 plot (Eastgcoast(:,1),Eastgcoast(:,2) ,'r')
 hold off
-
-% Work on simplified coastline (ginput) (Needs to have better coast
-% selection)
+% Work on simplified coastline (ginput) (Not in use, delete eventually)
 clf
 hold on
 plot(cx,cy,'k')
@@ -65,88 +63,89 @@ for i = 1:1:1
     end
 end
 load('SWgcoast.mat')
-scatter(lon,lat,1,'MarkerFaceColor','b','MarkerEdgeAlpha','0') ;
-plot (SWgcoast(:,1),SWgcoast(:,2) ,'r')
-hold off
-% Polybuffer Test (maybe promising? I still run into the same issue with
-% lat lon)
-clf
-figure
-hold on
-poly_buffer = polybuffer(SWgcoast,'lines',0.5,'JointType','miter','MiterLimit',200) ;
-plot(cx,cy,'k')
-plot(poly_buffer)
-xlim([-80,-35])
-ylim([55,80])
-hold off
-clf
-clear('poly_buffer')
-% Creation of Parallelograms on SW Coast
+% Creation of Parallelograms on West Coast
 m = ((SWgcoast(2,2)-SWgcoast(1,2))/(SWgcoast(2,1)-SWgcoast(1,1))) ; %slope of simplified coastline
 width_2 = recwidth ; % for dynamic plot titles
 length_2 = reclength ; % for dynamic plot titles
 recwidth_coast = 10*2 ; % do not change, for defining larger polygon
 reclength_coast = 20*2 ; % do not change, for defining larger polygon
-y_SWcoast = [SWgcoast(2,2),SWgcoast(1,2)] ; 
-x_SWcoast = [SWgcoast(2,1), SWgcoast(1,1)] ; 
-dx = SWgcoast(2,2) - SWgcoast(1,2) ;
-dy = SWgcoast(2,1) - SWgcoast(1,1) ;
+y_SWcoast = [Westgcoast(:,2)] ; 
+x_Wcoast = [Westgcoast(:,1)] ; 
 lengthdeg = km2deg(reclength) ;
 widthdeg_lon = 111.320 .*cosd(lat) ;
 widthdeg_lon = recwidth./widthdeg_lon ;
 widthdeg_coast = recwidth_coast./widthdeg_lon ; % For larger polygon
 lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
-SWwidthdeg = 111.320* cosd(y_SWcoast) ;
-SWwidthdeg = recwidth./SWwidthdeg ;
-SWwidthdeg_coast = 111.320* cosd(y_SWcoast) ;
-SWwidthdeg_coast = recwidth_coast./SWwidthdeg_coast ;
-
+Westwidthdeg = 111.320* cosd(y_SWcoast) ;
+Westwidthdeg = recwidth./Westwidthdeg ;
+Westwidthdeg_coast = 111.320* cosd(y_SWcoast) ;
+Westwidthdeg_coast = recwidth_coast./Westwidthdeg_coast ;
 %% Find Casts within defined area
-x5_SWcoast = x_SWcoast - 5*SWwidthdeg_coast ; % This should not change
-extendecoast = x5_SWcoast - SWwidthdeg; % This will change depending on size of cast boxes
-SW_xcombined = [x5_SWcoast,flip(x_SWcoast)] ; % counterclockwise verticies order
-SW_ycombined = [y_SWcoast,flip(y_SWcoast)] ; % counterclockwise verticies order
-SW_xcombined_coast = [extendecoast,flip(x_SWcoast)] ;
-SWidx= inpolygon(lon,lat, SW_xcombined,SW_ycombined) ; %idx of core coastal area
-SWidx_coast = inpolygon(lon,lat, SW_xcombined_coast,SW_ycombined) ; % idx of extended area
-% Isolate SW variables needs to include 50km+ width casts 
-SW_lon = lon(SWidx) ;
-SW_lat = lat(SWidx) ;
-SW_lon_coast = lon(SWidx_coast) ;
-SW_lat_coast = lat(SWidx_coast) ;
-SW_watdep_coast = watdep(SWidx_coast);
-SW_sal_coast = sal(SWidx_coast);
-SW_temp_coast = temp(SWidx_coast);
-SW_dep_coast = dep(SWidx_coast) ;
-SW_yea_coast = yea(SWidx_coast);
-SW_day_coast = day(SWidx_coast);
-SW_mon_coast = mon(SWidx_coast);
-SW_widthdeg = widthdeg_lon(SWidx) ; 
+x5_Wcoast = x_Wcoast - 5*Westwidthdeg_coast ; % This should not change
+extendecoast = x5_Wcoast - Westwidthdeg; % This will change depending on size of cast boxes
+W_xcombined = [x5_Wcoast,x_Wcoast] ; % counterclockwise verticies order
+W_ycombined = [y_SWcoast,y_SWcoast] ; % counterclockwise verticies order
+W_xcombined_coast = [extendecoast,x_Wcoast] ;
+for i = 1:length(W_xcombined)-1
+    W = [W_xcombined(i+1,1),W_xcombined(i,1),W_xcombined(i,2),W_xcombined(i+1,2)] ;
+    W_x{i} = W ;
+    W = [W_ycombined(i+1,1),W_ycombined(i,1),W_ycombined(i,2),W_ycombined(i+1,2)] ;
+    W_y{i} = W ;
+end
+for i = 1:length(W_xcombined_coast)-1
+    W = [W_xcombined_coast(i+1,1),W_xcombined_coast(i,1),W_xcombined_coast(i,2),W_xcombined_coast(i+1,2)] ;
+    W_x_coast{i} = W ;
+    W = [W_ycombined(i+1,1),W_ycombined(i,1),W_ycombined(i,2),W_ycombined(i+1,2)] ;
+    W_y_coast{i} = W ;
+end
+for i = 1:length(W_xcombined)-1
+    W = inpolygon(lon,lat, W_x{i},W_y{i}) ; %idx of all core coastal areas compartmentalized for individual verticies rotation
+    W_idx{i} = W ;
+end
+ for i = 1:length(W_xcombined)-1
+    W = inpolygon(lon,lat, W_x_coast{i},W_y_coast{i}) ; %idx of all extended coastal areas (not sure if they need to be compartmentalized)
+    W_idx_coast{i} = W ;
+ end
+W_idx_combined = any(cat(3, W_idx{:}), 3); % combined indicies of each compartment
+clear('W','lengthdeg','lengthdegcoast','W_x','W_y','Westgcoast','width','widthdeg_coast','widthdeg_lon')
+%% Isolate W variables needs to include 50km+ width casts 
+W_lon = lon(Widx_combined) ;
+W_lat = lat(Widx_combined) ;
+W_lon_coast = lon(Widx_coast) ;
+W_lat_coast = lat(Widx_coast) ;
+W_watdep_coast = watdep(Widx_coast);
+W_sal_coast = sal(Widx_coast);
+W_temp_coast = temp(Widx_coast);
+W_dep_coast = dep(Widx_coast) ;
+W_yea_coast = yea(Widx_coast);
+W_day_coast = day(Widx_coast);
+W_mon_coast = mon(Widx_coast);
+W_widthdeg = widthdeg_lon(Widx_combined) ; 
 %Plot
 clf
 hold on 
-plot(x_SWcoast,y_SWcoast, 'r')
-plot(x5_SWcoast,y_SWcoast,'r')
+plot(x_Wcoast,y_SWcoast, 'r')
+plot(x5_Wcoast,y_SWcoast,'r')
 plot(cx,cy, 'k')
 xlim([-60,-45])
 ylim([60,70])
-scatter(SW_lon_coast,SW_lat_coast,1,'MarkerFaceColor','b','MarkerEdgeAlpha','0') ;
-scatter(SW_lon,SW_lat,1,'MarkerFaceColor','r','MarkerEdgeAlpha','0') ;
+scatter(W_lon_coast,W_lat_coast,1,'MarkerFaceColor','b','MarkerEdgeAlpha','0') ;
+scatter(W_lon,W_lat,1,'MarkerFaceColor','r','MarkerEdgeAlpha','0') ;
 hold off
 clf
 
 %% Defining parallelogram verticies for casts (length and width need work)
 lengthrad = deg2rad(lengthdeg) ;
-lengthdeg = ones(1,length(SW_widthdeg)).*lengthdeg ;
-widthrad = deg2rad(SW_widthdeg) ;
+lengthdeg = ones(1,length(W_widthdeg)).*lengthdeg ;
+widthrad = deg2rad(W_widthdeg) ;
 half_length = lengthdeg./1.6 ; % mess with the divisibles to get the km right (this is within 1 km after limited testing)
-half_width = SW_widthdeg./3; %  mess with the divisibles to get the km right (this is within 1 km after limited testing)
-for i = 1:numel(SW_lon)
+half_width = W_widthdeg./3; %  mess with the divisibles to get the km right (this is within 1 km after limited testing)
+for i = 1:numel(W_lon)
     % Calculate the coordinates of the vertices
-    vertex1 = [SW_lon(i) - half_width; SW_lat(i) + half_length]; %careful, longitude is negative so watch signs
-    vertex2 = [SW_lon(i) - half_width; SW_lat(i) - half_length];
-    vertex3 = [SW_lon(i) + half_width; SW_lat(i) - half_length];
-    vertex4 = [SW_lon(i) + half_width; SW_lat(i) + half_length];
+    vertex1 = [W_lon(i) - half_width; W_lat(i) + half_length]; %careful, longitude is negative so watch signs
+    vertex2 = [W_lon(i) - half_width; W_lat(i) - half_length];
+    vertex3 = [W_lon(i) + half_width; W_lat(i) - half_length];
+    vertex4 = [W_lon(i) + half_width; W_lat(i) + half_length];
     % Arrange vertices in counterclockwise order
     vertices = [vertex1(:,i), vertex2(:,i), vertex3(:,i), vertex4(:,i)];
     % Store in cell array
@@ -157,37 +156,28 @@ SW_angle = atan2d(dx,dy) ; % degrees
 bearing = SW_angle - 90 ; % find angle in relation to y-axis
 R = [cosd(bearing), -sind(bearing); sind(bearing), cosd(bearing)];
 for i = 1:length(vertices_cell)
-center_x = vertices_cell{i}(1,:) - SW_lon(i);
-center_y = vertices_cell{i}(2,:) - SW_lat(i);
+center_x = vertices_cell{i}(1,:) - W_lon(i);
+center_y = vertices_cell{i}(2,:) - W_lat(i);
 SW_rotated = R * [center_x;center_y] ;
 SW_rotated_cell{i} = SW_rotated ;
-SW_xrotated = SW_rotated_cell{i}(1,:) + SW_lon(i) ;
-SW_yrotated = SW_rotated_cell{i}(2,:) + SW_lat(i) ;
+SW_xrotated = SW_rotated_cell{i}(1,:) + W_lon(i) ;
+SW_yrotated = SW_rotated_cell{i}(2,:) + W_lat(i) ;
 SW_xrotatedcell{i} = SW_xrotated ;
 SW_yrotatedcell{i} = SW_yrotated ;
 SW_rotated_verticies = [SW_xrotatedcell{i};SW_yrotatedcell{i}] ;
 SW_rotvertcell{i} = SW_rotated_verticies ;
 end
-clear('SW_rotated_verticies')
-clear('SW_yrotated')
-clear('SW_xrotated')
-clear('SW_rotated_cell')
-clear('SW_yrotated')
-clear('SW_xrotated')
-clear('SW_yrotatedcell')
-clear('SW_xrotatedcell')
-clear('SW_rotated_cell')
-clear('SW_rotated')
+clear('SW_rotated_verticies','SW_yrotated','SW_xrotated','SW_rotated_cell','SW_yrotated','SW_xrotated','SW_yrotatedcell','SW_xrotatedcell','SW_rotated_cell','SW_rotated')
 %Plot Angled Rectangles
 clf
 hold on
 plot(SW_rotvertcell{1}(1,:),SW_rotvertcell{1}(2,:) )
-scatter(SW_lon(1,1),SW_lat(1,1))
+scatter(W_lon(1,1),W_lat(1,1))
 plot(cx,cy,' k')
 xlim([-60,-45])
 ylim([60,70])
-plot(x_SWcoast,y_SWcoast, 'r')
-plot(x5_SWcoast,y_SWcoast,'r')
+plot(x_Wcoast,y_SWcoast, 'r')
+plot(x5_Wcoast,y_SWcoast,'r')
 hold off
 % Clear Unneeded variables
 clear('vertex1')
@@ -197,12 +187,12 @@ clear('vertex4')
 clear('R')
 % Rectangle Calculations
 % Interpolate every 1 m for the SW coastal region
-max_length = max(cellfun(@numel,SW_dep_coast)) ;
+max_length = max(cellfun(@numel,W_dep_coast)) ;
 DepInterval = (0:1:max_length)';
 run = 2 ; % will rerun interpolated, temp and salinity as well as cast box indicies, when changing box size you need to set to 1
-for i = 1:1:length(SW_dep_coast)
+for i = 1:1:length(W_dep_coast)
     if run == 1 
-        SW_int_temp{1,i} = interp1(SW_dep_coast{1,i},SW_temp_coast{1,i}, DepInterval, 'linear') ;
+        SW_int_temp{1,i} = interp1(W_dep_coast{1,i},W_temp_coast{1,i}, DepInterval, 'linear') ;
     end
 end
 for i = 1:1
@@ -212,9 +202,9 @@ save ("SW_int_temp.mat", "SW_int_temp");
 end
     load('SW_int_temp.mat')
 %Salinity 
-for i = 1:1:length(SW_dep_coast)
+for i = 1:1:length(W_dep_coast)
    if run == 1
-    SW_int_sal{1,i} = interp1(SW_dep_coast{1,i},SW_sal_coast{1,i}, DepInterval, 'linear') ;
+    SW_int_sal{1,i} = interp1(W_dep_coast{1,i},W_sal_coast{1,i}, DepInterval, 'linear') ;
    end
 end
 for i = 1:1
@@ -224,7 +214,7 @@ for i = 1:1
 end
 load('SW_int_sal.mat')
 % Create 15 day indicies regardless of year 
-SW_date = ([SW_yea_coast; SW_mon_coast; SW_day_coast]) ;
+SW_date = ([W_yea_coast; W_mon_coast; W_day_coast]) ;
 SW_date(4,:) = datenum(0,SW_date(2,:),SW_date(3,:));% everything set in the year 0 to make for easy sorting by day and month
 SW_datenum = datenum(0,SW_date(2,:),SW_date(3,:)) ;% everything set in the year 0 to make for easy sorting by day and month
 day_range_2 = day_range*2 ; % For dynamic naming
@@ -242,11 +232,11 @@ clear('middle_idx')
 clear('earlyjan_idx')
 clear('latedec_idx')
 % Create indicies for individual rectangles 
-SW_poly_idxcell = cell(length(SW_lon_coast), 1); % preallocate
+SW_poly_idxcell = cell(length(W_lon_coast), 1); % preallocate
 for i = 1:length(SW_rotvertcell)
-    for j = 1:length(SW_lon_coast)
+    for j = 1:length(W_lon_coast)
         if run == 1 ;
-            SW_poly_idx = inpolygon(SW_lon_coast,SW_lat_coast,SW_rotvertcell{i}(1,:),SW_rotvertcell{i}(2,:)) ; % extended area +core casts that fall into core cast boxes
+            SW_poly_idx = inpolygon(W_lon_coast,W_lat_coast,SW_rotvertcell{i}(1,:),SW_rotvertcell{i}(2,:)) ; % extended area +core casts that fall into core cast boxes
 SW_poly_idxcell{j} = SW_poly_idx ;
     end
     end
@@ -301,11 +291,11 @@ for i = 1:length(SW_poly_idxcell)
     SW_poly_sal_cell{i} = SW_poly_sal ;
 end
 for i = 1:length(SW_poly_idxcell)
-    SW= SW_lon_coast(SW_poly_idxcell{i} & SW_date_idx_cell{i}) ;
+    SW= W_lon_coast(SW_poly_idxcell{i} & SW_date_idx_cell{i}) ;
     SW_poly_lon_cell{i} = SW ;
 end
 for i = 1:length(SW_poly_idxcell)
-    SW= SW_lat_coast(SW_poly_idxcell{i} & SW_date_idx_cell{i}) ;
+    SW= W_lat_coast(SW_poly_idxcell{i} & SW_date_idx_cell{i}) ;
     SW_poly_lat_cell{i} = SW ;
 end
 % Calculate Means
@@ -329,19 +319,19 @@ for i = 1:length(SW_temp_expanded)
     SW_temp_means_cell{i} = SW_means ;
 end
 % Calculate Std Dev
-for i = 1:length(SW_lon)
+for i = 1:length(W_lon)
     SW = cell2mat(SW_poly_temp_cell{i}) ;
     SW_poly_temp_clean{i} = SW ;
 end
-for i = 1:length(SW_lon)
+for i = 1:length(W_lon)
     SW = cell2mat(SW_poly_sal_cell{i}) ;
     SW_poly_sal_clean{i} = SW ; 
 end
-for i = 1:length(SW_lon)
+for i = 1:length(W_lon)
 Std = std(SW_poly_sal_clean{i},0,2,'omitnan') ;
 Std_sal{i} = Std ;
 end
-for i = 1:length(SW_lon)
+for i = 1:length(W_lon)
 Std = std(SW_poly_temp_clean{i},0,2,'omitnan') ;
 Std_temp{i} = Std ;
 end
@@ -399,7 +389,7 @@ clear('yea')
 clear('notempty')
 clear('lengthrad')
 clear('SW_poly_idxcell') % might need this one
-clear('SW_widthdeg')
+clear('W_widthdeg')
 
 %% Statistics
 % Frequency of Counts
@@ -466,13 +456,13 @@ hold off
 clf
 hold on
 scatter(SW_poly_lon_cell{1280},SW_poly_lat_cell{1280},4,'MarkerFaceColor','b','MarkerEdgeAlpha','0')
-scatter(SW_lon(1,1280),SW_lat(1,1280),4,'MarkerFaceColor','r','MarkerEdgeAlpha','0')
+scatter(W_lon(1,1280),W_lat(1,1280),4,'MarkerFaceColor','r','MarkerEdgeAlpha','0')
 plot(SW_rotvertcell{1280}(1,:),SW_rotvertcell{1280}(2,:), 'b' )
 xlim([-80,-35])
 ylim([55,80])
 plot(cx,cy, 'k')
-plot(x_SWcoast,y_SWcoast, 'r')
-plot(x5_SWcoast,y_SWcoast,'r')
+plot(x_Wcoast,y_SWcoast, 'r')
+plot(x5_Wcoast,y_SWcoast,'r')
 hold off
 
 % Open Ocean Casts (will need to make to loop, this is just an example)
