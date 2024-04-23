@@ -22,7 +22,7 @@ daspect([1 aspect_ratio 1])
 run = 2 ;
 for i = 1:1:1
     if run == i 
-        Westgcoast = ginput(6);
+        Westgcoast = ginput(5);
         save ("Westgcoast.mat", "Westgcoast");
     end
 end
@@ -53,9 +53,9 @@ plot(cx,cy,'k')
 xlim([-80,-35])
 ylim([55,80])
 % South Facing Coasts (manually define 0 compartment to connect west to
-% east
-Southgcoast = ([-44.9923,59.8683;-43.1674,59.9004]) ;
-% Already selected coastline points
+% east Facing
+Southgcoast = ([Westgcoast(1,1),Westgcoast(1,2);Eastgcoast(1,1),Eastgcoast(1,2)]) ;
+% Already selected coastline points (delete eventually)
 run = 2 ;
 for i = 1:1:1
     if run == i 
@@ -124,39 +124,53 @@ end
 W_idx_combined = any(cat(3, W_idx{:}), 3); % combined indicies of each compartment (will be used for a unified coastal idx)
 % Eastern Facing Coasts
 
-clear('W','lengthdeg','lengthdegcoast','W_x','W_y','width','widthdeg_coast','widthdeg_lon')
-%% Isolate W variables needs to include 50km+ width casts 
-W_lon = lon(Widx_combined) ;
-W_lat = lat(Widx_combined) ;
-W_lon_coast = lon(Widx_coast) ;
-W_lat_coast = lat(Widx_coast) ;
-W_watdep_coast = watdep(Widx_coast);
-W_sal_coast = sal(Widx_coast);
-W_temp_coast = temp(Widx_coast);
-W_dep_coast = dep(Widx_coast) ;
-W_yea_coast = yea(Widx_coast);
-W_day_coast = day(Widx_coast);
-W_mon_coast = mon(Widx_coast);
-W_widthdeg = widthdeg_lon(Widx_combined) ; 
-%Plot
-clf
-hold on 
-plot(x_Wcoast,y_SWcoast, 'r')
-plot(x5_Wcoast,y_SWcoast,'r')
-plot(cx,cy, 'k')
-xlim([-60,-45])
-ylim([60,70])
-scatter(W_lon_coast,W_lat_coast,1,'MarkerFaceColor','b','MarkerEdgeAlpha','0') ;
-scatter(W_lon,W_lat,1,'MarkerFaceColor','r','MarkerEdgeAlpha','0') ;
-hold off
-clf
-
-%% Defining parallelogram verticies for casts (length and width need work)
+%Gap Coasts (intebetween methods)
+Gap_plus = ([x5_Wcoast(1,1),Westgcoast(1,2);Southgcoast(1,1),y5_Scoast(1,1)]) ;
+Gap_minus = ([Southgcoast(2,1),y5_Scoast(2,1);x5_Ecoast(1,1),Eastgcoast(1,2)]) ;
+clear('W','lengthdegcoast','W_x','W_y','width','widthdeg_coast')
+%% Isolate W variables Lat and Lon for each compartment (Finish this later)
+for i = 1:length(W_idx)
+    W = lon(W_idx{i}) ;
+W_lon{i} = W ;
+    W = lat(W_idx{i}) ;
+W_lat{i} = W ;
+end
+%Extended Coast Variables (might be easier to just make a variable with all
+%data contained within?
+for i = 1:length(W_idx_coast)
+    W = lon(W_idx_coast{i}) ;
+W_lon_coast{i} = W ;
+    W = lat(W_idx_coast{i}) ;
+W_lat_coast{i} = W ;
+    W = sal(W_idx_coast{i}) ;
+W_sal_coast{i} = W ;
+    W = temp(W_idx_coast{i}) ;
+W_temp_coast{i} = W ;
+    W = dep(W_idx_coast{i}) ;
+W_dep_coast{i} = W ;
+    W = yea(W_idx_coast{i});
+W_yea_coast{i} = W ;
+    W = day(W_idx_coast{i});
+W_day_coast{i} = W ;
+    W = mon(W_idx_coast{i}) ;
+W_mon_coast{i} = W ;
+    W = widthdeg_lon(W_idx_coast{i}) ;
+W_widthdeg{i} = W ;
+    W =  watdep(W_idx_coast{i});
+W_watdep_coast{i} = W ; 
+end
+clear('W')
+%% Defining parallelogram verticies for casts (length and width need work) (working on now)
 lengthrad = deg2rad(lengthdeg) ;
 lengthdeg = ones(1,length(W_widthdeg)).*lengthdeg ;
-widthrad = deg2rad(W_widthdeg) ;
+
 half_length = lengthdeg./1.6 ; % mess with the divisibles to get the km right (this is within 1 km after limited testing)
-half_width = W_widthdeg./3; %  mess with the divisibles to get the km right (this is within 1 km after limited testing)
+for i = 1:length(W_widthdeg)
+W = W_widthdeg{i}./3; %  mess with the divisibles to get the km right (this is within 1 km after limited testing)
+half_width{i} = W ;
+end
+%ENDED HERE NEED TO CREATE DIFFERENT VERTICIES DISTANCE DEPENDENT ON
+%COMPARTMENT
 for i = 1:numel(W_lon)
     % Calculate the coordinates of the vertices
     vertex1 = [W_lon(i) - half_width; W_lat(i) + half_length]; %careful, longitude is negative so watch signs
