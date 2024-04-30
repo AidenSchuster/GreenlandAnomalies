@@ -70,22 +70,24 @@ width_2 = recwidth ; % for dynamic plot titles
 length_2 = reclength ; % for dynamic plot titles
 recwidth_coast = 10*2 ; % do not change, for defining larger polygon
 reclength_coast = 20*2 ; % do not change, for defining larger polygon
-y_SWcoast = [Westgcoast(:,2)] ; 
+y_Wcoast = [Westgcoast(:,2)] ; 
 x_Wcoast = [Westgcoast(:,1)] ; 
 lengthdeg = km2deg(reclength) ;
 widthdeg_lon = 111.120 .*cosd(lat) ;
 widthdeg_lon = recwidth./widthdeg_lon ;
 widthdeg_coast = recwidth_coast./widthdeg_lon ; % For larger polygon
 lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
-Westwidthdeg = 111.120* cosd(y_SWcoast) ;
+Westwidthdeg = 111.120* cosd(x_Wcoast) ;
 Westwidthdeg = recwidth./Westwidthdeg ;
-Westwidthdeg_coast = 111.320* cosd(y_SWcoast) ;
+Westwidthdeg_coast = 111.320* cosd(x_Wcoast) ;
 Westwidthdeg_coast = recwidth_coast./Westwidthdeg_coast ;
 % East
-Eastwidthdeg = 111.120* cosd(Eastgcoast(:,2)) ;
-Eastwidthdeg = recwidth./Eastwidthdeg ;
-Eastwidthdeg_coast = 111.120* cosd(Eastgcoast(:,2)) ;
-Eastwidthdeg_coast = recwidth_coast./Eastwidthdeg_coast ;
+y_Ecoast = [Eastgcoast(:,2)] ; 
+x_Ecoast = [Eastgcoast(:,1)] ; 
+E_widthdeg = 111.120* cosd(Eastgcoast(:,2)) ;
+E_widthdeg = recwidth./E_widthdeg ;
+E_widthdeg_coast = 111.120* cosd(Eastgcoast(:,2)) ;
+E_widthdeg_coast = recwidth_coast./E_widthdeg_coast ;
 % South
 Southlengthdeg = 111.120*Southgcoast(:,2) ;
 Southlengthdeg = recwidth_coast./Southlengthdeg ;
@@ -93,13 +95,17 @@ Southlengthdeg_coast = recwidth_coast*(1/111.120) ;
 %% Find Casts within defined area
 % Western Facing Coasts
 x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
-x5_Ecoast = Eastgcoast(:,1) + (5*Eastwidthdeg_coast)/2 ;
+x5_Ecoast = Eastgcoast(:,1) + (5*E_widthdeg_coast)/2 ;
 y5_Scoast = Southgcoast(:,2) - (5*Southlengthdeg_coast)/2 ;
 extendedcoast_W = x5_Wcoast - (Westwidthdeg)/2; % This will change depending on size of cast boxes
-extendedcoast_E = x5_Ecoast + (Eastwidthdeg)/2;
+extendedcoast_E = x5_Ecoast + (E_widthdeg)/2;
 extendedcoast_S = y5_Scoast - (Southlengthdeg_coast)/2 ;
 W_xcombined = [x5_Wcoast,x_Wcoast] ; % counterclockwise verticies order
-W_ycombined = [y_SWcoast,y_SWcoast] ; % counterclockwise verticies order
+W_ycombined = [y_Wcoast,y_Wcoast] ; % counterclockwise verticies order
+E_xcombined = [x5_Ecoast', x_Ecoast'];
+E_x ={E_xcombined} ;
+E_ycombined = [y_Ecoast',y_Ecoast'] ;
+E_y = {E_ycombined} ;
 W_xcombined_coast = [extendedcoast_W,x_Wcoast] ;
 for i = 1:length(W_xcombined)-1
     W = [W_xcombined(i+1,1),W_xcombined(i,1),W_xcombined(i,2),W_xcombined(i+1,2)] ;
@@ -123,17 +129,29 @@ end
  end
 W_idx_combined = any(cat(3, W_idx{:}), 3); % combined indicies of each compartment (will be used for a unified coastal idx)
 % Eastern Facing Coasts
-
+for i = 1:length(E_x)-1
+E_idx = inpolygon(lon,lat, E_x{i},E_y{i}) ; %idx of all core coastal areas compartmentalized for individual verticies rotation
+end
 %Gap Coasts (intebetween methods)
 Gap_plus = ([x5_Wcoast(1,1),Westgcoast(1,2);Southgcoast(1,1),y5_Scoast(1,1)]) ;
 Gap_minus = ([Southgcoast(2,1),y5_Scoast(2,1);x5_Ecoast(1,1),Eastgcoast(1,2)]) ;
 clear('W','lengthdegcoast','W_x','W_y','width','widthdeg_coast')
-%% Isolate W variables Lat and Lon for each compartment (Finish this later)
+%% Isolate variables Lat and Lon for each compartment (Finish this later)
 for i = 1:length(W_idx)
     W = lon(W_idx{i}) ;
 W_lon{i} = W ;
     W = lat(W_idx{i}) ;
 W_lat{i} = W ;
+W = widthdeg_lon(W_idx{i}) ;
+W_widthdeg{i} = W ;
+end
+for i = 1:length(E_idx)
+    E = lon(E_idx{i}) ;
+E_lon{i} = E ;
+    E = lat(E_idx{i}) ;
+E_lat{i} = E ;
+E = widthdeg_lon(E_idx{i}) ;
+E_widthdeg{i} = E ;
 end
 %Extended Coast Variables (might be easier to just make a variable with all
 %data contained within?
@@ -154,8 +172,6 @@ W_yea_coast{i} = W ;
 W_day_coast{i} = W ;
     W = mon(W_idx_coast{i}) ;
 W_mon_coast{i} = W ;
-    W = widthdeg_lon(W_idx_coast{i}) ;
-W_widthdeg{i} = W ;
     W =  watdep(W_idx_coast{i});
 W_watdep_coast{i} = W ; 
 end
@@ -163,20 +179,36 @@ clear('W')
 %% Defining parallelogram verticies for casts (length and width need work) (working on now)
 lengthrad = deg2rad(lengthdeg) ;
 lengthdeg = ones(1,length(W_widthdeg)).*lengthdeg ;
-
 half_length = lengthdeg./1.6 ; % mess with the divisibles to get the km right (this is within 1 km after limited testing)
+% West half widths
 for i = 1:length(W_widthdeg)
 W = W_widthdeg{i}./3; %  mess with the divisibles to get the km right (this is within 1 km after limited testing)
-half_width{i} = W ;
+W_half_width{i} = W ;
 end
-%ENDED HERE NEED TO CREATE DIFFERENT VERTICIES DISTANCE DEPENDENT ON
-%COMPARTMENT
+% East Half Widths
+for i = 1:length(E_widthdeg)
+E = E_widthdeg./3; %  mess with the divisibles to get the km right (this is within 1 km after limited testing)
+E_half_width = E ;
+end
+% South Half Width
+
+% West Compartments (-longitude)
 for i = 1:numel(W_lon)
     % Calculate the coordinates of the vertices
-    vertex1 = [W_lon(i) - half_width; W_lat(i) + half_length]; %careful, longitude is negative so watch signs
-    vertex2 = [W_lon(i) - half_width; W_lat(i) - half_length];
-    vertex3 = [W_lon(i) + half_width; W_lat(i) - half_length];
-    vertex4 = [W_lon(i) + half_width; W_lat(i) + half_length];
+    W_vertex1 = [W_lon{i} - W_half_width{i}; W_lat{i} + half_length(i)]; %careful, longitude is negative so watch signs
+    W_vertex2 = [W_lon{i} - W_half_width{i}; W_lat{i} - half_length(i)];
+    W_vertex3 = [W_lon{i} + W_half_width{i}; W_lat{i} - half_length(i)];
+    W_vertex4 = [W_lon{i} + W_half_width{i}; W_lat{i} + half_length(i)];
+end
+%East Compartment
+for i = 1:numel(E_lon)
+    % Calculate the coordinates of the vertices
+    W_vertex1 = [W_lon{i} - W_half_width{i}; W_lat{i} + half_length(i)]; %careful, longitude is negative so watch signs
+    W_vertex2 = [W_lon{i} - W_half_width{i}; W_lat{i} - half_length(i)];
+    W_vertex3 = [W_lon{i} + W_half_width{i}; W_lat{i} - half_length(i)];
+    W_vertex4 = [W_lon{i} + W_half_width{i}; W_lat{i} + half_length(i)];
+end
+for i= 1:1:1 % needs to be changed ---------------------------------------------------------------------------------------------------------------------------------------
     % Arrange vertices in counterclockwise order
     vertices = [vertex1(:,i), vertex2(:,i), vertex3(:,i), vertex4(:,i)];
     % Store in cell array
@@ -199,17 +231,6 @@ SW_rotated_verticies = [SW_xrotatedcell{i};SW_yrotatedcell{i}] ;
 SW_rotvertcell{i} = SW_rotated_verticies ;
 end
 clear('SW_rotated_verticies','SW_yrotated','SW_xrotated','SW_rotated_cell','SW_yrotated','SW_xrotated','SW_yrotatedcell','SW_xrotatedcell','SW_rotated_cell','SW_rotated')
-%Plot Angled Rectangles
-clf
-hold on
-plot(SW_rotvertcell{1}(1,:),SW_rotvertcell{1}(2,:) )
-scatter(W_lon(1,1),W_lat(1,1))
-plot(cx,cy,' k')
-xlim([-60,-45])
-ylim([60,70])
-plot(x_Wcoast,y_SWcoast, 'r')
-plot(x5_Wcoast,y_SWcoast,'r')
-hold off
 % Clear Unneeded variables
 clear('vertex1')
 clear('vertex2')
@@ -410,7 +431,7 @@ clear('Depth_obs')
 clear('dx')
 clear('dy')
 clear('half_length')
-clear('half_width')
+clear('W_half_width')
 clear('insidearray')
 clear('lengthdeg')
 clear('lengthdeg_coast')
