@@ -89,9 +89,82 @@ E_widthdeg = recwidth./E_widthdeg ;
 E_widthdeg_coast = 111.120* cosd(Eastgcoast(:,2)) ;
 E_widthdeg_coast = recwidth_coast./E_widthdeg_coast ;
 % South
+y_Scoast = [Southgcoast(:,2)] ; 
+x_Scoast = [Southgcoast(:,1)] ;
 Southlengthdeg = 111.120*Southgcoast(:,2) ;
 Southlengthdeg = recwidth_coast./Southlengthdeg ;
 Southlengthdeg_coast = recwidth_coast*(1/111.120) ;
+%% Slope Equations for Coastlines
+%West
+for i = 1:length(x_Wcoast)-1
+W = (y_Wcoast(i+1,1)-y_Wcoast(i,1))/(x_Wcoast(i+1,1)-x_Wcoast(i,1)) ;
+slope_W{i} = W ;
+inverse_W{i} = -1/W ;
+W = y_Wcoast(i,1)-slope_W{i}*x_Wcoast(i,1) ; 
+intercept_W{i} = W ;
+end
+clear('W')
+%East
+for i = 1:length(x_Ecoast)-1
+E = (y_Ecoast(i+1,1)-y_Ecoast(i,1))/(x_Ecoast(i+1,1)-x_Ecoast(i,1)) ;
+slope_E{i} = E ;
+inverse_E{i} = -1/E ;
+E = y_Ecoast(i,1)-slope_E{i}*x_Ecoast(i,1) ; 
+intercept_E{i} = E ;
+end
+%South
+for i = 1:length(x_Scoast)-1
+S = (y_Scoast(i+1,1)-y_Scoast(i,1))/(x_Scoast(i+1,1)-x_Scoast(i,1)) ;
+slope_S{i} = S ;
+inverse_S{i} = -1/S ;
+S = y_Scoast(i,1)-slope_S{i}*x_Scoast(i,1) ; 
+intercept_S{i} = S ;
+end
+% create points along lines
+dist = 2.5 ; 
+num_points = 1000 ; 
+% West
+for i = 1:length(x_Wcoast)-1
+W = linspace(x_Wcoast(i,1), x_Wcoast(i,1) - dist, num_points); % minus longitude for western facing coasts
+x_perp_W{i} = W ; 
+W =  inverse_W{i} * (x_perp_W{i} - x_Wcoast(i,1)) + y_Wcoast(i,1);
+y_perp_W{i} = W ;
+end
+for i = 1:length(x_Wcoast)-1
+    for j = 2:length(x_Wcoast)
+W = linspace(x_Wcoast(i+1,1), x_Wcoast(i+1,1) - dist, num_points); % minus longitude for western facing coasts
+x_perp_W2{i} = W ; 
+W =  inverse_W{i} * (x_perp_W2{i} - x_Wcoast(i+1,1)) + y_Wcoast(i+1,1);
+y_perp_W2{i} = W ;
+    end
+end
+%East
+for i = 1:length(x_Ecoast)-1
+E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) + dist, num_points); % minus longitude for western facing coasts
+x_perp_E{i} = E ; 
+E =  inverse_E{i} * (x_perp_E{i} - x_Ecoast(i,1)) + y_Ecoast(i,1);
+y_perp_E{i} = E ;
+end
+for i = 1:length(x_Ecoast)-1
+E = linspace(x_Ecoast(i+1,1), x_Ecoast(i+1,1) + dist, num_points); % minus longitude for western facing coasts
+x_perp_E2{i} = E ; 
+E =  inverse_E{i} * (x_perp_E2{i} - x_Ecoast(i+1,1)) + y_Ecoast(i+1,1);
+y_perp_E2{i} = E ;
+end
+%South
+for i = 1:length(x_Scoast)-1
+S = linspace(x_Scoast(i,1), x_Scoast(i,1) + dist/10, num_points); % minus longitude for western facing coasts
+x_perp_S{i} = S ; 
+S =  inverse_S{i} * (x_perp_S{i} - x_Scoast(i,1)) + y_Scoast(i,1);
+y_perp_S{i} = S ;
+end
+for i = 1:length(x_Scoast)-1
+S = linspace(x_Scoast(i+1,1), x_Scoast(i+1,1) + dist/10, num_points); % minus longitude for western facing coasts
+x_perp_S2{i} = S ; 
+S =  inverse_S{i} * (x_perp_S2{i} - x_Scoast(i+1,1)) + y_Scoast(i+1,1);
+y_perp_S2{i} = S ;
+end
+clear('W','E','S')
 %% Find Casts within defined area
 % Western Facing Coasts
 x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
