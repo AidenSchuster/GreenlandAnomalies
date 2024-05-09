@@ -1,3 +1,14 @@
+% Plot coastline
+clf
+hold on
+plot(cx,cy,'k')
+scatter(lon,lat,3,'MarkerFaceColor','g','MarkerEdgeAlpha','.05')
+xlim([-80,-35])
+ylim([55,80])
+daspect([1 aspect_ratio 1])
+plot(x_coast,y_coast,'r')
+hold off
+%%
 % Plot Script 
 %Plot Coast Line With extended area
 clf
@@ -46,12 +57,12 @@ hold off
 %% Plot bodged coastlines
 clf
 hold on
-
+daspect([1 aspect_ratio 1])
 plot(cx,cy,'k')
 scatter(lon,lat,3,'MarkerFaceColor','g','MarkerEdgeAlpha','.05')
 xlim([-80,-35])
 ylim([55,80])
-plot(Westgcoast(:,1),Westgcoast(:,2),'r')
+plot(x_Wcoast,y_Wcoast,'r')
 plot(x_perp_W{1},y_perp_W{1},'r')
 plot(x_perp_W{2},y_perp_W{2},'r')
 plot(x_perp_W{3},y_perp_W{3},'r')
@@ -60,10 +71,7 @@ plot(x_perp_W2{1},y_perp_W2{1},'r')
 plot(x_perp_W2{2},y_perp_W2{2},'r')
 plot(x_perp_W2{3},y_perp_W2{3},'r')
 plot(x_perp_W2{4},y_perp_W2{4},'r')
-plot(Eastgcoast(:,1),Eastgcoast(:,2),'b')
+plot(x_Ecoast,y_Ecoast,'b')
 plot(x_perp_E{1},y_perp_E{1},'b')
 plot(x_perp_E2{1},y_perp_E2{1},'b')
-plot(Southgcoast(:,1),Southgcoast(:,2),'k')
-plot(x_perp_S{1},y_perp_S{1},'k')
-plot(x_perp_S2{1},y_perp_S2{1},'k')
 hold off
