@@ -2,6 +2,8 @@
 cd('C:\Users\ajs82292\Desktop\Research\Matlab\Source') ;
 addpath('seawater','C:\Users\ajs82292\Desktop\Research\Matlab\Source\seawater') ;
 load("02cleanNODC.mat")
+load("x_coast.mat")
+load("y_coast.mat")
 %% Commonly Changed Variables for box size and day interval (set run to one
 % below if changing rectangle size)
 recwidth = 10*2 ; % km doubled as it is 10 "radius" Change value for different sized cast boxes
@@ -9,91 +11,67 @@ reclength = 20*2 ; % km doubled as it is 20 "radius" Change value for different 
 day_range = 15 ; % adjust this as needed, actual day range is 2*number listed
 radius = 20 ; % km circle for opean ocean
 min_count = 4 ; % the minimum # of data points needed in order to plot the statistics of a cast (std dev, anomalies ect.)
-
-%% Defining West Coast of Greenland (does not include vertical sections
 aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
+%% Defining Coastlines (need to deliniate between west and east facing later on
+run = 2 ;
+for i = 1:1:1
+    if run == 1
 clf
 hold on
 plot(cx,cy,'k')
-xlim([-80,-35])
-ylim([55,80])
+xlim([-75,-37])
+ylim([59,77])
 daspect([1 aspect_ratio 1])
-% West Facing
-run = 2 ;
-for i = 1:1:1
-    if run == i 
-        Westgcoast = ginput(5);
-        save ("Westgcoast.mat", "Westgcoast");
+x_coast = [];
+y_coast = [];
+run = true;
+while run
+    [x, y, button] = ginput(1);
+    if isempty(button) || button == 13
+        run = false;
+    else
+        plot(x, y, 'ro'); % Plot the point
+        xlim([x-3, x+3])
+        ylim([y-3, y+3])
+        x_coast = [x_coast; x];
+        y_coast = [y_coast; y];
     end
 end
-load('Westgcoast.mat')
-scatter(lon,lat,1,'MarkerFaceColor','b','MarkerEdgeAlpha','0') ;
-plot (Westgcoast(:,1),Westgcoast(:,2) ,'r')
-daspect([1 aspect_ratio 1])
-hold off
-%East Coast (need to match the coordinates of west and east in the middle)
-clf
-hold on
-plot(cx,cy,'k')
-xlim([-80,-35])
-ylim([55,80])
-daspect([1 aspect_ratio 1])
-run = 2 ;
-for i = 1:1:1
-    if run == i 
-        Eastgcoast = ginput(2);
-        save ("Eastgcoast.mat", "Eastgcoast");
+save("x_coast.mat","x_coast")
+save("y_coast.mat","y_coast")
+load("x_coast.mat")
+load("y_coast.mat")
     end
 end
-load('Eastgcoast.mat')
-% Work on simplified coastline (ginput) (Not in use, delete eventually)
-clf
-hold on
-plot(cx,cy,'k')
-xlim([-80,-35])
-ylim([55,80])
-% South Facing Coasts (manually define 0 compartment to connect west to
-% east Facing
-Southgcoast = ([Westgcoast(1,1),Westgcoast(1,2);Eastgcoast(1,1),Eastgcoast(1,2)]) ;
-% Already selected coastline points (delete eventually)
-run = 2 ;
-for i = 1:1:1
-    if run == i 
-        SWgcoast = ginput(2);
-        save ("SWgcoast.mat", "SWgcoast");
-    end
-end
-load('SWgcoast.mat')
+clear('x','y','button')
+%%
+% Split into West/East Facing coastlines
+West_East = -43.947 ; % longitude divider for West and East Facing coasts (need to update with changes to coastline)
+Ecoast_idx = x_coast >= West_East ;
+Wcoast_idx = x_coast <= West_East ;
+x_Ecoast = x_coast(Ecoast_idx) ;
+y_Ecoast = y_coast(Ecoast_idx) ;
+x_Wcoast = x_coast(Wcoast_idx) ;
+y_Wcoast = y_coast(Wcoast_idx) ;    
 % Creation of Parallelograms on West facing Coast
-m = ((SWgcoast(2,2)-SWgcoast(1,2))/(SWgcoast(2,1)-SWgcoast(1,1))) ; %slope of simplified coastline
 width_2 = recwidth ; % for dynamic plot titles
 length_2 = reclength ; % for dynamic plot titles
 recwidth_coast = 10*2 ; % do not change, for defining larger polygon
 reclength_coast = 20*2 ; % do not change, for defining larger polygon
-y_Wcoast = [Westgcoast(:,2)] ; 
-x_Wcoast = [Westgcoast(:,1)] ; 
 lengthdeg = km2deg(reclength) ;
 widthdeg_lon = 111.120 .*cosd(lat) ;
 widthdeg_lon = recwidth./widthdeg_lon ;
 widthdeg_coast = recwidth_coast./widthdeg_lon ; % For larger polygon
 lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
-Westwidthdeg = 111.120* cosd(x_Wcoast) ;
+Westwidthdeg = 111.120* cosd(y_Wcoast) ;
 Westwidthdeg = recwidth./Westwidthdeg ;
 Westwidthdeg_coast = 111.320* cosd(x_Wcoast) ;
 Westwidthdeg_coast = recwidth_coast./Westwidthdeg_coast ;
 % East
-y_Ecoast = [Eastgcoast(:,2)] ; 
-x_Ecoast = [Eastgcoast(:,1)] ; 
-E_widthdeg = 111.120* cosd(Eastgcoast(:,2)) ;
+E_widthdeg = 111.120* cosd(y_Ecoast) ;
 E_widthdeg = recwidth./E_widthdeg ;
-E_widthdeg_coast = 111.120* cosd(Eastgcoast(:,2)) ;
+E_widthdeg_coast = 111.120* cosd(y_Ecoast) ;
 E_widthdeg_coast = recwidth_coast./E_widthdeg_coast ;
-% South
-y_Scoast = [Southgcoast(:,2)] ; 
-x_Scoast = [Southgcoast(:,1)] ;
-Southlengthdeg = 111.120*Southgcoast(:,2) ;
-Southlengthdeg = recwidth_coast./Southlengthdeg ;
-Southlengthdeg_coast = recwidth_coast*(1/111.120) ;
 %% Slope Equations for Coastlines
 %West
 for i = 1:length(x_Wcoast)-1
@@ -111,14 +89,6 @@ slope_E{i} = E ;
 inverse_E{i} = -1/E ;
 E = y_Ecoast(i,1)-slope_E{i}*x_Ecoast(i,1) ; 
 intercept_E{i} = E ;
-end
-%South
-for i = 1:length(x_Scoast)-1
-S = (y_Scoast(i+1,1)-y_Scoast(i,1))/(x_Scoast(i+1,1)-x_Scoast(i,1)) ;
-slope_S{i} = S ;
-inverse_S{i} = -1/S ;
-S = y_Scoast(i,1)-slope_S{i}*x_Scoast(i,1) ; 
-intercept_S{i} = S ;
 end
 % create points along lines
 dist = 2.5 ; 
@@ -151,20 +121,7 @@ x_perp_E2{i} = E ;
 E =  inverse_E{i} * (x_perp_E2{i} - x_Ecoast(i+1,1)) + y_Ecoast(i+1,1);
 y_perp_E2{i} = E ;
 end
-%South
-for i = 1:length(x_Scoast)-1
-S = linspace(x_Scoast(i,1), x_Scoast(i,1) + dist/10, num_points); % minus longitude for western facing coasts
-x_perp_S{i} = S ; 
-S =  inverse_S{i} * (x_perp_S{i} - x_Scoast(i,1)) + y_Scoast(i,1);
-y_perp_S{i} = S ;
-end
-for i = 1:length(x_Scoast)-1
-S = linspace(x_Scoast(i+1,1), x_Scoast(i+1,1) + dist/10, num_points); % minus longitude for western facing coasts
-x_perp_S2{i} = S ; 
-S =  inverse_S{i} * (x_perp_S2{i} - x_Scoast(i+1,1)) + y_Scoast(i+1,1);
-y_perp_S2{i} = S ;
-end
-clear('W','E','S')
+clear('W','E')
 %% Find Casts within defined area
 % Western Facing Coasts
 x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
