@@ -45,14 +45,26 @@ load("y_coast.mat")
 end
 clear('x','y','button')
 %%
+% West and East facing coasts bases on slope
+for i = 1:length(x_coast)-1
+W = (y_coast(i+1,1)-y_coast(i,1))/(x_coast(i+1,1)-x_coast(i,1)) ;
+slope(i,1) = W ;
+inverse(i,1) = -1/W ;
+W = y_coast(i,1)-slope(i)*x_coast(i,1) ; 
+intercept(i,1 ) = W ;
+end
+clear('W')
 % Split into West/East Facing coastlines
-West_East = -43.947 ; % longitude divider for West and East Facing coasts (need to update with changes to coastline)
-Ecoast_idx = x_coast >= West_East ;
-Wcoast_idx = x_coast <= West_East ;
+Ecoast_idx = slope >= 0 ;
+Wcoast_idx = slope <= 0 ;
 x_Ecoast = x_coast(Ecoast_idx) ;
 y_Ecoast = y_coast(Ecoast_idx) ;
 x_Wcoast = x_coast(Wcoast_idx) ;
-y_Wcoast = y_coast(Wcoast_idx) ;    
+y_Wcoast = y_coast(Wcoast_idx) ;
+slope_w = slope(Wcoast_idx) ;
+inverse_W = inverse(Wcoast_idx) ;
+slope_E = slope(Ecoast_idx) ;
+inverse_E = inverse(Ecoast_idx) ;
 % Creation of Parallelograms on West facing Coast
 width_2 = recwidth ; % for dynamic plot titles
 length_2 = reclength ; % for dynamic plot titles
@@ -72,56 +84,62 @@ E_widthdeg = 111.120* cosd(y_Ecoast) ;
 E_widthdeg = recwidth./E_widthdeg ;
 E_widthdeg_coast = 111.120* cosd(y_Ecoast) ;
 E_widthdeg_coast = recwidth_coast./E_widthdeg_coast ;
-%% Slope Equations for Coastlines
-%West
-for i = 1:length(x_Wcoast)-1
-W = (y_Wcoast(i+1,1)-y_Wcoast(i,1))/(x_Wcoast(i+1,1)-x_Wcoast(i,1)) ;
-slope_W{i} = W ;
-inverse_W{i} = -1/W ;
-W = y_Wcoast(i,1)-slope_W{i}*x_Wcoast(i,1) ; 
-intercept_W{i} = W ;
-end
-clear('W')
-%East
-for i = 1:length(x_Ecoast)-1
-E = (y_Ecoast(i+1,1)-y_Ecoast(i,1))/(x_Ecoast(i+1,1)-x_Ecoast(i,1)) ;
-slope_E{i} = E ;
-inverse_E{i} = -1/E ;
-E = y_Ecoast(i,1)-slope_E{i}*x_Ecoast(i,1) ; 
-intercept_E{i} = E ;
-end
+%%
 % create points along lines
 dist = 2.5 ; 
 num_points = 1000 ; 
 % West
 for i = 1:length(x_Wcoast)-1
 W = linspace(x_Wcoast(i,1), x_Wcoast(i,1) - dist, num_points); % minus longitude for western facing coasts
-x_perp_W{i} = W ; 
-W =  inverse_W{i} * (x_perp_W{i} - x_Wcoast(i,1)) + y_Wcoast(i,1);
-y_perp_W{i} = W ;
+x_perp_W{i,1} = W' ; 
+W =  inverse_W(i) * (x_perp_W{i} - x_Wcoast(i,1)) + y_Wcoast(i,1);
+y_perp_W{i,1} = W ;
 end
 for i = 1:length(x_Wcoast)-1
     for j = 2:length(x_Wcoast)
 W = linspace(x_Wcoast(i+1,1), x_Wcoast(i+1,1) - dist, num_points); % minus longitude for western facing coasts
-x_perp_W2{i} = W ; 
-W =  inverse_W{i} * (x_perp_W2{i} - x_Wcoast(i+1,1)) + y_Wcoast(i+1,1);
-y_perp_W2{i} = W ;
+x_perp_W2{i} = W' ; 
+W =  inverse_W(i) * (x_perp_W2{i} - x_Wcoast(i+1,1)) + y_Wcoast(i+1,1);
+y_perp_W2{i,1} = W ;
     end
 end
 %East
 for i = 1:length(x_Ecoast)-1
 E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) + dist, num_points); % minus longitude for western facing coasts
-x_perp_E{i} = E ; 
-E =  inverse_E{i} * (x_perp_E{i} - x_Ecoast(i,1)) + y_Ecoast(i,1);
-y_perp_E{i} = E ;
+x_perp_E{i} = E' ; 
+E =  inverse_E(i) * (x_perp_E{i} - x_Ecoast(i,1)) + y_Ecoast(i,1);
+y_perp_E{i,1} = E ;
 end
 for i = 1:length(x_Ecoast)-1
 E = linspace(x_Ecoast(i+1,1), x_Ecoast(i+1,1) + dist, num_points); % minus longitude for western facing coasts
-x_perp_E2{i} = E ; 
-E =  inverse_E{i} * (x_perp_E2{i} - x_Ecoast(i+1,1)) + y_Ecoast(i+1,1);
-y_perp_E2{i} = E ;
+x_perp_E2{i,1} = E' ; 
+E =  inverse_E(i) * (x_perp_E2{i} - x_Ecoast(i+1,1)) + y_Ecoast(i+1,1);
+y_perp_E2{i,1} = E ;
 end
 clear('W','E')
+%% 
+% SW dist to limit coastal area (not done, only have one point, need
+% distances for every single coastline point)
+for i = 1:length(x_perp_W)
+ref_Wx = [x_perp_W{i},repmat(x_Wcoast(i,1),1000,1)];
+ref_Wy = [y_perp_W{i},repmat(y_Wcoast(i,1),1000,1)];
+ref_W2x = [x_perp_W2{i},repmat(x_Wcoast(i,1),1000,1)];
+ref_W2y = [y_perp_W2{i},repmat(y_Wcoast(i,1),1000,1)];
+end
+for i = 1:length(x_perp_E)
+ref_Ex = [x_perp_E{i},repmat(x_Ecoast(i,1),1000,1)];
+ref_Ey = [y_perp_E{i},repmat(y_Ecoast(i,1),1000,1)];
+ref_E2x = [x_perp_E2{i},repmat(x_Ecoast(i,1),1000,1)];
+ref_E2y = [y_perp_E2{i},repmat(y_Ecoast(i,1),1000,1)];
+end
+% need to do W2,E,E2 as well
+for i = 1:1:length(ref_Wy)
+    W_dist(i,1) = sw_dist(ref_Wx(i,:),ref_Wy(i,:),'km') ;
+    W2_dist(i,1) = sw_dist(ref_W2x(i,:),ref_W2y(i,:),'km') ;
+     E_dist(i,1) = sw_dist(ref_Ex(i,:),ref_Ey(i,:),'km') ;
+    E2_dist(i,1) = sw_dist(ref_E2x(i,:),ref_E2y(i,:),'km') ;
+end
+clear('ref_Wx','ref_W2x','ref_Wy','ref_W2y','ref_Ex','ref_E2x','ref_Ey','ref_E2y','x_perp_E2','y_perp_E','x_perp_W','x_perp_W2','y_perp_W','y_perp_E2','y_perp_W2')
 %% Find Casts within defined area
 % Western Facing Coasts
 x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
