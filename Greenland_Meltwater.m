@@ -86,7 +86,7 @@ E_widthdeg_coast = 111.120* cosd(y_Ecoast) ;
 E_widthdeg_coast = recwidth_coast./E_widthdeg_coast ;
 %%
 % create points along lines
-dist = 2.5 ; 
+dist = 0.7 ; 
 num_points = 1000 ; 
 % West
 for i = 1:length(x_Wcoast)-1
@@ -118,28 +118,95 @@ y_perp_E2{i,1} = E ;
 end
 clear('W','E')
 %% 
-% SW dist to limit coastal area (not done, only have one point, need
-% distances for every single coastline point)
+% SW dist to limit coastal area 
 for i = 1:length(x_perp_W)
-ref_Wx = [x_perp_W{i},repmat(x_Wcoast(i,1),1000,1)];
-ref_Wy = [y_perp_W{i},repmat(y_Wcoast(i,1),1000,1)];
-ref_W2x = [x_perp_W2{i},repmat(x_Wcoast(i,1),1000,1)];
-ref_W2y = [y_perp_W2{i},repmat(y_Wcoast(i,1),1000,1)];
+ref_Wx{i,1} = [x_perp_W{i},repmat(x_Wcoast(i,1),1000,1)];
+ref_Wy{i,1} = [y_perp_W{i},repmat(y_Wcoast(i,1),1000,1)];
+ref_W2x{i,1} = [x_perp_W2{i},repmat(x_Wcoast(i+1,1),1000,1)];
+ref_W2y{i,1}= [y_perp_W2{i},repmat(y_Wcoast(i+1,1),1000,1)];
 end
 for i = 1:length(x_perp_E)
-ref_Ex = [x_perp_E{i},repmat(x_Ecoast(i,1),1000,1)];
-ref_Ey = [y_perp_E{i},repmat(y_Ecoast(i,1),1000,1)];
-ref_E2x = [x_perp_E2{i},repmat(x_Ecoast(i,1),1000,1)];
-ref_E2y = [y_perp_E2{i},repmat(y_Ecoast(i,1),1000,1)];
+ref_Ex{i,1} = [x_perp_E{i},repmat(x_Ecoast(i,1),1000,1)];
+ref_Ey{i,1} = [y_perp_E{i},repmat(y_Ecoast(i,1),1000,1)];
+ref_E2x{i,1} = [x_perp_E2{i},repmat(x_Ecoast(i+1,1),1000,1)];
+ref_E2y{i,1} = [y_perp_E2{i},repmat(y_Ecoast(i+1,1),1000,1)];
 end
-% need to do W2,E,E2 as well
+% sw_dist
 for i = 1:1:length(ref_Wy)
-    W_dist(i,1) = sw_dist(ref_Wx(i,:),ref_Wy(i,:),'km') ;
-    W2_dist(i,1) = sw_dist(ref_W2x(i,:),ref_W2y(i,:),'km') ;
-     E_dist(i,1) = sw_dist(ref_Ex(i,:),ref_Ey(i,:),'km') ;
-    E2_dist(i,1) = sw_dist(ref_E2x(i,:),ref_E2y(i,:),'km') ;
+    for j = 1:1:length(ref_Wy{1})
+    W_dist{i,1}(j,1) = sw_dist(ref_Wx{i}(j,:),ref_Wy{i}(j,:),'km') ;
+    W2_dist{i,1}(j,1) = sw_dist(ref_W2x{i}(j,:),ref_W2y{i}(j,:),'km') ;
+    end
+    j = 1 ;
 end
-clear('ref_Wx','ref_W2x','ref_Wy','ref_W2y','ref_Ex','ref_E2x','ref_Ey','ref_E2y','x_perp_E2','y_perp_E','x_perp_W','x_perp_W2','y_perp_W','y_perp_E2','y_perp_W2')
+for i = 1:1:length(ref_Ey)
+     for j = 1:1:length(ref_Ey{1})
+     E_dist{i,1}(j,1) = sw_dist(ref_Ex{i}(j,:),ref_Ey{i}(j,:),'km') ;
+     E2_dist{i,1}(j,1) = sw_dist(ref_E2x{i}(j,:),ref_E2y{i}(j,:),'km') ;
+     end
+     j = 1 ;
+end
+% Find point closest to 50 km within x km
+target  = 100 ; % km
+for i = 1:1:length(W_dist)
+    for j =1:1:length(ref_Wy{1})
+differences_W{i,1}(j,1) = abs(W_dist{i,1}(j,1)-target)  ;
+differences_W2{i,1}(j,1) = abs(W2_dist{i,1}(j,1)-target) ;
+    end
+    j= 1 ;
+[min_W(i,1),index_W(i,1)] = min(differences_W{i}) ;
+[min_W2(i,1),index_W2(i,1)] = min(differences_W2{i}) ;
+end
+for i = 1:1:length(E_dist)
+    for j =1:1:length(ref_Ey{1})
+differences_E{i,1}(j,1) = abs(E_dist{i,1}(j,1)-target)  ;
+differences_E2{i,1}(j,1) = abs(E2_dist{i,1}(j,1)-target) ;
+    end
+    j= 1 ;
+[min_E(i,1),index_E(i,1)] = min(differences_E{i}) ;
+[min_E2(i,1),index_E2(i,1)] = min(differences_E2{i}) ;
+end
+% Index back in to be left with cordinates for W/W2 and E/E2
+for i = 1:1:length(W_dist)
+index = index_W(i) ;
+   W_exten(i,:) = [x_perp_W{i}(index),y_perp_W{i}(index)] ;
+index = index_W2(i) ;
+   W2_exten(i,:) = [x_perp_W2{i}(index),y_perp_W2{i}(index)] ;
+end
+for i = 1:1:length(E_dist)
+index = index_E(i) ;
+   E_exten(i,:) = [x_perp_E{i}(index),y_perp_E{i}(index)] ;
+index = index_E2(i) ;
+   E2_exten(i,:) = [x_perp_E2{i}(index),y_perp_E2{i}(index)] ;
+end
+% concatenate lon,lat from both W/E for ordering
+offset = [NaN,NaN] ;
+W_exten = [W_exten;offset] ;
+W2_exten = [offset;W2_exten] ;
+W_off_x = [W_exten(:,1),W2_exten(:,1)] ;
+W_off_y = [W_exten(:,2),W2_exten(:,2)] ;
+E_exten = [E_exten;offset] ;
+E2_exten = [offset;E2_exten] ;
+E_off_x = [E_exten(:,1),E2_exten(:,1)] ;
+E_off_y = [E_exten(:,2),E2_exten(:,2)] ;
+off_out_x = [W_off_x;E_off_x] ;
+off_out_y = [W_off_y;E_off_y] ;
+x_coast_out = [x_Wcoast;x_Ecoast] ;
+y_coast_out = [y_Wcoast;y_Ecoast] ;
+coast_outorder = [x_coast_out,y_coast_out] ;
+% sacrificial end point
+x_coast = x_coast(1:end-1) ; 
+y_coast = y_coast(1:end-1) ;
+coast = [x_coast,y_coast] ;
+% reorder variables in correct order
+for i = 1:1:length(y_coast)
+ idx(i,1) = find(coast_outorder(:,1) == coast(i,1) & coast_outorder(:,2) == coast(i,2), 1);
+end
+off_x = off_out_x(idx,:) ; % correct order ready to be avged together between cols
+off_y = off_out_y(idx,:) ; 
+% average offset off coast points to result in one point per point
+off_coast = [mean(off_x,2,'omitnan'),mean(off_y,2,'omitnan')] ;
+clear W_exten W2_exten off off_out ref_E2x ref_E2y Ref_Ex Ref_Ey ref_W2x num_points x_perp_E y_perp_E x_perp_W2 y_perp_E2 y_perp_W2
 %% Find Casts within defined area
 % Western Facing Coasts
 x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
