@@ -12,6 +12,7 @@ day_range = 15 ; % adjust this as needed, actual day range is 2*number listed
 radius = 20 ; % km circle for opean ocean
 min_count = 4 ; % the minimum # of data points needed in order to plot the statistics of a cast (std dev, anomalies ect.)
 aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
+target  = 50 ; % km from coast
 %% Defining Coastline
 run = 2 ;
 for i = 1:1:1
@@ -93,18 +94,6 @@ W = y_coast(i,1)-slope(i)*x_coast(i,1) ;
 intercept(i,1 ) = W ;
 end
 clear('W')
-% Split into West/East Facing coastlines (trying to get rid of the split)
-% Ecoast_idx = slope >= 0 ;
-% Wcoast_idx = slope <= 0 ;
-% x_Ecoast = x_coast(Ecoast_idx) ;
-%y_Ecoast = y_coast(Ecoast_idx) ;
-%x_Wcoast = x_coast(Wcoast_idx) ;
-%y_Wcoast = y_coast(Wcoast_idx) ;
-%slope_w = slope(Wcoast_idx) ;
-%inverse_W = inverse(Wcoast_idx) ;
-%slope_E = slope(Ecoast_idx) ;
-%inverse_E = inverse(Ecoast_idx) ;
-% Creation of Parallelograms on West facing Coast
 width_2 = recwidth ; % for dynamic plot titles
 length_2 = reclength ; % for dynamic plot titles
 recwidth_coast = 10*2 ; % do not change, for defining larger polygon
@@ -114,17 +103,8 @@ widthdeg_lon = 111.120 .*cosd(lat) ;
 widthdeg_lon = recwidth./widthdeg_lon ;
 widthdeg_coast = recwidth_coast./widthdeg_lon ; % For larger polygon
 lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
-%Westwidthdeg = 111.120* cosd(y_Wcoast) ; Hoping to get rid of
-%Westwidthdeg = recwidth./Westwidthdeg ;
-%Westwidthdeg_coast = 111.320* cosd(x_Wcoast) ;
-%Westwidthdeg_coast = recwidth_coast./Westwidthdeg_coast ;
-% East
-%E_widthdeg = 111.120* cosd(y_Ecoast) ;
-%E_widthdeg = recwidth./E_widthdeg ;
-%E_widthdeg_coast = 111.120* cosd(y_Ecoast) ;
-%E_widthdeg_coast = recwidth_coast./E_widthdeg_coast ;
 %%
-% create points along lines WORKING ON THIS NOW
+% create points along lines
 dist = 3 ; 
 num_points = 5000 ; 
 % All Coastline + and - for 1/2
@@ -152,41 +132,6 @@ x_perp_minus2{i,1} = W' ;
 W =  inverse(i) * (x_perp_minus2{i} - x_coast(i+1,1)) + y_coast(i+1,1);
 y_perp_minus2{i,1} = W ;
 end
-%East THIS IS BROKEN(want to delete)
-%for i = 1:length(x_Ecoast)-1
- %   if (x_Ecoast(i) < -43.947 &&  x_Ecoast(i) >= -49.7864)
-%E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) + dist, num_points);
-%x_perp_E{i} = E' ;
-%    elseif (x_Ecoast(i) >= -53.5821 &&  x_Ecoast(i) < -49.7864)
-%E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) - dist, num_points);
-%x_perp_E{i} = E' ;
-%    elseif (x_Ecoast(i) < -53.5821 &&  x_Ecoast(i) > -58.6916)
-%E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) - dist, num_points);
-%x_perp_E{i} = E' ;   
-%    elseif (x_Ecoast(i) >= -43.947 || x_Ecoast(i) <= -58.6916)
-%        E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) + dist, num_points);
-%x_perp_E{i} = E' ; 
-%    end
-%E =  inverse_E(i) * (x_perp_E{i} - x_Ecoast(i,1)) + y_Ecoast(i,1);
-%y_perp_E{i,1} = E ;
-%end
-%for i = 1:length(x_Ecoast)-1
-%     if (x_Ecoast(i) < -43.947 &&  x_Ecoast(i) >= -49.7864)
-%E = linspace(x_Ecoast(i+1,1), x_Ecoast(i+1,1) + dist, num_points); % minus longitude for western facing coasts
-%x_perp_E2{i,1} = E' ;
-%elseif (x_Ecoast(i) >= -53.5821 &&  x_Ecoast(i) < -49.7864)
-%E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) - dist, num_points);
-%x_perp_E2{i} = E' ;
-%    elseif (x_Ecoast(i) < -53.5821 &&  x_Ecoast(i) > -58.6916)
-%E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) - dist, num_points);
-%x_perp_E2{i} = E' ;
-%elseif (x_Ecoast(i) >= -43.947 || x_Ecoast(i) <= -58.6916)
-%        E = linspace(x_Ecoast(i,1), x_Ecoast(i,1) + dist, num_points);
-%x_perp_E2{i} = E' ; 
-%    end
-%E =  inverse_E(i) * (x_perp_E2{i} - x_Ecoast(i+1,1)) + y_Ecoast(i+1,1);
-%y_perp_E2{i,1} = E ;
-%end
 clear W
 %% 
 % setting up sw_dist
@@ -214,7 +159,6 @@ for i = 1:1:length(ref_plusy)
 end
 %% 
 % Find point closest to x km within y km
-target  = 100 ; % km
 for i = 1:1:length(dist_minus)
     for j =1:1:length(ref_minusy{1})
 differences_minus{i,1}(j,1) = abs(dist_minus{i,1}(j,1)-target)  ;
@@ -247,37 +191,53 @@ index = index_plus2(i) ;
    exten_plus2(i,:) = [x_perp_plus2{i}(index),y_perp_plus2{i}(index)] ;
 end
 % Test inpolygon to remove stuff inside coastline (need to keep 1/2
-% seperate for avging later WORKING ON
-
-%% 
-% concatenate lon,lat from both W/E for ordering
+% seperate for avging later
+polygon_x = [-67;x_coast;-40] ; % needs to change if we redo coastline
+polygon_y = [95;y_coast;95] ;
+in_plus = inpolygon(exten_plus(:,1),exten_plus(:,2),polygon_x,polygon_y) ;
+in_plus2 = inpolygon(exten_plus2(:,1),exten_plus2(:,2),polygon_x,polygon_y) ;
+in_minus = inpolygon(exten_minus(:,1),exten_minus(:,2),polygon_x,polygon_y) ;
+in_minus2 = inpolygon(exten_minus2(:,1),exten_minus2(:,2),polygon_x,polygon_y) ;
+% removing the inside coast points so I can stich together and average
+% valid points
+exten_plus_x = nan(size(exten_plus(:,1))) ;
+exten_plus_x(~in_plus) = exten_plus(~in_plus,1) ;
+exten_plus_y = nan(size(exten_plus(:,1))) ;
+exten_plus_y(~in_plus) = exten_plus(~in_plus,2) ;
+exten_plus_ = ([exten_plus_x,exten_plus_y]) ;
+exten_plus2_x = nan(size(exten_plus2(:,1))) ;
+exten_plus2_x(~in_plus2) = exten_plus2(~in_plus2,1) ;
+exten_plus2_y = nan(size(exten_plus2(:,1))) ;
+exten_plus2_y(~in_plus2) = exten_plus2(~in_plus2,2) ;
+exten_plus2_ = ([exten_plus2_x,exten_plus2_y]) ;
+exten_minus_x = nan(size(exten_minus(:,1))) ;
+exten_minus_x(~in_minus) = exten_minus(~in_minus,1) ;
+exten_minus_y = nan(size(exten_minus(:,1))) ;
+exten_minus_y(~in_minus) = exten_minus(~in_minus,2) ;
+exten_minus_ = ([exten_minus_x,exten_minus_y]) ;
+exten_minus2_x = nan(size(exten_minus2(:,1))) ;
+exten_minus2_x(~in_minus2) = exten_minus(~in_minus2,1) ;
+exten_minus2_y = nan(size(exten_minus2(:,1))) ;
+exten_minus2_y(~in_minus2) = exten_minus2(~in_minus2,2) ;
+exten_minus2_ = ([exten_minus2_x,exten_minus2_y]) ;
+% Stich plus and minus together 
+nan_idx = isnan(exten_plus_) ;
+exten_plus_(nan_idx) = exten_minus_(nan_idx) ;
+exten = exten_plus_ ;
+nan_idx2 = isnan(exten_plus2_) ;
+exten_plus2_(nan_idx2) = exten_minus2_(nan_idx2) ;
+exten2 = exten_plus2_  ;
+clear exten_plus_x exten_plus_y exten_plus2_x exten_plus2_y  exten_minus_x exten_minus_y exten_minus2_x exten_minus2_y 
+clear in_minus2 in_minus in_plus in_plus2 
+clear exten_minus exten_minus2 exten_plus exten_plus2 exten_plus_ exten_plus2_ exten_minus_
+% concatenate lon,lat from both 1/2 for ordering STILL NEED TO ORDER
 offset = [NaN,NaN] ;
-W_exten = [W_exten;offset] ;
-W2_exten = [offset;W2_exten] ;
-W_off_x = [W_exten(:,1),W2_exten(:,1)] ;
-W_off_y = [W_exten(:,2),W2_exten(:,2)] ;
-E_exten = [E_exten;offset] ;
-E2_exten = [offset;E2_exten] ;
-E_off_x = [E_exten(:,1),E2_exten(:,1)] ;
-E_off_y = [E_exten(:,2),E2_exten(:,2)] ;
-off_out_x = [W_off_x;E_off_x] ;
-off_out_y = [W_off_y;E_off_y] ;
-x_coast_out = [x_Wcoast;x_Ecoast] ;
-y_coast_out = [y_Wcoast;y_Ecoast] ;
-coast_outorder = [x_coast_out,y_coast_out] ;
-% sacrificial end point
-x_coast = x_coast(1:end-1) ; 
-y_coast = y_coast(1:end-1) ;
-coast = [x_coast,y_coast] ;
-% reorder variables in correct order
-for i = 1:1:length(y_coast)
- idx(i,1) = find(coast_outorder(:,1) == coast(i,1) & coast_outorder(:,2) == coast(i,2), 1);
-end
-off_x = off_out_x(idx,:) ; % correct order ready to be avged together between cols
-off_y = off_out_y(idx,:) ; 
+exten = [exten;offset] ;
+exten2 = [offset;exten2] ;
+off_x = [exten(:,1),exten2(:,1)] ;
+off_y = [exten(:,2),exten2(:,2)] ;
 % average offset off coast points to result in one point per point
 off_coast = [mean(off_x,2,'omitnan'),mean(off_y,2,'omitnan')] ;
-
 %% Find Casts within defined area
 % Western Facing Coasts
 x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
