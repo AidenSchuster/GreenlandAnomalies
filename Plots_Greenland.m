@@ -57,21 +57,58 @@ hold off
 %% Plot bodged coastlines
 clf
 hold on
-daspect([1 aspect_ratio 1])
 plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
 scatter(lon,lat,3,'MarkerFaceColor','g','MarkerEdgeAlpha','.05')
 xlim([-80,-35])
 ylim([55,80])
-plot(x_Wcoast,y_Wcoast,'r')
-plot(x_perp_W{1},y_perp_W{1},'r')
-plot(x_perp_W{2},y_perp_W{2},'r')
-plot(x_perp_W{3},y_perp_W{3},'r')
-plot(x_perp_W{4},y_perp_W{4},'r')
-plot(x_perp_W2{1},y_perp_W2{1},'r')
-plot(x_perp_W2{2},y_perp_W2{2},'r')
-plot(x_perp_W2{3},y_perp_W2{3},'r')
-plot(x_perp_W2{4},y_perp_W2{4},'r')
-plot(x_Ecoast,y_Ecoast,'b')
-plot(x_perp_E{1},y_perp_E{1},'b')
-plot(x_perp_E2{1},y_perp_E2{1},'b')
+plot(x_coast,y_coast,'b')
+scatter(off_x,off_y,'r')
+hold off
+%%  Plot bodged coastlines (not selected)
+clf
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(x_coast,y_coast,'b')
+scatter(exten(:,1),exten(:,2),'r')
+scatter(exten2(:,1),exten2(:,2),'b')
+hold off
+%%
+% Test of Inpolygon
+clf
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(polygon_x,polygon_y,'b')
+scatter(exten_plus(~in_plus,1),exten_plus(~in_plus,2),'r')
+scatter(exten_plus2(~in_plus2,1),exten_plus2(~in_plus2,2),'r')
+scatter(exten_minus(~in_minus,1),exten_minus(~in_minus,2),'r')
+scatter(exten_minus(~in_minus2,1),exten_minus2(~in_minus2,2),'r')
+hold off
+%% Plot all inverse lines
+clf
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(x_coast,y_coast,'b')
+for i = 1:1:length(x_perp_W)
+    scatter(x_perp_W{i},y_perp_W{i},'r')
+end
+hold off
+%% Final Extended Coast plot (hopefully)
+clf
+hold on
+plot(cx,cy,'k')
+plot(x_coast,y_coast,'b')
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(off_coast(:,1),off_coast(:,2),'r')
 hold off
