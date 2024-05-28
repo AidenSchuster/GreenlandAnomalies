@@ -12,7 +12,7 @@ day_range = 15 ; % adjust this as needed, actual day range is 2*number listed
 radius = 20 ; % km circle for opean ocean
 min_count = 4 ; % the minimum # of data points needed in order to plot the statistics of a cast (std dev, anomalies ect.)
 aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
-target  = 50 ; % km from coast
+target  = 100 ; % km from coast
 %% Defining Coastline
 run = 2 ;
 for i = 1:1:1
@@ -227,9 +227,6 @@ exten = exten_plus_ ;
 nan_idx2 = isnan(exten_plus2_) ;
 exten_plus2_(nan_idx2) = exten_minus2_(nan_idx2) ;
 exten2 = exten_plus2_  ;
-clear exten_plus_x exten_plus_y exten_plus2_x exten_plus2_y  exten_minus_x exten_minus_y exten_minus2_x exten_minus2_y 
-clear in_minus2 in_minus in_plus in_plus2 
-clear exten_minus exten_minus2 exten_plus exten_plus2 exten_plus_ exten_plus2_ exten_minus_
 % concatenate lon,lat from both 1/2 for ordering STILL NEED TO ORDER
 offset = [NaN,NaN] ;
 exten = [exten;offset] ;
@@ -238,102 +235,95 @@ off_x = [exten(:,1),exten2(:,1)] ;
 off_y = [exten(:,2),exten2(:,2)] ;
 % average offset off coast points to result in one point per point
 off_coast = [mean(off_x,2,'omitnan'),mean(off_y,2,'omitnan')] ;
-%% Find Casts within defined area
-% Western Facing Coasts
-x5_Wcoast = x_Wcoast - (5*Westwidthdeg_coast)/2 ; % This should not change
-x5_Ecoast = Eastgcoast(:,1) + (5*E_widthdeg_coast)/2 ;
-y5_Scoast = Southgcoast(:,2) - (5*Southlengthdeg_coast)/2 ;
-extendedcoast_W = x5_Wcoast - (Westwidthdeg)/2; % This will change depending on size of cast boxes
-extendedcoast_E = x5_Ecoast + (E_widthdeg)/2;
-extendedcoast_S = y5_Scoast - (Southlengthdeg_coast)/2 ;
-W_xcombined = [x5_Wcoast,x_Wcoast] ; % counterclockwise verticies order
-W_ycombined = [y_Wcoast,y_Wcoast] ; % counterclockwise verticies order
-E_xcombined = [x5_Ecoast', x_Ecoast'];
-E_x ={E_xcombined} ;
-E_ycombined = [y_Ecoast',y_Ecoast'] ;
-E_y = {E_ycombined} ;
-W_xcombined_coast = [extendedcoast_W,x_Wcoast] ;
-for i = 1:length(W_xcombined)-1
-    W = [W_xcombined(i+1,1),W_xcombined(i,1),W_xcombined(i,2),W_xcombined(i+1,2)] ;
-    W_x{i} = W ;
-    W = [W_ycombined(i+1,1),W_ycombined(i,1),W_ycombined(i,2),W_ycombined(i+1,2)] ;
-    W_y{i} = W ;
+clear exten_plus_x exten_plus_y exten_plus2_x exten_plus2_y  exten_minus_x exten_minus_y exten_minus2_x exten_minus2_y 
+clear in_minus2 in_minus in_plus in_plus2 
+clear exten_minus exten_minus2 exten_plus exten_plus2 exten_plus_ exten_plus2_ exten_minus_ dist_plus dist_minus dist_minus2 dist_plus2 exten_minus2 index i index_minus index_plus index_plus2
+clear  j inverse intercept min_plus2 min_plus min_minus2 min_minus ref_minus2x ref_minusx ref_minus2y ref_plus2x ref_plusx run slope x_perp_minus x_perp_minus2 x_perp_plus
+clear x_perp_plus2 y_reff y_perp_minus y_perp_minus2 y_perp_plus y_perp_plus2 x_reff differences_plus2 differences_plus differences_minus differences_minus2 exten_minus2_ index_minus2 length_2 
+clear ref_minusy ref_plusy ref_plus2y dist lengthdeg_coast off_x off_y
+%% Find Casts within defined area (concatenate off coast and coast to make one polygon
+%hand removing verticies that cause self-intersection
+intersect_x = [-55.2664; -55.1943; -51.6715; -51.2208; -50.9012; -40.8574;-39; -39.1132; -38.8448; -39.3609;-39.1381]; % Hand picked for 100 km, needds to be edited if coastline or size changes
+intersect_y = [66.734; 66.1034; 61.8243; 61.7822; 61.3371;62.2753; 63.5719; 63.7534; 64.2143; 64.1142;64.2335] ; % Hand picked for 100 km, needds to be edited if coastline or size changes
+tolerance = 1e-4 ;
+idx_remove = [] ;
+for i = 1:length(intersect_y)
+   idx = find(abs(off_coast(:,1) - intersect_x(i)) < tolerance & abs(off_coast(:,2) - intersect_y(i)) < tolerance);
+    % Append the found indices to idx_remove
+    idx_remove = [idx_remove;idx] ;
 end
-for i = 1:length(W_xcombined_coast)-1
-    W = [W_xcombined_coast(i+1,1),W_xcombined_coast(i,1),W_xcombined_coast(i,2),W_xcombined_coast(i+1,2)] ;
-    W_x_coast{i} = W ;
-    W = [W_ycombined(i+1,1),W_ycombined(i,1),W_ycombined(i,2),W_ycombined(i+1,2)] ;
-    W_y_coast{i} = W ;
+off_coast(idx_remove,:) = [] ;
+%combine into polygon
+poly_off = [-66.6413,75.7] ;
+combined_x = [off_coast(:,1);flip(x_coast)] ;
+combined_y = [off_coast(:,2);flip(y_coast)] ;
+in = inpolygon(lon,lat,combined_x,combined_y) ;
+%% Determine which refference point to base slope of rectangles on WORKING ON NOW
+reff_x = reff_cord(:,1) ;
+reff_y = reff_cord(:,2) ;
+coastal_lon = lon(in) ;
+coastal_lat = lat(in) ;
+for i= 1:length(lon(in))
+    temp_x = [repmat(coastal_lon(1,i),length(reff_x),1),reff_x] ;
+    temp_y = [repmat(coastal_lat(1,i),length(reff_y),1),reff_y] ;
+for j = 1:length(temp_y)
+    temp_distance(j,:) = sw_dist(temp_y(j,:),temp_x(j,:),'km') ;
+    [min_distance(:,i),idx(:,i)] = min(temp_distance) ; %idx tells which refference point each coastal cast is closest too and should have their slope based upon 
 end
-for i = 1:length(W_xcombined)-1
-    W = inpolygon(lon,lat, W_x{i},W_y{i}) ; %idx of all core coastal areas compartmentalized for individual verticies rotation
-    W_idx{i} = W ;
 end
- for i = 1:length(W_xcombined)-1
-    W = inpolygon(lon,lat, W_x_coast{i},W_y_coast{i}) ; %idx of all extended coastal areas (not sure if they need to be compartmentalized)
-    W_idx_coast{i} = W ;
- end
-W_idx_combined = any(cat(3, W_idx{:}), 3); % combined indicies of each compartment (will be used for a unified coastal idx)
-% Eastern Facing Coasts
-for i = 1:length(E_x)-1
-E_idx = inpolygon(lon,lat, E_x{i},E_y{i}) ; %idx of all core coastal areas compartmentalized for individual verticies rotation
-end
-%Gap Coasts (intebetween methods)
-Gap_plus = ([x5_Wcoast(1,1),Westgcoast(1,2);Southgcoast(1,1),y5_Scoast(1,1)]) ;
-Gap_minus = ([Southgcoast(2,1),y5_Scoast(2,1);x5_Ecoast(1,1),Eastgcoast(1,2)]) ;
-clear('W','lengthdegcoast','W_x','W_y','width','widthdeg_coast')
-%% Isolate variables Lat and Lon for each compartment (Finish this later)
-for i = 1:length(W_idx)
-    W = lon(W_idx{i}) ;
-W_lon{i} = W ;
-    W = lat(W_idx{i}) ;
-W_lat{i} = W ;
-W = widthdeg_lon(W_idx{i}) ;
-W_widthdeg{i} = W ;
-end
-for i = 1:length(E_idx)
-    E = lon(E_idx{i}) ;
-E_lon{i} = E ;
-    E = lat(E_idx{i}) ;
-E_lat{i} = E ;
-E = widthdeg_lon(E_idx{i}) ;
-E_widthdeg{i} = E ;
-end
+%%
+clear temp_x temp_y temp_distance min_distance
+%for i = 1:length(W_idx)
+%    W = lon(W_idx{i}) ;
+%W_lon{i} = W ;
+%    W = lat(W_idx{i}) ;
+%W_lat{i} = W ;
+%W = widthdeg_lon(W_idx{i}) ;
+%W_widthdeg{i} = W ;
+%end
+%for i = 1:length(E_idx)
+%    E = lon(E_idx{i}) ;
+%E_lon{i} = E ;
+%    E = lat(E_idx{i}) ;
+%E_lat{i} = E ;
+%E = widthdeg_lon(E_idx{i}) ;
+%E_widthdeg{i} = E ;
+%end
 %Extended Coast Variables (might be easier to just make a variable with all
 %data contained within?
-for i = 1:length(W_idx_coast)
-    W = lon(W_idx_coast{i}) ;
-W_lon_coast{i} = W ;
-    W = lat(W_idx_coast{i}) ;
-W_lat_coast{i} = W ;
-    W = sal(W_idx_coast{i}) ;
-W_sal_coast{i} = W ;
-    W = temp(W_idx_coast{i}) ;
-W_temp_coast{i} = W ;
-    W = dep(W_idx_coast{i}) ;
-W_dep_coast{i} = W ;
-    W = yea(W_idx_coast{i});
-W_yea_coast{i} = W ;
-    W = day(W_idx_coast{i});
-W_day_coast{i} = W ;
-    W = mon(W_idx_coast{i}) ;
-W_mon_coast{i} = W ;
-    W =  watdep(W_idx_coast{i});
-W_watdep_coast{i} = W ; 
-end
-clear('W')
+%for i = 1:length(W_idx_coast)
+%    W = lon(W_idx_coast{i}) ;
+%W_lon_coast{i} = W ;
+%    W = lat(W_idx_coast{i}) ;
+%W_lat_coast{i} = W ;
+%    W = sal(W_idx_coast{i}) ;
+%W_sal_coast{i} = W ;
+%    W = temp(W_idx_coast{i}) ;
+%W_temp_coast{i} = W ;
+%    W = dep(W_idx_coast{i}) ;
+%W_dep_coast{i} = W ;
+%    W = yea(W_idx_coast{i});
+%W_yea_coast{i} = W ;
+%    W = day(W_idx_coast{i});
+%W_day_coast{i} = W ;
+%    W = mon(W_idx_coast{i}) ;
+%W_mon_coast{i} = W ;
+%    W =  watdep(W_idx_coast{i});
+%W_watdep_coast{i} = W ; 
+%end
+%clear('W')
 %% Defining parallelogram verticies for casts (length and width need work) (working on now)
 lengthrad = deg2rad(lengthdeg) ;
 lengthdeg = ones(1,length(W_widthdeg)).*lengthdeg ;
-half_length = lengthdeg./1.6 ; % mess with the divisibles to get the km right (this is within 1 km after limited testing)
+half_length = lengthdeg./1.6 ; % mess with the divisibles to get the km right (this is within 1 km after very limited testing)
 % West half widths
 for i = 1:length(W_widthdeg)
-W = W_widthdeg{i}./3; %  mess with the divisibles to get the km right (this is within 1 km after limited testing)
+W = W_widthdeg{i}./3; %  mess with the divisibles to get the km right (this is within 1 km after very limited testing)
 W_half_width{i} = W ;
 end
 % East Half Widths
 for i = 1:length(E_widthdeg)
-E = E_widthdeg./3; %  mess with the divisibles to get the km right (this is within 1 km after limited testing)
+E = E_widthdeg./3; %  mess with the divisibles to get the km right (this is within 1 km after very limited testing)
 E_half_width = E ;
 end
 % South Half Width
