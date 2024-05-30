@@ -57,3 +57,18 @@ plot(off_coast(:,1),off_coast(:,2),'r')
 scatter(lon(in),lat(in),3,'MarkerFaceColor','g','MarkerEdgeAlpha','.05')
 plot(combined_x,combined_y,'r')
 hold off
+%% Plot Rotated Boxes
+clf
+hold on
+plot(cx,cy,'k')
+plot(x_coast,y_coast,'b')
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(off_coast(:,1),off_coast(:,2),'b')
+scatter(lon(in),lat(in),3,'MarkerFaceColor','g','MarkerEdgeAlpha','.05')
+plot(rotvertcell{1}(1,:),rotvertcell{1}(2,:), 'k')
+plot(rotvertcell{7}(1,:),rotvertcell{7}(2,:), 'k')
+plot(rotvertcell{10}(1,:),rotvertcell{10}(2,:), 'k')
+scatter(reff_x,reff_y,'k')
+hold off
