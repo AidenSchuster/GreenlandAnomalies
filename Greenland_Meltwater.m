@@ -83,9 +83,18 @@ for i = 1:1:length(x_reff)-1
     x = (y_reff(i+1,1)-y_reff(i,1))/(x_reff(i+1,1)-x_reff(i,1)) ;
     reff_slope(i,:) = x ;
 end
+num_points = 10 ;
+for i=1:1:length(x_reff)-1
+x_reff_new(i,:) = linspace(x_reff(i),x_reff(i+1),num_points) ; % each row is a different line segment
+slope_new(i,:) = repmat(reff_slope(i,:),1,num_points) ;
+y_reff_new(i,:) = reff_slope(i,:)*(x_reff_new(i,:)-x_reff(i))+y_reff(i) ;
+end
+x_reff_new = reshape(x_reff_new,1,[]) ;
+y_reff_new = reshape(y_reff_new,1,[]) ;
+slope_new = reshape(slope_new,1,[]) ;
 clear('x','y','button')
 %%
-% West and East facing coasts bases on slope
+% Slope and inverse
 for i = 1:length(x_coast)-1
 W = (y_coast(i+1,1)-y_coast(i,1))/(x_coast(i+1,1)-x_coast(i,1)) ;
 slope(i,1) = W ;
@@ -101,8 +110,9 @@ reclength_coast = 20*2 ; % do not change, for defining larger polygon
 lengthdeg = km2deg(reclength) ;
 widthdeg_lon = 111.120 .*cosd(lat) ;
 widthdeg_lon = recwidth./widthdeg_lon ;
-widthdeg_coast = recwidth_coast./widthdeg_lon ; % For larger polygon
-lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
+%widthdeg_coast = recwidth_coast./widthdeg_lon ; % Think I can get rid of
+%this
+%lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
 %%
 % create points along lines
 dist = 3 ; 
@@ -240,7 +250,7 @@ clear in_minus2 in_minus in_plus in_plus2
 clear exten_minus exten_minus2 exten_plus exten_plus2 exten_plus_ exten_plus2_ exten_minus_ dist_plus dist_minus dist_minus2 dist_plus2 exten_minus2 index i index_minus index_plus index_plus2
 clear  j inverse intercept min_plus2 min_plus min_minus2 min_minus ref_minus2x ref_minusx ref_minus2y ref_plus2x ref_plusx run slope x_perp_minus x_perp_minus2 x_perp_plus
 clear x_perp_plus2 y_reff y_perp_minus y_perp_minus2 y_perp_plus y_perp_plus2 x_reff differences_plus2 differences_plus differences_minus differences_minus2 exten_minus2_ index_minus2 length_2 
-clear ref_minusy ref_plusy ref_plus2y dist lengthdeg_coast off_x off_y
+clear ref_minusy ref_plusy ref_plus2y dist lengthdeg_coast off_x off_y nan_idx2 nan_idx num_points reff_cords 
 %% Find Casts within defined area (concatenate off coast and coast to make one polygon
 %hand removing verticies that cause self-intersection
 intersect_x = [-55.2664; -55.1943; -51.6715; -51.2208; -50.9012; -40.8574;-39; -39.1132; -38.8448; -39.3609;-39.1381]; % Hand picked for 100 km, needds to be edited if coastline or size changes
@@ -258,9 +268,10 @@ poly_off = [-66.6413,75.7] ;
 combined_x = [off_coast(:,1);flip(x_coast)] ;
 combined_y = [off_coast(:,2);flip(y_coast)] ;
 in = inpolygon(lon,lat,combined_x,combined_y) ;
-%% Determine which refference point to base slope of rectangles on WORKING ON NOW
-reff_x = reff_cord(:,1) ;
-reff_y = reff_cord(:,2) ;
+% Determine which refference point to base slope of rectangle boxes
+reff_x = x_reff_new' ;
+reff_y = y_reff_new' ;
+%% WORKING ON NOW
 coastal_lon = lon(in) ;
 coastal_lat = lat(in) ;
 for i= 1:length(lon(in))
@@ -271,8 +282,9 @@ for j = 1:length(temp_y)
     [min_distance(:,i),idx(:,i)] = min(temp_distance) ; %idx tells which refference point each coastal cast is closest too and should have their slope based upon 
 end
 end
+idx = idx(1,:) ;
+clear temp_x temp_y temp_distance min_distance y_reff_new x_reff_new
 %%
-clear temp_x temp_y temp_distance min_distance
 %for i = 1:length(W_idx)
 %    W = lon(W_idx{i}) ;
 %W_lon{i} = W ;
@@ -312,61 +324,51 @@ clear temp_x temp_y temp_distance min_distance
 %W_watdep_coast{i} = W ; 
 %end
 %clear('W')
-%% Defining parallelogram verticies for casts (length and width need work) (working on now)
+%% Defining parallelogram verticies for casts (length and width need work) (WORKING ON)
+coast_width = widthdeg_lon(in) ;
 lengthrad = deg2rad(lengthdeg) ;
-lengthdeg = ones(1,length(W_widthdeg)).*lengthdeg ;
+lengthdeg = ones(1,length(widthdeg_lon)).*lengthdeg ;
 half_length = lengthdeg./1.6 ; % mess with the divisibles to get the km right (this is within 1 km after very limited testing)
-% West half widths
-for i = 1:length(W_widthdeg)
-W = W_widthdeg{i}./3; %  mess with the divisibles to get the km right (this is within 1 km after very limited testing)
-W_half_width{i} = W ;
+% Half Widths
+for i = 1:length(coast_width)
+W = coast_width(i)./3; %  mess with the divisibles to get the km right (this is within 1 km after very limited testing) may need to do bodged method
+half_width(i) = W ;
 end
-% East Half Widths
-for i = 1:length(E_widthdeg)
-E = E_widthdeg./3; %  mess with the divisibles to get the km right (this is within 1 km after very limited testing)
-E_half_width = E ;
-end
-% South Half Width
-
-% West Compartments (-longitude)
-for i = 1:numel(W_lon)
+% Verticies for Boxes
+for i = 1:numel(coastal_lon)
     % Calculate the coordinates of the vertices
-    W_vertex1 = [W_lon{i} - W_half_width{i}; W_lat{i} + half_length(i)]; %careful, longitude is negative so watch signs
-    W_vertex2 = [W_lon{i} - W_half_width{i}; W_lat{i} - half_length(i)];
-    W_vertex3 = [W_lon{i} + W_half_width{i}; W_lat{i} - half_length(i)];
-    W_vertex4 = [W_lon{i} + W_half_width{i}; W_lat{i} + half_length(i)];
-end
-%East Compartment
-for i = 1:numel(E_lon)
-    % Calculate the coordinates of the vertices
-    W_vertex1 = [W_lon{i} - W_half_width{i}; W_lat{i} + half_length(i)]; %careful, longitude is negative so watch signs
-    W_vertex2 = [W_lon{i} - W_half_width{i}; W_lat{i} - half_length(i)];
-    W_vertex3 = [W_lon{i} + W_half_width{i}; W_lat{i} - half_length(i)];
-    W_vertex4 = [W_lon{i} + W_half_width{i}; W_lat{i} + half_length(i)];
-end
-for i= 1:1:1 % needs to be changed ---------------------------------------------------------------------------------------------------------------------------------------
+    vertex1(:,i) = [coastal_lon(i) - half_width(i); coastal_lat(i) + half_length(i)]; %careful, longitude is negative so watch signs
+    vertex2(:,i) = [coastal_lon(i) - half_width(i); coastal_lat(i) - half_length(i)];
+    vertex3(:,i) = [coastal_lon(i) + half_width(i); coastal_lat(i) - half_length(i)];
+    vertex4(:,i) = [coastal_lon(i) + half_width(i); coastal_lat(i) + half_length(i)];
+end 
+for i= 1:1:length(vertex1)
     % Arrange vertices in counterclockwise order
     vertices = [vertex1(:,i), vertex2(:,i), vertex3(:,i), vertex4(:,i)];
     % Store in cell array
     vertices_cell{i} = vertices;
 end
-% Rotate Verticies to allign with angle to coast
-SW_angle = atan2d(dx,dy) ; % degrees
-bearing = SW_angle - 90 ; % find angle in relation to y-axis
-R = [cosd(bearing), -sind(bearing); sind(bearing), cosd(bearing)];
+%Match refference slope to each coastal point using index
+slope_coast = slope_new(idx)';
+% Rotate Verticies to allign with slope of refference points
+angle = atand(slope_coast(:,1)) ; % degrees
+bearing = angle - 90 ; % find angle in relation to y-axis
+%% get rid of compartment
 for i = 1:length(vertices_cell)
-center_x = vertices_cell{i}(1,:) - W_lon(i);
-center_y = vertices_cell{i}(2,:) - W_lat(i);
-SW_rotated = R * [center_x;center_y] ;
-SW_rotated_cell{i} = SW_rotated ;
-SW_xrotated = SW_rotated_cell{i}(1,:) + W_lon(i) ;
-SW_yrotated = SW_rotated_cell{i}(2,:) + W_lat(i) ;
-SW_xrotatedcell{i} = SW_xrotated ;
-SW_yrotatedcell{i} = SW_yrotated ;
-SW_rotated_verticies = [SW_xrotatedcell{i};SW_yrotatedcell{i}] ;
-SW_rotvertcell{i} = SW_rotated_verticies ;
+R = [cosd(bearing(i)), -sind(bearing(i)); sind(bearing(i)), cosd(bearing(i))];
+center_x = vertices_cell{i}(1,:) - coastal_lon(i);
+center_y = vertices_cell{i}(2,:) - coastal_lat(i);
+rotated = R * [center_x;center_y] ;
+rotated_cell{i} = rotated ;
+xrotated = rotated_cell{i}(1,:) + coastal_lon(i) ;
+yrotated = rotated_cell{i}(2,:) + coastal_lat(i) ;
+xrotatedcell{i} = xrotated ;
+yrotatedcell{i} = yrotated ;
+rotated_verticies = [xrotatedcell{i};yrotatedcell{i}] ;
+rotvertcell{i} = rotated_verticies ;
 end
-clear('SW_rotated_verticies','SW_yrotated','SW_xrotated','SW_rotated_cell','SW_yrotated','SW_xrotated','SW_yrotatedcell','SW_xrotatedcell','SW_rotated_cell','SW_rotated')
+%% get rid of compartment
+clear('rotated_verticies','yrotated','xrotated','rotated_cell','yrotated','xrotated','yrotatedcell','xrotatedcell','rotated_cell','rotated')
 % Clear Unneeded variables
 clear('vertex1')
 clear('vertex2')
@@ -421,10 +423,10 @@ clear('earlyjan_idx')
 clear('latedec_idx')
 % Create indicies for individual rectangles 
 SW_poly_idxcell = cell(length(W_lon_coast), 1); % preallocate
-for i = 1:length(SW_rotvertcell)
+for i = 1:length(rotvertcell)
     for j = 1:length(W_lon_coast)
         if run == 1 ;
-            SW_poly_idx = inpolygon(W_lon_coast,W_lat_coast,SW_rotvertcell{i}(1,:),SW_rotvertcell{i}(2,:)) ; % extended area +core casts that fall into core cast boxes
+            SW_poly_idx = inpolygon(W_lon_coast,W_lat_coast,rotvertcell{i}(1,:),rotvertcell{i}(2,:)) ; % extended area +core casts that fall into core cast boxes
 SW_poly_idxcell{j} = SW_poly_idx ;
     end
     end
@@ -645,7 +647,7 @@ clf
 hold on
 scatter(SW_poly_lon_cell{1280},SW_poly_lat_cell{1280},4,'MarkerFaceColor','b','MarkerEdgeAlpha','0')
 scatter(W_lon(1,1280),W_lat(1,1280),4,'MarkerFaceColor','r','MarkerEdgeAlpha','0')
-plot(SW_rotvertcell{1280}(1,:),SW_rotvertcell{1280}(2,:), 'b' )
+plot(rotvertcell{1280}(1,:),rotvertcell{1280}(2,:), 'b' )
 xlim([-80,-35])
 ylim([55,80])
 plot(cx,cy, 'k')
