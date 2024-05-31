@@ -13,7 +13,7 @@ radius = 20 ; % km circle for opean ocean
 min_count = 4 ; % the minimum # of data points needed in order to plot the statistics of a cast (std dev, anomalies ect.)
 aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
 target  = 100 ; % km from coast
-%% Defining Coastline
+% Defining Coastline
 run = 2 ;
 for i = 1:1:1
     if run == 1
@@ -93,7 +93,6 @@ x_reff_new = reshape(x_reff_new,1,[]) ;
 y_reff_new = reshape(y_reff_new,1,[]) ;
 slope_new = reshape(slope_new,1,[]) ;
 clear('x','y','button')
-%%
 % Slope and inverse
 for i = 1:length(x_coast)-1
 W = (y_coast(i+1,1)-y_coast(i,1))/(x_coast(i+1,1)-x_coast(i,1)) ;
@@ -113,7 +112,6 @@ widthdeg_lon = recwidth./widthdeg_lon ;
 %widthdeg_coast = recwidth_coast./widthdeg_lon ; % Think I can get rid of
 %this
 %lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
-%%
 % create points along lines
 dist = 3 ; 
 num_points = 5000 ; 
@@ -143,7 +141,6 @@ W =  inverse(i) * (x_perp_minus2{i} - x_coast(i+1,1)) + y_coast(i+1,1);
 y_perp_minus2{i,1} = W ;
 end
 clear W
-%% 
 % setting up sw_dist
 for i = 1:length(x_perp_plus)
 %plus
@@ -167,7 +164,7 @@ for i = 1:1:length(ref_plusy)
     end
     j = 1 ;
 end
-%% 
+%%
 % Find point closest to x km within y km
 for i = 1:1:length(dist_minus)
     for j =1:1:length(ref_minusy{1})
@@ -251,7 +248,7 @@ clear exten_minus exten_minus2 exten_plus exten_plus2 exten_plus_ exten_plus2_ e
 clear  j inverse intercept min_plus2 min_plus min_minus2 min_minus ref_minus2x ref_minusx ref_minus2y ref_plus2x ref_plusx run slope x_perp_minus x_perp_minus2 x_perp_plus
 clear x_perp_plus2 y_reff y_perp_minus y_perp_minus2 y_perp_plus y_perp_plus2 x_reff differences_plus2 differences_plus differences_minus differences_minus2 exten_minus2_ index_minus2 length_2 
 clear ref_minusy ref_plusy ref_plus2y dist lengthdeg_coast off_x off_y nan_idx2 nan_idx num_points reff_cords 
-%% Find Casts within defined area (concatenate off coast and coast to make one polygon
+% Find Casts within defined area (concatenate off coast and coast to make one polygon
 %hand removing verticies that cause self-intersection
 intersect_x = [-55.2664; -55.1943; -51.6715; -51.2208; -50.9012; -40.8574;-39; -39.1132; -38.8448; -39.3609;-39.1381]; % Hand picked for 100 km, needds to be edited if coastline or size changes
 intersect_y = [66.734; 66.1034; 61.8243; 61.7822; 61.3371;62.2753; 63.5719; 63.7534; 64.2143; 64.1142;64.2335] ; % Hand picked for 100 km, needds to be edited if coastline or size changes
@@ -271,7 +268,6 @@ in = inpolygon(lon,lat,combined_x,combined_y) ;
 % Determine which refference point to base slope of rectangle boxes
 reff_x = x_reff_new' ;
 reff_y = y_reff_new' ;
-%% WORKING ON NOW
 coastal_lon = lon(in) ;
 coastal_lat = lat(in) ;
 for i= 1:length(lon(in))
@@ -284,47 +280,150 @@ end
 end
 idx = idx(1,:) ;
 clear temp_x temp_y temp_distance min_distance y_reff_new x_reff_new
-%%
-%for i = 1:length(W_idx)
-%    W = lon(W_idx{i}) ;
-%W_lon{i} = W ;
-%    W = lat(W_idx{i}) ;
-%W_lat{i} = W ;
-%W = widthdeg_lon(W_idx{i}) ;
-%W_widthdeg{i} = W ;
-%end
-%for i = 1:length(E_idx)
-%    E = lon(E_idx{i}) ;
-%E_lon{i} = E ;
-%    E = lat(E_idx{i}) ;
-%E_lat{i} = E ;
-%E = widthdeg_lon(E_idx{i}) ;
-%E_widthdeg{i} = E ;
-%end
-%Extended Coast Variables (might be easier to just make a variable with all
-%data contained within?
-%for i = 1:length(W_idx_coast)
-%    W = lon(W_idx_coast{i}) ;
-%W_lon_coast{i} = W ;
-%    W = lat(W_idx_coast{i}) ;
-%W_lat_coast{i} = W ;
-%    W = sal(W_idx_coast{i}) ;
-%W_sal_coast{i} = W ;
-%    W = temp(W_idx_coast{i}) ;
-%W_temp_coast{i} = W ;
-%    W = dep(W_idx_coast{i}) ;
-%W_dep_coast{i} = W ;
-%    W = yea(W_idx_coast{i});
-%W_yea_coast{i} = W ;
-%    W = day(W_idx_coast{i});
-%W_day_coast{i} = W ;
-%    W = mon(W_idx_coast{i}) ;
-%W_mon_coast{i} = W ;
-%    W =  watdep(W_idx_coast{i});
-%W_watdep_coast{i} = W ; 
-%end
-%clear('W')
 %% Defining parallelogram verticies for casts (length and width need work) (WORKING ON)
+inverse_new = -1./slope_new ;
+inverse_new = inverse_new(idx) ;
+target_width = recwidth/2 ;
+target_length = reclength/2 ;
+dist = .3 ;
+num_points = 1000 ;
+%10 km towards and away from refference line (max distance off by 2.5 km)
+% minus
+for i = 1:length(coastal_lon)
+W = linspace(coastal_lon(1,i), coastal_lon(1,i) - dist, num_points); % minus longitude for western facing coasts
+x_perp_minus{1,i} = W' ;
+W =  inverse_new(i) * (x_perp_minus{i} - coastal_lon(1,i)) + coastal_lat(1,i);
+y_perp_minus{1,i} = W ;
+ref_minusx{1,i} = [x_perp_minus{i},repmat(coastal_lon(1,i),num_points,1)];
+ref_minusy{1,i} = [y_perp_minus{i},repmat(coastal_lat(1,i),num_points,1)];
+end
+for i = 1:1:length(ref_minusy)
+for j = 1:1:length(ref_minusy{1})
+dist_minus{1,i}(j,1) = sw_dist(ref_minusy{i}(j,:),ref_minusx{i}(j,:),'km') ;
+differences_minus{1,i}(j,1) = abs(dist_minus{1,i}(j,1)-target_width)  ;
+[min_minus(1,i),index_minus(1,i)] = min(differences_minus{i}) ;
+end
+j = 1 ;
+end
+for i = 1:1:length(dist_minus)
+index = index_minus(i) ;
+   exten_minus(:,i) = [x_perp_minus{i}(index),y_perp_minus{i}(index)] ; %cords for side poins ~10km away
+end
+clear x_perp_minus y_perp_minus ref_minusx ref_minusy index
+% plus
+for i = 1:length(coastal_lon)
+W = linspace(coastal_lon(1,i), coastal_lon(1,i) + dist, num_points); % minus longitude for western facing coasts
+x_perp_plus{1,i} = W' ;
+W =  inverse_new(i) * (x_perp_plus{i} - coastal_lon(1,i)) + coastal_lat(1,i);
+y_perp_plus{1,i} = W ;
+ref_plusx{1,i} = [x_perp_plus{i},repmat(coastal_lon(1,i),num_points,1)];
+ref_plusy{1,i} = [y_perp_plus{i},repmat(coastal_lat(1,i),num_points,1)];
+end
+for i = 1:1:length(ref_plusy)
+for j = 1:1:length(ref_plusy{1})
+dist_plus{1,i}(j,1) = sw_dist(ref_plusy{i}(j,:),ref_plusx{i}(j,:),'km') ;
+differences_plus{1,i}(j,1) = abs(dist_plus{1,i}(j,1)-target_width)  ;
+[min_plus(1,i),index_plus(1,i)] = min(differences_plus{i}) ;
+end
+j = 1 ;
+end
+for i = 1:1:length(dist_plus)
+index = index_plus(i) ;
+   exten_plus(:,i) = [x_perp_plus{i}(index),y_perp_plus{i}(index)] ; %cords for side poins ~10km away
+end
+clear x_perp_plus y_perp_plus ref_plusx ref_plusy index
+%% make verticies points target reclength away
+%vert1 (uses exten_minus)
+slope_coast = slope_new(idx)';
+for i = 1:length(exten_minus)
+W = linspace(exten_minus(1,i), exten_minus(1,i) - dist, num_points); % minus longitude for western facing coasts
+bodge_xminus{1,i} = W' ;
+W =  slope_coast(i) * (bodge_xminus{i} - exten_minus(1,i)) + exten_minus(2,i);
+bodge_yminus{1,i} = W ;
+ref_minusx{1,i} = [bodge_xminus{i},repmat(exten_minus(1,i),num_points,1)];
+ref_minusy{1,i} = [bodge_yminus{i},repmat(exten_minus(2,i),num_points,1)];
+end
+for i = 1:1:length(ref_minusy)
+for j = 1:1:length(ref_minusy{1})
+dist_minus{1,i}(j,1) = sw_dist(ref_minusy{i}(j,:),ref_minusx{i}(j,:),'km') ;
+differences_minus{1,i}(j,1) = abs(dist_minus{1,i}(j,1)-target_length)  ;
+[min_minus(1,i),index_minus_vert(1,i)] = min(differences_minus{i}) ;
+end
+j = 1 ;
+end
+for i = 1:1:length(dist_minus)
+index = index_minus_vert(i) ;
+   vert_1(:,i) = [bodge_xminus{i}(index),bodge_yminus{i}(index)] ; %cords for side poins ~10km away
+end
+clear index ref_minusx ref_minusy bodge_yminus bodge_xminus
+% Vert2 (uses exten_minus)
+for i = 1:length(exten_minus)
+W = linspace(exten_minus(1,i), exten_minus(1,i) + dist, num_points); % minus longitude for western facing coasts
+bodge_xplus{1,i} = W' ;
+W =  slope_coast(i) * (bodge_xplus{i} - exten_minus(1,i)) + exten_minus(2,i);
+bodge_yplus{1,i} = W ;
+ref_plusx{1,i} = [bodge_xplus{i},repmat(exten_minus(1,i),num_points,1)];
+ref_plusy{1,i} = [bodge_yplus{i},repmat(exten_minus(2,i),num_points,1)];
+end
+for i = 1:1:length(ref_plusy)
+for j = 1:1:length(ref_plusy{1})
+dist_plus{1,i}(j,1) = sw_dist(ref_plusy{i}(j,:),ref_plusx{i}(j,:),'km') ;
+differences_plus{1,i}(j,1) = abs(dist_plus{1,i}(j,1)-target_length)  ;
+[min_plus(1,i),index_plus_vert(1,i)] = min(differences_plus{i}) ;
+end
+j = 1 ;
+end
+for i = 1:1:length(dist_plus)
+index = index_plus_vert(i) ;
+   vert_2(:,i) = [bodge_xplus{i}(index),bodge_yplus{i}(index)] ; %cords for side poins ~10km away
+end
+clear index ref_plusx ref_plusy bodge_yplus bodge_xplus
+%Vert 3 (uses exten_plus) WORKING ON NOW
+for i = 1:length(exten_minus)
+W = linspace(exten_plus(1,i), exten_plus(1,i) - dist, num_points); % minus longitude for western facing coasts
+bodge_xminus{1,i} = W' ;
+W =  slope_coast(i) * (bodge_xminus{i} - exten_plus(1,i)) + exten_plus(2,i);
+bodge_yminus{1,i} = W ;
+ref_minusx{1,i} = [bodge_xminus{i},repmat(exten_plus(1,i),num_points,1)];
+ref_minusy{1,i} = [bodge_yminus{i},repmat(exten_plus(2,i),num_points,1)];
+end
+for i = 1:1:length(ref_minusy)
+for j = 1:1:length(ref_minusy{1})
+dist_minus{1,i}(j,1) = sw_dist(ref_minusy{i}(j,:),ref_minusx{i}(j,:),'km') ;
+differences_minus{1,i}(j,1) = abs(dist_minus{1,i}(j,1)-target_length)  ;
+[min_minus(1,i),index_minus_vert(1,i)] = min(differences_minus{i}) ;
+end
+j = 1 ;
+end
+for i = 1:1:length(dist_minus)
+index = index_minus_vert(i) ;
+   vert_3(:,i) = [bodge_xminus{i}(index),bodge_yminus{i}(index)] ; %cords for side poins ~10km away
+end
+clear index ref_minusx ref_minusy bodge_yminus bodge_xminus
+% Vert 4 (uses exten_plus)
+for i = 1:length(exten_plus)
+W = linspace(exten_plus(1,i), exten_plus(1,i) + dist, num_points); % minus longitude for western facing coasts
+bodge_xplus{1,i} = W' ;
+W =  slope_coast(i) * (bodge_xplus{i} - exten_plus(1,i)) + exten_plus(2,i);
+bodge_yplus{1,i} = W ;
+ref_plusx{1,i} = [bodge_xplus{i},repmat(exten_plus(1,i),num_points,1)];
+ref_plusy{1,i} = [bodge_yplus{i},repmat(exten_plus(2,i),num_points,1)];
+end
+for i = 1:1:length(ref_plusy)
+for j = 1:1:length(ref_plusy{1})
+dist_plus{1,i}(j,1) = sw_dist(ref_plusy{i}(j,:),ref_plusx{i}(j,:),'km') ;
+differences_plus{1,i}(j,1) = abs(dist_plus{1,i}(j,1)-target_length)  ;
+[min_plus(1,i),index_plus_vert(1,i)] = min(differences_plus{i}) ;
+end
+j = 1 ;
+end
+for i = 1:1:length(dist_plus)
+index = index_plus_vert(i) ;
+   vert_4(:,i) = [bodge_xplus{i}(index),bodge_yplus{i}(index)] ; %cords for side poins ~10km away
+end
+%%
+differences_minus{1,i}(j,1) = abs(dist_minus{1,i}(j,1)-target_width)  ;
+[min_minus(1,i),index_minus(1,i)] = min(differences_minus{i}) ;
 coast_width = widthdeg_lon(in) ;
 lengthrad = deg2rad(lengthdeg) ;
 lengthdeg = ones(1,length(widthdeg_lon)).*lengthdeg ;
