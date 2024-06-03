@@ -72,21 +72,33 @@ plot(rotvertcell{7}(1,:),rotvertcell{7}(2,:), 'k')
 plot(rotvertcell{10}(1,:),rotvertcell{10}(2,:), 'k')
 scatter(reff_x,reff_y,'k')
 hold off
-%% 
+%% box
 hold on
 clf
 hold on
 plot(cx,cy,'k')
 plot(x_coast,y_coast,'b')
-daspect([1 aspect_ratio 1])
 xlim([-80,-35])
 ylim([55,80])
 scatter(reff_x,reff_y,'k')
 scatter(coastal_lon(1,1),coastal_lat(1,1),'c')
-scatter(vert_1(1,1),vert_1(2,1),'r')
-scatter(vert_2(1,1),vert_2(2,1),'b')
-scatter(vert_3(1,1),vert_3(2,1),'y')
-scatter(vert_4(1,1),vert_4(2,1),'g')
+scatter(vert{1}(1,1),vert{1}(2,1),'r')
+scatter(vert{1}(1,2),vert{1}(2,2),'b')
+scatter(vert{1}(1,3),vert{1}(2,3),'y')
+scatter(vert{1}(1,4),vert{1}(2,4),'g')
 scatter(exten_minus(1,1),exten_minus(2,1),'k')
 scatter(exten_plus(1,1),exten_plus(2,1),'k')
+hold off
+%%
+test = inpolygon(coastal_lon,coastal_lat,vert{1}(1,:),vert{1}(2,:)) ; % test points
+hold on
+clf
+hold on
+plot(cx,cy,'k')
+plot(x_coast,y_coast,'b')
+xlim([-80,-35])
+ylim([55,80])
+scatter(reff_x,reff_y,'k')
+plot(vert{1}(1,:),vert{1}(2,:),'r')
+scatter(coastal_lon(test),coastal_lat(test),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
 hold off
