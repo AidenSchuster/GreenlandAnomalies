@@ -422,117 +422,96 @@ index = index_plus_vert(i) ;
    vert_4(:,i) = [bodge_xplus{i}(index),bodge_yplus{i}(index)] ; %cords for side poins ~10km away
 end
 %%
-differences_minus{1,i}(j,1) = abs(dist_minus{1,i}(j,1)-target_width)  ;
-[min_minus(1,i),index_minus(1,i)] = min(differences_minus{i}) ;
-coast_width = widthdeg_lon(in) ;
-lengthrad = deg2rad(lengthdeg) ;
-lengthdeg = ones(1,length(widthdeg_lon)).*lengthdeg ;
-half_length = lengthdeg./1.6 ; % mess with the divisibles to get the km right (this is within 1 km after very limited testing)
-% Half Widths
-for i = 1:length(coast_width)
-W = coast_width(i)./3; %  mess with the divisibles to get the km right (this is within 1 km after very limited testing) may need to do bodged method
-half_width(i) = W ;
+%combine verticies (not ordered)
+for i= 1:1:length(vert_1)
+vertices = [vert_1(:,i), vert_2(:,i), vert_3(:,i), vert_4(:,i)];
+vert_combined{i} = vertices ;
 end
-% Verticies for Boxes
-for i = 1:numel(coastal_lon)
-    % Calculate the coordinates of the vertices
-    vertex1(:,i) = [coastal_lon(i) - half_width(i); coastal_lat(i) + half_length(i)]; %careful, longitude is negative so watch signs
-    vertex2(:,i) = [coastal_lon(i) - half_width(i); coastal_lat(i) - half_length(i)];
-    vertex3(:,i) = [coastal_lon(i) + half_width(i); coastal_lat(i) - half_length(i)];
-    vertex4(:,i) = [coastal_lon(i) + half_width(i); coastal_lat(i) + half_length(i)];
-end 
-for i= 1:1:length(vertex1)
-    % Arrange vertices in counterclockwise order
-    vertices = [vertex1(:,i), vertex2(:,i), vertex3(:,i), vertex4(:,i)];
-    % Store in cell array
-    vertices_cell{i} = vertices;
+clear verticies
+% order the verticies based on angle relative to y-axis from central point
+for  i = 1:length(vert_combined)
+    for j = 1:length(vert_combined{i})
+angles(j) = atan2(vert_combined{i}(2,j)-coastal_lat(i),vert_combined{i}(1,j)-coastal_lon(i)) ;
+angle_vert{i} = angles ;
+    end
+    j = 1 ;
 end
-%Match refference slope to each coastal point using index
-slope_coast = slope_new(idx)';
-% Rotate Verticies to allign with slope of refference points
-angle = atand(slope_coast(:,1)) ; % degrees
-bearing = angle - 90 ; % find angle in relation to y-axis
+for  i = 1:length(vert_combined)
+    for j = 1:length(vert_combined{i})
+    [~, sortOrder] = sort(angle_vert{i});
+order{i} = sortOrder ;
+    end
+end
+for i = 1:length(order)
+    v = vert_combined{i} ;
+    o = order{i} ;
+    s = v(:,o) ;
+    vert{i} = s ;
+end
+clear v o s vert_combined vert_1 vert_2 vert_3 vert_4 vertices angles angles angle_vert bodge_yplus bodge_yminus bodge_xminus bodge_xplus order sortOrder inverse_new ref_plusx ref_minusy ref_plusy ref_minusx
 %% get rid of compartment
-for i = 1:length(vertices_cell)
-R = [cosd(bearing(i)), -sind(bearing(i)); sind(bearing(i)), cosd(bearing(i))];
-center_x = vertices_cell{i}(1,:) - coastal_lon(i);
-center_y = vertices_cell{i}(2,:) - coastal_lat(i);
-rotated = R * [center_x;center_y] ;
-rotated_cell{i} = rotated ;
-xrotated = rotated_cell{i}(1,:) + coastal_lon(i) ;
-yrotated = rotated_cell{i}(2,:) + coastal_lat(i) ;
-xrotatedcell{i} = xrotated ;
-yrotatedcell{i} = yrotated ;
-rotated_verticies = [xrotatedcell{i};yrotatedcell{i}] ;
-rotvertcell{i} = rotated_verticies ;
-end
-%% get rid of compartment
-clear('rotated_verticies','yrotated','xrotated','rotated_cell','yrotated','xrotated','yrotatedcell','xrotatedcell','rotated_cell','rotated')
-% Clear Unneeded variables
-clear('vertex1')
-clear('vertex2')
-clear('vertex3')
-clear('vertex4')
-clear('R')
-% Rectangle Calculations
-% Interpolate every 1 m for the SW coastal region
-max_length = max(cellfun(@numel,W_dep_coast)) ;
-DepInterval = (0:1:max_length)';
+% Interpolate every 1 m for the region (will eventually need to exclude
+% fjord stuff via inpolygon indexing)
+max_length = max(cellfun(@numel,dep)) ;
+DepInterval = (0:1:max_length); % 1 m intervals
 run = 2 ; % will rerun interpolated, temp and salinity as well as cast box indicies, when changing box size you need to set to 1
-for i = 1:1:length(W_dep_coast)
+for i = 1:1:length(dep)
     if run == 1 
-        SW_int_temp{1,i} = interp1(W_dep_coast{1,i},W_temp_coast{1,i}, DepInterval, 'linear') ;
+        interp_temp{1,i} = interp1(dep{1,i},temp{1,i}, DepInterval, 'linear') ;
     end
 end
 for i = 1:1
     if run == 1
-save ("SW_int_temp.mat", "SW_int_temp");
+save ("interp_temp.mat", "interp_temp");
     end
 end
-    load('SW_int_temp.mat')
+    load('interp_temp.mat')
 %Salinity 
-for i = 1:1:length(W_dep_coast)
+for i = 1:1:length(dep)
    if run == 1
-    SW_int_sal{1,i} = interp1(W_dep_coast{1,i},W_sal_coast{1,i}, DepInterval, 'linear') ;
+    interp_sal{1,i} = interp1(dep{1,i},sal{1,i}, DepInterval, 'linear') ;
    end
 end
 for i = 1:1
     if run == 1
- save ("SW_int_sal.mat", "SW_int_sal");
+ save ("interp_sal.mat", "interp_sal");
     end
 end
-load('SW_int_sal.mat')
+load('interp_sal.mat')
 % Create 15 day indicies regardless of year 
-SW_date = ([W_yea_coast; W_mon_coast; W_day_coast]) ;
-SW_date(4,:) = datenum(0,SW_date(2,:),SW_date(3,:));% everything set in the year 0 to make for easy sorting by day and month
-SW_datenum = datenum(0,SW_date(2,:),SW_date(3,:)) ;% everything set in the year 0 to make for easy sorting by day and month
+date = ([yea; mon; day]) ;
+date(4,:) = datenum(0,date(2,:),date(3,:));% everything set in the year 0 to make for easy sorting by day and month
+datenum = datenum(0,date(2,:),date(3,:)) ;% everything set in the year 0 to make for easy sorting by day and month
 day_range_2 = day_range*2 ; % For dynamic naming
-middle_idx = SW_date(4,:) >= day_range & SW_date(4,:) <= 365-day_range;
-earlyjan_idx = (SW_date(4,:) < day_range) ; % only includes earliest part of Jan that overlaps with interval 
-latedec_idx = (SW_date(4,:) > 365-day_range); % only includes latest part of Dec that overlaps with interval 
-Jan_range = 365-day_range + (SW_datenum(earlyjan_idx) ); % Earliest Day to include
-Jan_range(2,:) = SW_datenum(earlyjan_idx)+day_range ; % Latest Day to include
-Middle_range = SW_datenum(middle_idx)- day_range ;
-Middle_range(2,:) = SW_datenum(middle_idx)+ day_range ;
-Dec_range = SW_datenum(latedec_idx)- day_range ;
-Dec_range(2,:) = SW_datenum(latedec_idx)-365+day_range;
+middle_idx = date(4,:) >= day_range & date(4,:) <= 365-day_range;
+earlyjan_idx = (date(4,:) < day_range) ; % only includes earliest part of Jan that overlaps with interval 
+latedec_idx = (date(4,:) > 365-day_range); % only includes latest part of Dec that overlaps with interval 
+Jan_range = 365-day_range + (datenum(earlyjan_idx) ); % Earliest Day to include
+Jan_range(2,:) = datenum(earlyjan_idx)+day_range ; % Latest Day to include
+Middle_range = datenum(middle_idx)- day_range ;
+Middle_range(2,:) = datenum(middle_idx)+ day_range ;
+Dec_range = datenum(latedec_idx)- day_range ;
+Dec_range(2,:) = datenum(latedec_idx)-365+day_range;
 SW_ranges = [Jan_range,Middle_range,Dec_range] ;
 clear('middle_idx')
 clear('earlyjan_idx')
 clear('latedec_idx')
+%%
+% remove fjord casts for box indexing
+%WORKING ON NOW
 % Create indicies for individual rectangles 
-SW_poly_idxcell = cell(length(W_lon_coast), 1); % preallocate
+poly_idxcell = cell(length(coastal_lon), 1); % preallocate
 for i = 1:length(rotvertcell)
     for j = 1:length(W_lon_coast)
         if run == 1 ;
             SW_poly_idx = inpolygon(W_lon_coast,W_lat_coast,rotvertcell{i}(1,:),rotvertcell{i}(2,:)) ; % extended area +core casts that fall into core cast boxes
-SW_poly_idxcell{j} = SW_poly_idx ;
+poly_idxcell{j} = SW_poly_idx ;
     end
     end
 end
 for i = 1:1
     if run == 1
- save("SW_poly_idx.mat",'SW_poly_idxcell')
+ save("SW_poly_idx.mat",'poly_idxcell')
     end
 end
     load('SW_poly_idx.mat')
@@ -544,7 +523,7 @@ dec_idx = false(1,length(SW_ranges)) ;
 % Overlapping January Dates
 for i = 1:length(SW_ranges)
     for j = 1:length(Jan_range)
-    if SW_datenum(i) >= Jan_range(1,j) | SW_datenum(i) <= Jan_range(2,j)
+    if datenum(i) >= Jan_range(1,j) | datenum(i) <= Jan_range(2,j)
         jan_idx(i) = 1 ;
         Jan_cell{j} = jan_idx ;
     end
@@ -553,7 +532,7 @@ end
 % Middle Dates
 for i = 1:length(SW_ranges)
     for j = 1:length(Middle_range)
-    if SW_datenum(i) >= Middle_range(1,j) & SW_datenum(i) <= Middle_range(2,j)
+    if datenum(i) >= Middle_range(1,j) & datenum(i) <= Middle_range(2,j)
 Middle_idx(i) = 1;
 Middle{j} = Middle_idx ;
     end
@@ -562,7 +541,7 @@ end
 % Overlapping Dec Dates
 for i = 1:length(SW_ranges)
     for j = 1:length(Dec_range)
-         if SW_datenum(i) >= Dec_range(1,j) | SW_datenum(i) <= Dec_range(2,j)
+         if datenum(i) >= Dec_range(1,j) | datenum(i) <= Dec_range(2,j)
         dec_idx(i) = 1 ;
        Dec_cell{j} = dec_idx ;
     end
@@ -571,20 +550,20 @@ end
 % Concatenate Overlapping [Jan,Middle,Dec] cell arrays (Looks Correct but need to test
 SW_date_idx_cell =  ([Jan_cell,Middle,Dec_cell]) ;
 % Combine Date and Polygon indicies for temp and sal
-for i = 1:length(SW_poly_idxcell)
-    SW_poly_temp = SW_int_temp(SW_poly_idxcell{i} & SW_date_idx_cell{i}) ;
+for i = 1:length(poly_idxcell)
+    SW_poly_temp = interp_temp(poly_idxcell{i} & SW_date_idx_cell{i}) ;
     SW_poly_temp_cell{i} = SW_poly_temp ;
 end
-for i = 1:length(SW_poly_idxcell)
-    SW_poly_sal = SW_int_sal(SW_poly_idxcell{i} & SW_date_idx_cell{i}) ;
+for i = 1:length(poly_idxcell)
+    SW_poly_sal = SW_int_sal(poly_idxcell{i} & SW_date_idx_cell{i}) ;
     SW_poly_sal_cell{i} = SW_poly_sal ;
 end
-for i = 1:length(SW_poly_idxcell)
-    SW= W_lon_coast(SW_poly_idxcell{i} & SW_date_idx_cell{i}) ;
+for i = 1:length(poly_idxcell)
+    SW= W_lon_coast(poly_idxcell{i} & SW_date_idx_cell{i}) ;
     SW_poly_lon_cell{i} = SW ;
 end
-for i = 1:length(SW_poly_idxcell)
-    SW= W_lat_coast(SW_poly_idxcell{i} & SW_date_idx_cell{i}) ;
+for i = 1:length(poly_idxcell)
+    SW= W_lat_coast(poly_idxcell{i} & SW_date_idx_cell{i}) ;
     SW_poly_lat_cell{i} = SW ;
 end
 % Calculate Means
@@ -627,16 +606,16 @@ end
 % Remove unused casts from int_sal and int_temp
 not_empty = ~cellfun(@isempty,SW_sal_means_cell) ;
 SW_int_sal = SW_int_sal(not_empty) ;
-SW_int_temp = SW_int_temp(not_empty) ;
+interp_temp = interp_temp(not_empty) ;
 SW_sal_means_cell = SW_sal_means_cell(not_empty) ;
 SW_temp_means_cell = SW_temp_means_cell(not_empty) ;
 % Calculate Anomalies
-for i = 1:length(SW_int_temp)
+for i = 1:length(interp_temp)
 SW_Anmly = SW_sal_means_cell{i} - SW_int_sal{i} ;
 SW_sal_Anmly_cell{i} = SW_Anmly ;
 end
-for i = 1:length(SW_int_temp)
-SW_Anmly = SW_temp_means_cell{i} - SW_int_temp{i} ;
+for i = 1:length(interp_temp)
+SW_Anmly = SW_temp_means_cell{i} - interp_temp{i} ;
 SW_temp_Anmly_cell{i} = SW_Anmly ;
 end
 % Number of Obersvations at each depth
@@ -677,7 +656,7 @@ clear('day')
 clear('yea')
 clear('notempty')
 clear('lengthrad')
-clear('SW_poly_idxcell') % might need this one
+clear('poly_idxcell') % might need this one
 clear('W_widthdeg')
 
 %% Statistics
