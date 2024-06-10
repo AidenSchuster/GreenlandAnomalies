@@ -102,3 +102,13 @@ scatter(reff_x,reff_y,'k')
 plot(vert{1}(1,:),vert{1}(2,:),'r')
 scatter(coastal_lon(test),coastal_lat(test),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
 hold off
+%%
+clf
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(polygon_x,polygon_y,'r')
+scatter(lon(~in_idx),lat(~in_idx),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
+hold off
