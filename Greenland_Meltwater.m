@@ -423,9 +423,6 @@ index = index_plus_vert(i) ;
    vert_4(:,i) = [bodge_xplus{i}(index),bodge_yplus{i}(index)] ; %cords for side poins ~10km away
 end
 clear exten_minus exten2 exten_plus i 
-%% Open Ocean Casts (some work on it prevviously done on bottom of script)
-open_lat = lon_a()
-open_lon = 
 %%
 %combine verticies (not ordered)
 for i= 1:1:length(vert_1)
@@ -500,7 +497,6 @@ Middle_range(2,:) = datenum_coast(middle_idx)+ day_range ;
 Dec_range = datenum_coast(latedec_idx)- day_range ;
 Dec_range(2,:) = datenum_coast(latedec_idx)-365+day_range;
 ranges = [Jan_range,Middle_range,Dec_range] ;
-clear middle_idx latedec_idx earlyjan_idx day_range day_range2
 % remove fjord casts and create variables to use
 in_idx = inpolygon(lon,lat,polygon_x,polygon_y) ;
 lon_a = lon(~in_idx) ;
@@ -512,7 +508,23 @@ mon_a = mon(~in_idx) ;
 day_a = day(~in_idx) ;
 yea_a = yea(~in_idx) ;
 datenum_a = datenum(~in_idx) ;
+% Open Ocean Casts
+open = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
+datenum_open = datenum(~open) ;
+lat_open = lat_a(~open) ;
+lon_open = lon_a(~open) ;
+middle_idx = date(4,~open) >= day_range & date(4,~open) <= 365-day_range; % idx for coastal ranges, will need to go back for open ocean stuff
+earlyjan_idx = (date(4,~open) < day_range) ; % only includes earliest part of Jan that overlaps with interval 
+latedec_idx = (date(4,~open) > 365-day_range); % only includes latest part of Dec that overlaps with interval 
+Jan_range_open(1,:) = 365-day_range + (datenum_open(earlyjan_idx) ); % Earliest Day to include
+Jan_range_open(2,:) = datenum_open(earlyjan_idx)+day_range ; % Latest Day to include
+Middle_range_open = datenum_open(middle_idx)- day_range ;
+Middle_range_open(2,:) = datenum_open(middle_idx)+ day_range ;
+Dec_range_open = datenum_open(latedec_idx)- day_range ;
+Dec_range_open(2,:) = datenum_open(latedec_idx)-365+day_range;
+ranges_open = [Jan_range_open,Middle_range_open,Dec_range_open] ;
 clear polygon_x polygon_y datenum lat lon
+clear middle_idx latedec_idx earlyjan_idx
 %%
 % Create indicies for individual rectangles (coastal only for now) 
 run = 2 ;
@@ -544,6 +556,42 @@ for i = 1:size(poly_idx, 2)
 end
 clear index_minus index_minus_vert index_plus index_plus_vert intersect_x intersect_y idx_remove offset min_minus min_plus num_points reff_cord reff_slope reff_x reff_y 
 clear row run slope_coast slope_new target target_length target_width tolerance vert W column_indices combined_x combined_y exten indices_cell
+%% Use sw_dist to create index of which casts are within 20 km of each open ocean cast
+%refference lat and lon
+run = 2;
+for i = 1:length(lon_open)
+    if run == 1
+reff_lon = [repmat(lon_open(i),1,length(lon_a));lon_a] ;
+reff_lat = [repmat(lat_open(i),1,length(lat_a));lat_a] ;
+        for j = 1:length(lon_open)
+        open_dist = sw_dist(reff_lat(:,j),reff_lon(:,j),'km') ;
+            if open_dist <= recwidth ; % all casts less than 20km away
+            circle_idx{i}(j) = j ;
+            end
+        end
+        end
+end
+% simplify
+for i = 1:length(lon_open)  % circle_idx?
+    if run == 1
+    individual_array = circle_idx{i};
+    non_zero_elements = [];
+        for j = 1:length(individual_array)
+            if individual_array(j) ~= 0
+            % Append non-zero elements to the non_zero_elements array
+            non_zero_elements = [non_zero_elements, individual_array(j)];
+            end
+        end
+    circle_idx{i} = non_zero_elements; %moved above second to last end
+    end
+end
+%
+for i =1:1
+    if run == 1 
+    save("circle_idx.mat",'circle_idx','-v7.3')
+    end
+end
+load('circle_idx.mat','circle_idx')
 %% Date indicies
 jan_idx = false(1,length(datenum_a)) ;
 Middle_idx = false(1,length(datenum_a)) ;
@@ -587,7 +635,27 @@ for i = 1:length(date_idx_cell)
  idx = poly_idx(:,i)' & date_idx_cell{i} ; % will eventually be all casts
  cast_idx{i} = idx ; % combined cast index, sorted by collumn
 end
-clear idx temp temp_lon poly_idx date_idx_cell ranges Dec_range Jan_range Middle_range Jan_indices
+%% Open Date Indices 
+jan_idx = false(1,length(datenum_a)) ;
+Middle_idx = false(1,length(datenum_a)) ;
+dec_idx = false(1,length(datenum_a)) ;
+% Jan
+for i = 1:length(datenum_a)
+    for j = 1:length(Jan_range_open)
+        if datenum_a(i) >= Jan_range_open(1,j) || datenum_a(i) <= Jan_range_open(2,j)
+        jan_idx(i) = 1 ;
+        Jan{j} = jan_idx ;
+        end
+    end
+end
+
+
+
+
+
+
+% clear idx temp temp_lon poly_idx date_idx_cell ranges Dec_range Jan_range
+% Middle_range Jan_indices Jan_range_open Dec_range_open Middle_range_open
 %%
 for i = 1:length(poly_idxcell)
     SW_poly_temp = interp_temp(poly_idxcell{i} & SW_date_idx_cell{i}) ;

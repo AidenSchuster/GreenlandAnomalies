@@ -112,3 +112,13 @@ ylim([55,80])
 plot(polygon_x,polygon_y,'r')
 scatter(lon(~in_idx),lat(~in_idx),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
 hold off
+%% Open Ocean Casts
+clf
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+scatter(lon_a(circle_idx{2}),lat_a(circle_idx{2}),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
+scatter(lon_a(2),lat_a(2),3,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
+hold off
