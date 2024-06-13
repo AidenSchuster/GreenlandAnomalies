@@ -558,18 +558,18 @@ clear index_minus index_minus_vert index_plus index_plus_vert intersect_x inters
 clear row run slope_coast slope_new target target_length target_width tolerance vert W column_indices combined_x combined_y exten indices_cell
 %% Use sw_dist to create index of which casts are within 20 km of each open ocean cast
 %refference lat and lon
-run = 2;
+run = 2 ;
 for i = 1:length(lon_open)
     if run == 1
 reff_lon = [repmat(lon_open(i),1,length(lon_a));lon_a] ;
 reff_lat = [repmat(lat_open(i),1,length(lat_a));lat_a] ;
-        for j = 1:length(lon_open)
+        for j = 1:length(lon_a)
         open_dist = sw_dist(reff_lat(:,j),reff_lon(:,j),'km') ;
             if open_dist <= recwidth ; % all casts less than 20km away
             circle_idx{i}(j) = j ;
             end
         end
-        end
+   end
 end
 % simplify
 for i = 1:length(lon_open)  % circle_idx?
@@ -585,14 +585,25 @@ for i = 1:length(lon_open)  % circle_idx?
     circle_idx{i} = non_zero_elements; %moved above second to last end
     end
 end
-%
 for i =1:1
     if run == 1 
     save("circle_idx.mat",'circle_idx','-v7.3')
     end
 end
 load('circle_idx.mat','circle_idx')
-%% Date indicies
+% create logical indices for use late combining with date_idx
+numCells = length(circle_idx) ;
+logical_arrays = cell(1, numCells);
+for i = 1:numCells
+    % Get the current index array
+    index = circle_idx{i};
+    length_open = length(datenum_a);
+    logical_array = zeros(1, length_open);
+    logical_array(index) = 1;
+    circle_idx_mat(:,i) =logical_array ;
+end
+ clear logical_arrays logical_array length_open index circle_idx
+%% Date indicies for off coast casts
 jan_idx = false(1,length(datenum_a)) ;
 Middle_idx = false(1,length(datenum_a)) ;
 dec_idx = false(1,length(datenum_a)) ;
@@ -633,7 +644,7 @@ clear Jan Middle Dec jan_idx middle_idx dec_idx
 % Combine Date and Polygon indicies for temp and sal
 for i = 1:length(date_idx_cell)
  idx = poly_idx(:,i)' & date_idx_cell{i} ; % will eventually be all casts
- cast_idx{i} = idx ; % combined cast index, sorted by collumn
+ cast_idx_coast{i} = idx ; % combined cast index, sorted by collumn
 end
 %% Open Date Indices 
 jan_idx = false(1,length(datenum_a)) ;
@@ -644,18 +655,44 @@ for i = 1:length(datenum_a)
     for j = 1:length(Jan_range_open)
         if datenum_a(i) >= Jan_range_open(1,j) || datenum_a(i) <= Jan_range_open(2,j)
         jan_idx(i) = 1 ;
-        Jan{j} = jan_idx ;
+        Jan_open{j} = jan_idx ;
         end
     end
 end
-
-
-
-
-
-
-% clear idx temp temp_lon poly_idx date_idx_cell ranges Dec_range Jan_range
-% Middle_range Jan_indices Jan_range_open Dec_range_open Middle_range_open
+% Middle
+run = 2 ;
+for i = 1:length(datenum_a)
+    for j = 1:length(Middle_range_open)
+            if run == 1 ;
+                if datenum_a(i) >= Middle_range_open(1,j) && datenum_a(i) <= Middle_range_open(2,j)
+Middle_idx(i) = 1;
+Middle_open{j} = Middle_idx ;
+save("Middle_open.mat",'Middle_open') 
+%variable
+                end
+            end
+    end
+end
+load('Middle_open.mat')
+% Dec
+for i = 1:length(datenum_a)
+    for j = 1:length(Dec_range_open)
+         if datenum_a(i) >= Dec_range_open(1,j) | datenum_a(i) <= Dec_range_open(2,j)
+        dec_idx(i) = 1 ;
+       Dec_open{j} = dec_idx ;
+        end
+    end
+end
+%combine
+date_idx_cell_open =  ([Jan_open,Middle_open,Dec_open]) ; % includes an index with an index for every cast that falls within the date range of each cast
+%combine indices
+for i = 1:length(date_idx_cell_open)
+ idx = circle_idx_mat(:,i)' & date_idx_cell_open{i} ; % will eventually be all casts
+ cast_idx_open{i} = idx ; % combined cast index, sorted by collumn
+end
+clear idx temp temp_lon poly_idx date_idx_cell ranges Dec_range Jan_range circle_idx_open dec_idx date_idx_cell_open Dec_open individual_array jan_idx Jan_open Middle_idx Middle_open non_zero_elements
+clear Middle_range Jan_indices Jan_range_open Dec_range_open Middle_range_open ranges_open reff_lon reff_lat off_coast circle_idx_mat day lengthdeg mon numCells sal 
+clear i j max_length poly_off radius reclength_coast dist
 %%
 for i = 1:length(poly_idxcell)
     SW_poly_temp = interp_temp(poly_idxcell{i} & SW_date_idx_cell{i}) ;
