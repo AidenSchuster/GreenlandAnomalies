@@ -119,6 +119,53 @@ plot(cx,cy,'k')
 daspect([1 aspect_ratio 1])
 xlim([-80,-35])
 ylim([55,80])
-scatter(lon_a(circle_idx{2}),lat_a(circle_idx{2}),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
+scatter(lon_a(cast_idx_open{2}),lat_a(cast_idx_open{2}),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
 scatter(lon_a(2),lat_a(2),3,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
+hold off
+%% Plot Anomaly example w/ std dev
+number = 1006 ;
+clf
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(cx,cy,'k')
+scatter(lon_a(cast_idx_coast{number}),lat_a(cast_idx_coast{number}),10,'MarkerFaceColor','b','MarkerEdgeAlpha','0.5')
+scatter(coastal_lon(number),coastal_lat(number),10,'MarkerFaceColor','r','MarkerEdgeAlpha','0.5')
+hold off
+%% continued (Temp anom)
+clf
+hold on
+plot(coast_temp_anom(:,number),DepInterval,'k')
+axis ij
+xlabel('Temperature Anomaly')
+ylabel('Depth (M)')
+title('Temperature Anomaly vs Depth')
+hold off
+%% contin (sal anom)
+clf
+hold on
+plot(coast_sal_anom(:,number),DepInterval,'k')
+axis ij
+xlabel('Salinity Anomaly')
+ylabel('Depth (M)')
+title('Salinity Anomaly vs Depth')
+hold off
+%% contin (std dev sal)
+clf
+hold on
+plot(coastal_sal_std{:,number},DepInterval,'k')
+axis ij
+xlabel('Salinity Std')
+ylabel('Depth (M)')
+title('Salinity Std vs Depth')
+hold off
+%% contin (std dev temp)
+clf
+hold on
+plot(coastal_temp_std{:,number},DepInterval,'k')
+axis ij
+xlabel('Temperature Std')
+ylabel('Depth (M)')
+title('Temperature Std vs Depth')
 hold off

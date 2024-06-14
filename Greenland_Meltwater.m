@@ -555,7 +555,7 @@ for i = 1:size(poly_idx, 2)
     indices_cell{i} = column_indices;
 end
 clear index_minus index_minus_vert index_plus index_plus_vert intersect_x intersect_y idx_remove offset min_minus min_plus num_points reff_cord reff_slope reff_x reff_y 
-clear row run slope_coast slope_new target target_length target_width tolerance vert W column_indices combined_x combined_y exten indices_cell
+clear row run slope_coast slope_new target target_length target_width tolerance vert W column_indices exten indices_cell
 %% Use sw_dist to create index of which casts are within 20 km of each open ocean cast
 %refference lat and lon
 run = 2 ;
@@ -693,6 +693,78 @@ end
 clear idx temp temp_lon poly_idx date_idx_cell ranges Dec_range Jan_range circle_idx_open dec_idx date_idx_cell_open Dec_open individual_array jan_idx Jan_open Middle_idx Middle_open non_zero_elements
 clear Middle_range Jan_indices Jan_range_open Dec_range_open Middle_range_open ranges_open reff_lon reff_lat off_coast circle_idx_mat day lengthdeg mon numCells sal 
 clear i j max_length poly_off radius reclength_coast dist
+%% Calculate and store temp and sal anomalies and std dev without storing temp and sal itself
+interp_temp_a = interp_temp(~in_idx) ;
+interp_sal_a = interp_sal(~in_idx) ;
+numCells = length(interp_temp_a) ;
+rows = length(DepInterval) ;
+interp_sal_mat =  zeros(rows, numCells) ;
+interp_temp_mat =  zeros(rows, numCells) ;
+run = 2 ;
+for i = 1:length(interp_temp_a)
+    if run == 1 
+insidearray1 = interp_temp_a{i}' ;
+insidearray2 = interp_sal_a{i}' ;
+interp_temp_mat(:,i) = insidearray1 ;
+interp_sal_mat(:,i) = insidearray2 ;
+    end
+end
+clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a %(need interp_sal_a/temp for open casts)
+for i = 1:1
+    if run ==1
+save("interp_sal_mat.mat",'interp_sal_mat','-v7.3')
+save("interp_temp_mat.mat",'interp_temp_mat','-v7.3')
+    end
+end
+load("interp_sal_mat.mat")
+load("interp_temp_mat.mat")
+% Coast means/std
+for i = 1:1
+    coastal_temp_mat = [] ;
+    coastal_sal_mat = [] ;
+    for j = 1:length(cast_idx_coast)
+    coastal_temp_mat = interp_temp_mat(:,cast_idx_coast{j}) ;
+    coastal_sal_mat = interp_sal_mat(:,cast_idx_coast{j}) ;
+    coastal_sal_mean{j} = mean(coastal_sal_mat,2,'omitnan') ; 
+    coastal_temp_mean{j} = mean(coastal_temp_mat,2,'omitnan') ;
+    coastal_temp_std{j} = std(coastal_temp_mat,0,2,'omitnan') ;
+    coastal_sal_std{j} = std(coastal_sal_mat,0,2,'omitnan') ;
+    end
+end
+% Expand
+numCells = length(coastal_temp_mean) ;
+rows = length(DepInterval) ;
+coast_temp_avg =  zeros(rows, numCells) ;
+coast_sal_avg =  zeros(rows, numCells) ;
+for i = 1:length(coastal_sal_mean) 
+insidearray1 = coastal_temp_mean{i}' ;
+insidearray2 = coastal_sal_mean{i}' ;
+coast_temp_avg(:,i) = insidearray1 ;
+coast_sal_avg(:,i) = insidearray2 ;
+end
+clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean dep coastal_lat coastal_lon watdep twd insidearray2 insidearray1
+% coast anomaly
+in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
+coastal_sal = interp_sal_mat(:,in_a) ;
+coastal_temp = interp_temp_mat(:,in_a) ;
+for i = 1:length(coast_sal_avg(1,:)) ;
+coast_sal_anom(:,i) = coastal_sal(:,i) - coast_sal_avg(:,i) ;
+coast_temp_anom(:,i) = coastal_temp(:,i) - coast_temp_avg(:,i) ;
+end
+clear coastal_sal coastal_temp 
+%% Delete this and start working on open casts
+% coastal casts
+for i = 1:length(cast_idx_coast)
+coastal_temp = interp_temp_a(cast_idx_coast{i}) ;
+coastal_sal = interp_sal_a(cast_idx_coast{i}) ;
+    for j = 1:length(coastal_sal)
+    coastal_sal_mean{:,i} = mean(coastal_sal{j},1,'omitnan')' ; 
+    coastal_temp_mean{:,i} = mean(coastal_temp{j},1,'omitnan')' ; 
+%coastal_temp_anol = ;
+%coastal_sal_anol = ;
+    end
+end
+%clear interp_sal interp_temp 
 %%
 for i = 1:length(poly_idxcell)
     SW_poly_temp = interp_temp(poly_idxcell{i} & SW_date_idx_cell{i}) ;
