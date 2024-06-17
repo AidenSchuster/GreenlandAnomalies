@@ -169,3 +169,12 @@ xlabel('Temperature Std')
 ylabel('Depth (M)')
 title('Temperature Std vs Depth')
 hold off
+%% Meshgrid for std (do one where every cast is included, and then seperate by month)
+
+%%
+clf 
+hold on 
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(cx,cy,'k')
