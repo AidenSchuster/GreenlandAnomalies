@@ -767,14 +767,17 @@ for i = 1:1
     open_temp_mean{j} = mean(open_temp_mat,2,'omitnan') ;
     open_temp_std{j} = std(open_temp_mat,0,2,'omitnan') ;
     open_sal_std{j} = std(open_sal_mat,0,2,'omitnan') ;
-    end
-     end
+        end
    save("open_temp_mean.mat",'open_temp_mean')
    save("open_sal_mean.mat",'open_sal_mean')
    save("open_temp_std.mat",'open_temp_std')
    save("open_sal_std",'open_sal_std')
+    end
 end
-load("open_temp_mean.mat","open_sal_mean.mat","open_temp_std.mat","open_sal_std.mat") ;
+load("open_temp_mean.mat") 
+load("open_sal_mean.mat")
+load("open_temp_std.mat")
+load("open_sal_std.mat")
 % Expand
 numCells = length(open_temp_mean) ;
 rows = length(DepInterval) ;
@@ -805,15 +808,26 @@ for i = 1:length(cast_idx_open)
 temp = lat_a(cast_idx_open{i}) ;
 count_open(:,i) = numel(temp) ;
 end
-% concatenate coastal_lat/lon with open_lat/lon
+% concatenate coastal_lat/lon with open_lat/lon (refference
+% Plots_Greenland.mat to plot this information)
 coastal_lat = lat_a(in_a) ;
 coastal_lon =  lon_a(in_a) ;
+coastal_mon = mon_a(in_a) ;
 open_lat = lat_a(~in_a) ;
 open_lon = lon_a(~in_a) ;
+open_mon = mon_a(~in_a) ;
 lat_comb = [coastal_lat,open_lat] ; % lat with coastal then open
 lon_comb = [coastal_lon,open_lon] ; % coastal then open
 count_comb = [count_coast,count_open] ; % coastal then open
-clear temp open_lat open_lon coast_lat coast_lon count_coast count_open
+mon_comb = [coastal_mon,open_mon] ;
+% month idx's
+May = find(mon_a == 5) ;
+Jun = find(mon_a == 6) ;
+Jul = find(mon_a == 7) ;
+Aug = find(mon_a == 8) ;
+Sep = find(mon_a == 9) ;
+Oct = find(mon_a == 10) ;
+clear temp open_lat open_lon coast_lat coast_lon count_coast count_open coastal_mon open_mon
 %% Number of Obersvations at each depth
 for i= 1:length(DepInterval)
     for j= 1:length(SW_poly_temp_clean)
