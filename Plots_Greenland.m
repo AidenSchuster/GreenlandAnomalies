@@ -169,7 +169,7 @@ xlabel('Temperature Std')
 ylabel('Depth (M)')
 title('Temperature Std vs Depth')
 hold off
-%% Meshgrid for std (do one where every cast is included, and then seperate by month)
+%% Trisurf for count (do one where every cast is included, and then seperate by month)
 idx = Aug ; % for easy changing of month idx
 tri = delaunay(lon_comb(idx), lat_comb(idx)) ;
 clf 
@@ -186,4 +186,15 @@ ylabel('Lat');
 ylabel(cb, '# of casts contained'); % Label the colorbar
 zlabel('# of casts contained');
 title('Aug casts')
+hold off
+%% Meshgrid for count
+clf 
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+imagesc(X_grid,Y_grid,count_grid) ;
+colormap('hsv')
+colorbar
+plot(cx,cy)
 hold off

@@ -755,7 +755,7 @@ end
 clear coastal_sal coastal_temp 
 %% Open casts
 % Coast means/std
-run == 2 ;
+run = 2 ;
 for i = 1:1
     if run == 1
     open_temp_mat = [] ;
@@ -810,6 +810,9 @@ count_open(:,i) = numel(temp) ;
 end
 % concatenate coastal_lat/lon with open_lat/lon (refference
 % Plots_Greenland.mat to plot this information)
+run = 2 ; % do not need to run this most times
+for i = 1:1:1
+    if run == 1
 coastal_lat = lat_a(in_a) ;
 coastal_lon =  lon_a(in_a) ;
 coastal_mon = mon_a(in_a) ;
@@ -820,6 +823,8 @@ lat_comb = [coastal_lat,open_lat] ; % lat with coastal then open
 lon_comb = [coastal_lon,open_lon] ; % coastal then open
 count_comb = [count_coast,count_open] ; % coastal then open
 mon_comb = [coastal_mon,open_mon] ;
+    end
+end
 % month idx's
 May = find(mon_a == 5) ;
 Jun = find(mon_a == 6) ;
@@ -827,7 +832,19 @@ Jul = find(mon_a == 7) ;
 Aug = find(mon_a == 8) ;
 Sep = find(mon_a == 9) ;
 Oct = find(mon_a == 10) ;
-clear temp open_lat open_lon coast_lat coast_lon count_coast count_open coastal_mon open_mon
+clear temp open_lat open_lon coast_lat coast_lon count_coast count_open coastal_mon open_mon 
+% clear open_sal_anom open_sal_std open_sal_avg open_temp_std open_temp_avg open_temp_anom coast_sal_anom coastal_sal_std coast_sal_avg coast_temp_anom coast_temp_avg coastal_temp_std % for clearing memory, will need these eventually
+%% Interpolation for # of Casts (Can load if needed, however requires massive memory so do it in a cleared environment)
+run = 2 ; 
+for i =1:1:1
+    if run == 1
+[X_grid,Y_grid] = meshgrid(lon_comb,lat_comb) ;
+count_grid = griddata(lon_comb,lat_comb,count_comb,X_grid,Y_grid) ;
+save("X_grid.mat","X_grid",'-v7.3')
+save("Y_grid.mat","Y_grid",'-v7.3')
+save("count_grid.mat","count_grid",'-v7.3')
+    end
+end
 %% Number of Obersvations at each depth
 for i= 1:length(DepInterval)
     for j= 1:length(SW_poly_temp_clean)
@@ -837,7 +854,6 @@ Depth_obs_cell{j}(i,:) = Depth_obs ;
     end
     end
 end
-
 %% Statistics
 % Frequency of Counts
 for i = 1:numel(SW_poly_temp_cell)
