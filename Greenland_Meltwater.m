@@ -743,7 +743,7 @@ insidearray2 = coastal_sal_mean{i}' ;
 coast_temp_avg(:,i) = insidearray1 ;
 coast_sal_avg(:,i) = insidearray2 ;
 end
-clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean dep coastal_lat coastal_lon watdep twd insidearray2 insidearray1
+clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean coastal_lat coastal_lon watdep twd insidearray2 insidearray1
 % coast anomaly
 in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
 coastal_sal = interp_sal_mat(:,in_a) ;
@@ -797,6 +797,8 @@ for i = 1:length(open_sal_avg(1,:))
 open_sal_anom(:,i) = open_sal(:,i) - open_sal_avg(:,i) ;
 open_temp_anom(:,i) = open_temp(:,i) - open_temp_avg(:,i) ;
 end
+
+press_a = sw_pres(DepInterval,lat_a) ;
 clear interp_sal interp_temp numCells rows open_sal_mean open_temp_mean insidearray1 insidearray2 open_sal open_temp 
 %%  Statistics
 %number of observations for each cast box
@@ -834,7 +836,7 @@ Sep = find(mon_a == 9) ;
 Oct = find(mon_a == 10) ;
 clear temp open_lat open_lon coast_lat coast_lon count_coast count_open coastal_mon open_mon 
 % clear open_sal_anom open_sal_std open_sal_avg open_temp_std open_temp_avg open_temp_anom coast_sal_anom coastal_sal_std coast_sal_avg coast_temp_anom coast_temp_avg coastal_temp_std % for clearing memory, will need these eventually
-%% Interpolation for # of Casts (Can load if needed, however requires massive memory so do it in a cleared environment)
+% Interpolation for # of Casts (Can load if needed, however requires massive memory so do it in a cleared environment)
 run = 2 ; 
 for i =1:1:1
     if run == 1
