@@ -187,7 +187,7 @@ ylabel(cb, '# of casts contained'); % Label the colorbar
 zlabel('# of casts contained');
 title('Aug casts')
 hold off
-%% Meshgrid for count
+%% Meshgrid for count (too large I think)
 clf 
 hold on
 daspect([1 aspect_ratio 1])
@@ -197,4 +197,13 @@ imagesc(X_grid,Y_grid,count_grid) ;
 colormap('hsv')
 colorbar
 plot(cx,cy)
+hold off
+%% TS Diagram (need to select a subsect or something)
+clf
+hold on
+for i = 1:10:length(interp_sal_mat(1,:))
+plot(interp_sal_mat(:,i),ptmp_a(:,i),'x','Linestyle','none')
+xlabel('Salinity')
+ylabel('Potential Temperature')
+end
 hold off

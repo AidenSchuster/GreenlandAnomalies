@@ -797,9 +797,16 @@ for i = 1:length(open_sal_avg(1,:))
 open_sal_anom(:,i) = open_sal(:,i) - open_sal_avg(:,i) ;
 open_temp_anom(:,i) = open_temp(:,i) - open_temp_avg(:,i) ;
 end
-
-press_a = sw_pres(DepInterval,lat_a) ;
-clear interp_sal interp_temp numCells rows open_sal_mean open_temp_mean insidearray1 insidearray2 open_sal open_temp 
+% Pressure (db) from Depth (can clear after getting potential temp)
+numpoints = length(DepInterval) ;
+for i = 1:length(lat_a)
+k = sw_pres(DepInterval,repmat(lat_a(i),1,numpoints)) ;
+press_a(:,i) = k ;
+end
+% Potential Temp
+press_reff = 10 ; % not sure what a good refference would be
+ptmp_a = sw_ptmp(interp_sal_mat,interp_temp_mat,press_a,press_reff) ;
+clear interp_sal interp_temp numCells rows open_sal_mean open_temp_mean insidearray1 insidearray2 open_sal open_temp k num_points press_reff
 %%  Statistics
 %number of observations for each cast box
 for i = 1:length(cast_idx_coast)
@@ -847,7 +854,9 @@ save("Y_grid.mat","Y_grid",'-v7.3')
 save("count_grid.mat","count_grid",'-v7.3')
     end
 end
-%% Number of Obersvations at each depth
+%% Create 0.1deg x 0.1deg averages of counts
+
+%% Number of Obersvations at each depth (DELETE)
 for i= 1:length(DepInterval)
     for j= 1:length(SW_poly_temp_clean)
         if ~isempty(SW_poly_temp_clean{j}) && size(SW_poly_temp_clean{j}, 1) >= i ;
