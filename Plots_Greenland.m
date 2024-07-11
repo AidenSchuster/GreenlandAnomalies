@@ -207,3 +207,22 @@ xlabel('Salinity')
 ylabel('Potential Temperature')
 end
 hold off
+%% 0.1 x 0.1 boxes
+clf
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+cmap = hot ;
+for i = 1:length(box_avg)
+        % Fill the box with the value
+        fill(cast_boxes{i}(2,:), cast_boxes{i}(1,:), box_avg(i), 'EdgeColor', 'none');
+end
+c = colorbar ;
+colormap('cool')
+caxis([0 50]);
+ylabel(c,'Avg # of profiles')
+title('All Months')
+plot(cx,cy,'k','MarkerSize',200)
+title('All Months')
+hold off
