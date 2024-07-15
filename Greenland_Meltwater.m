@@ -835,12 +835,12 @@ mon_comb = [coastal_mon,open_mon] ;
     end
 end
 % month idx's
-May = find(mon_a == 5) ;
-Jun = find(mon_a == 6) ;
-Jul = find(mon_a == 7) ;
-Aug = find(mon_a == 8) ;
-Sep = find(mon_a == 9) ;
-Oct = find(mon_a == 10) ;
+May = find(mon_comb == 5) ;
+Jun = find(mon_comb == 6) ;
+Jul = find(mon_comb == 7) ;
+Aug = find(mon_comb == 8) ;
+Sep = find(mon_comb == 9) ;
+Oct = find(mon_comb == 10) ;
 clear temp open_lat open_lon coast_lat coast_lon count_coast count_open coastal_mon open_mon 
 clear open_sal_anom open_sal_std open_sal_avg open_temp_std open_temp_avg open_temp_anom coast_sal_anom coastal_sal_std coast_sal_avg coast_temp_anom coast_temp_avg coastal_temp_std % for clearing memory, will need these eventually
 %% Boxes for avg counts
@@ -868,25 +868,13 @@ for i = 1:numLat
     end
 end
 cast_boxes = boxes(:)' ;
+month = Oct ; % change to change month for following code
 for i = 1:length(cast_boxes)
-in_box = inpolygon(lon_comb,lat_comb,cast_boxes{i}(2,:),cast_boxes{i}(1,:)) ;
+in_box = inpolygon(lon_comb(month),lat_comb(month),cast_boxes{i}(2,:),cast_boxes{i}(1,:)) ;
 avg = mean(count_comb(in_box)) ;
 box_avg(:,i) = avg ; 
 end
-clear x y latCorners LonCorners XX YY increment boxes in_box avg
-%% Interpolation for # of Casts (Can load if needed, however requires massive memory so do it in a cleared environment)
-run = 2 ; 
-for i =1:1:1
-    if run == 1
-[X_grid,Y_grid] = meshgrid(lon_comb,lat_comb) ;
-count_grid = griddata(lon_comb,lat_comb,count_comb,X_grid,Y_grid) ;
-save("X_grid.mat","X_grid",'-v7.3')
-save("Y_grid.mat","Y_grid",'-v7.3')
-save("count_grid.mat","count_grid",'-v7.3')
-    end
-end
-%% Create 0.1deg x 0.1deg averages of counts
-
+clear x y latCorners LonCorners XX YY increment boxes % in_box avg
 %% Number of Obersvations at each depth (DELETE)
 for i= 1:length(DepInterval)
     for j= 1:length(SW_poly_temp_clean)

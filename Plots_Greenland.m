@@ -222,7 +222,6 @@ c = colorbar ;
 colormap('cool')
 caxis([0 50]);
 ylabel(c,'Avg # of profiles')
-title('All Months')
+title('October') % check value of month
 plot(cx,cy,'k','MarkerSize',200)
-title('All Months')
 hold off
