@@ -30,3 +30,12 @@ aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
 daspect([1 aspect_ratio 1])
 hold off
 
+clf
+hold on
+xlim([-80,-30])
+ylim([55,80])
+plot(XX,YY,'y.')
+plot(XX_eto,YY_eto,'g.')
+plot(XX_bed,YY_bed,'r.')
+plot(lon(ind),lat(ind),'b.')
+plot(cx,cy,'k')

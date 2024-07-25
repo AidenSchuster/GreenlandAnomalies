@@ -8,11 +8,18 @@ load bedmachinev5_decimated.mat
 XX_bed = lon ;
 YY_bed = lat ;
 Depth_bed = depth ;
+Depth_bed = -Depth_bed ; % flips signs, depths are now positive
 
 te=find(XX_bed(:,1)>-30);
 YY_bed(te,:)=[];
 XX_bed(te,:)=[];
 Depth_bed(te,:)=[];
+
+te=find(XX_bed(:,1)<-55);
+YY_bed(te,:)=[];
+XX_bed(te,:)=[];
+Depth_bed(te,:)=[];
+
 clear lat lon depth
 
 load topo_east_coast.mat
@@ -46,47 +53,45 @@ YY(te,:)=[];
 XX(te,:)=[];
 ZZ(te,:)=[];
 
-% ETOPO-2 Data
+% ETOPO-2 Data %can use this for coastline data(countour 0-5 m)
 [Z_eto,R] = readgeoraster('exportImage.tiff') ;
 [rows,cols] = size(Z_eto) ;
 [rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
 [YY_eto, XX_eto] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto = double(Z_eto) ;
+Z_eto = -Z_eto ; % flips depth values to become positive,
 clear rowGrid colGrid cols R te rows
 
 % Combine the bathmetry (not sure how to do this yet maybe use inpolygon?)
-bed_border_X = [XX_bed(1,:),XX_bed(:,690)',XX_bed(818,:),XX_bed(:,1)'] ;
-bed_border_Y = [YY_bed(1,:),YY_bed(:,690)',YY_bed(818,:),YY_bed(:,1)'] ;
+bed_border_X = [XX_bed(1,:),XX_bed(:,690)',XX_bed(696,:),XX_bed(:,1)'] ;
+bed_border_Y = [YY_bed(1,:),YY_bed(:,690)',YY_bed(696,:),YY_bed(:,1)'] ;
 run = 2 ;
-for i = 1:1:1
-    if run == 1
-in_eto = inpolygon(XX_eto,YY_eto,bed_border_X,bed_border_Y) ; % ETOPO values that fall within the region covered by bedmachine 
-in_topo = inpolygon(XX,YY,bed_border_X,bed_border_Y) ;  % Topo values that fall within the region covered by bedmachine 
-    save in_eto.mat in_eto
-    save in_topo.mat in_topo
-    end
-load in_eto.mat
-load in_topo.mat
-end
+%for i = 1:1:1 (don't think I need this
+ %   if run == 1
+%in_eto = inpolygon(XX_eto,YY_eto,bed_border_X,bed_border_Y) ; % ETOPO values that fall within the region covered by bedmachine 
+%in_topo = inpolygon(XX,YY,bed_border_X,bed_border_Y) ;  % Topo values that fall within the region covered by bedmachine 
+%    save in_eto.mat in_eto
+%    save in_topo.mat in_topo
+%    end
+%load in_eto.mat
+%load in_topo.mat
+%end
 
-XX(in_topo) = (NaN) ; % replacing all values that overlap with the bedmachine data with NaN's
-YY(in_topo) = (NaN) ;
-ZZ(in_topo) = (NaN) ;
-XX_eto(in_eto) = (NaN) ;
-YY_eto(in_eto) = (NaN) ;
-Z_eto(in_eto) = (NaN) ;
+%maybe inpolygon to determine if the cast is within the region, then if
+%not, if its >then x its ETOPO and <x its topo
 
 
-
-%% this needs to be done with completed and combined bathymetry or it will
-% cutoff data
-TUTU= 2 ;
+TUTU= 1 ;
 if TUTU== 1
-twd=griddata(XX,YY,ZZ,lon,lat);
-save 02cleanNODC_temporary.mat twd
-end
-load 02cleanNODC_temporary.mat twd
+twd_topo =griddata(XX,YY,ZZ,lon,lat);
+twd_bed =griddata(XX_bed,YY_bed,Depth_bed,lon,lat);
+twd_eto =griddata(XX_eto,YY_eto,Z_eto,lon,lat);
 
-plot(lon,lat,'.')
+save 02cleanNODC_temporary.mat twd_topo twd_bed twd_eto ;
+end
+load 02cleanNODC_temporary.mat twd_topo twd_bed twd_eto ;
+
+plot(lon,lat,'.') ;
 hold on
 
 % Start cleaning data. First, automated methods used by
@@ -101,42 +106,36 @@ hold on
 % IN THIS DATA SET IS COMPLETELY WRONG. SO YOU CAN EITHER NOT APPLY THIS
 % CRITERIUM INSIDE THE FJORDS, OR UPDATE THE TOPOGRAPHY WITH BEDMACHINE
 % WHEN FINDING twd (total water depth) INSIDE THE FJORDS
-
-%store and remove casts near fjords with inaccurate depths
-temp_lat = lat(in) ;
-lat = lat(~in) ;
-
-temp_lon = lon(in) ;
-lon = lon(~in) ;
-
-temp_day =day(in) ;
-day = day(~in) ;
-
-temp_mon = mon(in) ;
-mon = mon(~in) ;
-
-temp_yea = yea(in) ;
-yea = yea(~in) ;
-
-temp_temp = temp(in) ;
-temp = temp(~in) ;
-
-temp_sal = sal(in) ;
-sal = sal(~in) ;
-
-temp_twd = twd(in) ;
-twd = twd(~in) ;
-
-temp_watdep = watdep(in) ;
-watdep = watdep(~in) ;
-
-temp_dep = dep(in) ;
-dep = dep(~in) ; 
+ 
+%
+%remove casts dependent on which bathymetry set they belong to (something
+%is very wrong here)
+for i = 1:1:length(lat) 
+    if inpolygon(lon(i),lat(i),bed_border_X,bed_border_Y) == 1
+dif(i) = watdep(i)-twd_bed(i) ;
+    if dif(i) < 10 % meters
+ind(i) = 1 ;
+    elseif dif(i) > 10
+ind(i) = 0 ;
+    end
+    elseif lon(i)<= -40 
+dif(i) = watdep(i)-twd_topo(i) ;
+if dif(i) < 10
+ind(i) = 1 ;
+elseif dif(i) > 10
+ind(i) = 0 ;
+end
+    elseif lon(i) > -40 
+dif(i) = watdep(i)-twd_eto(i) ;
+if dif(i) < 10
+ind(i) = 1 ;
+    elseif dif(i) > 10
+ind(i) = 0 ;
+    end
+    end
+end
+ind = logical(ind) ;
 %%
-%remove casts
-dif=watdep-twd;
-ind=find(dif<10);
-
 whos yea mon day lon lat dep watdep temp sal
 
 yea=yea(ind);
@@ -151,16 +150,16 @@ sal=sal(ind);
 twd=twd(ind);
 
 % restore casts near fjords to the variables
-yea = [yea,temp_yea] ;
-mon = [mon,temp_mon] ;
-day = [day,temp_day] ;
-lon = [lon,temp_lon] ;
-lat = [lat,temp_lat] ;
-dep = [dep,temp_dep] ;
-watdep = [watdep,temp_watdep] ;
-temp = [temp,temp_temp] ;
-sal = [sal,temp_sal] ;
-twd = [twd,temp_twd] ;
+%yea = [yea,temp_yea] ;
+%mon = [mon,temp_mon] ;
+%day = [day,temp_day] ;
+%lon = [lon,temp_lon] ;
+%lat = [lat,temp_lat] ;
+%dep = [dep,temp_dep] ;
+%watdep = [watdep,temp_watdep] ;
+%temp = [temp,temp_temp] ;
+%sal = [sal,temp_sal] ;
+%twd = [twd,temp_twd] ;
 
 whos yea mon day lon lat dep watdep temp sal twd
 clf
