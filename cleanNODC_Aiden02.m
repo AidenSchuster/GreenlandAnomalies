@@ -10,7 +10,7 @@ YY_bed = lat ;
 Depth_bed = depth ;
 Depth_bed = -Depth_bed ; % flips signs, depths are now positive
 
-te=find(XX_bed(:,1)>-30);
+te=find(XX_bed(:,1)>-32);
 YY_bed(te,:)=[];
 XX_bed(te,:)=[];
 Depth_bed(te,:)=[];
@@ -63,8 +63,8 @@ Z_eto = -Z_eto ; % flips depth values to become positive,
 clear rowGrid colGrid cols R te rows
 
 % Combine the bathmetry (not sure how to do this yet maybe use inpolygon?)
-bed_border_X = [XX_bed(1,:),XX_bed(:,690)',XX_bed(696,:),XX_bed(:,1)'] ;
-bed_border_Y = [YY_bed(1,:),YY_bed(:,690)',YY_bed(696,:),YY_bed(:,1)'] ;
+bed_border_X = [XX_bed(1,:),XX_bed(:,690)',flip(XX_bed(638,:)),XX_bed(:,1)'] ;
+bed_border_Y = [YY_bed(1,:),YY_bed(:,690)',flip(YY_bed(638,:)),YY_bed(:,1)'] ;
 run = 2 ;
 %for i = 1:1:1 (don't think I need this
  %   if run == 1
@@ -107,9 +107,8 @@ hold on
 % CRITERIUM INSIDE THE FJORDS, OR UPDATE THE TOPOGRAPHY WITH BEDMACHINE
 % WHEN FINDING twd (total water depth) INSIDE THE FJORDS
  
-%
 %remove casts dependent on which bathymetry set they belong to (something
-%is very wrong here)
+%is wrong here)
 for i = 1:1:length(lat) 
     if inpolygon(lon(i),lat(i),bed_border_X,bed_border_Y) == 1
 dif(i) = watdep(i)-twd_bed(i) ;
@@ -135,8 +134,19 @@ ind(i) = 0 ;
     end
 end
 ind = logical(ind) ;
-%%
+
 whos yea mon day lon lat dep watdep temp sal
+
+%combine twd's
+for i = 1:1:length(lat) 
+    if inpolygon(lon(i),lat(i),bed_border_X,bed_border_Y) == 1
+        twd(i) = twd_bed(i) ;
+         elseif lon(i)<= -40
+             twd(i) = twd_topo(i) ;
+              elseif lon(i) > -40 
+                  twd(i) = twd_eto(i) ;
+    end
+end
 
 yea=yea(ind);
 mon=mon(ind);
@@ -147,26 +157,13 @@ dep=dep(ind);
 watdep=watdep(ind);
 temp=temp(ind);
 sal=sal(ind);
-twd=twd(ind);
-
-% restore casts near fjords to the variables
-%yea = [yea,temp_yea] ;
-%mon = [mon,temp_mon] ;
-%day = [day,temp_day] ;
-%lon = [lon,temp_lon] ;
-%lat = [lat,temp_lat] ;
-%dep = [dep,temp_dep] ;
-%watdep = [watdep,temp_watdep] ;
-%temp = [temp,temp_temp] ;
-%sal = [sal,temp_sal] ;
-%twd = [twd,temp_twd] ;
+twd=twd(ind); 
 
 whos yea mon day lon lat dep watdep temp sal twd
 clf
 plot(lon,lat,'.r')
 hold on
-clear temp_lat temp_lon temp_day temp_mon temp_yea temp_temp temp_sal tremp_twd temp_dep temp_twd temp_watdep
-%%
+clear temp_lat temp_lon temp_day temp_mon temp_yea temp_temp temp_sal tremp_twd temp_dep temp_twd temp_watdep twd_eto twd_bed twd_topo
 % 2) 
 % Now, clear profiles with the following characteristics:
 % 0  and 25 isobath with 1 or less points
@@ -400,8 +397,9 @@ twd=twd(ind);
 whos yea mon day lon lat dep watdep temp sal twd
 
 plot(lon,lat,'.c')
+save '02cleanNODC_updated.mat' yea mon day lon lat dep watdep temp sal twd cx cy XX YY ZZ
 
-
+%% Statistics of profiles,  this section not seemingly neccessary for cleaning 
 % Now compute statistics of profiles
 
 %shelf, slope and off

@@ -1,10 +1,10 @@
 % Load Data
-cd('C:\Users\ajs82292\Desktop\Research\Matlab\Source') ;
+cd('C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt') ;
 addpath('seawater','C:\Users\ajs82292\Desktop\Research\Matlab\Source\seawater') ;
 load("02cleanNODC.mat")
 load("x_coast.mat")
 load("y_coast.mat")
-%% Commonly Changed Variables for box size and day interval (set run to one
+% Commonly Changed Variables for box size and day interval (set run to one
 % below if changing rectangle size)
 recwidth = 10*2 ; % km doubled as it is 10 "radius" Change value for different sized cast boxes
 reclength = 20*2 ; % km doubled as it is 20 "radius" Change value for different sized cast boxes
@@ -13,6 +13,24 @@ radius = 20 ; % km circle for opean ocean
 min_count = 4 ; % the minimum # of data points needed in order to plot the statistics of a cast (std dev, anomalies ect.)
 aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
 target  = 100 ; % km from coast
+
+% extend coastline to -30 using ETOPO depth data and 0-5 countour
+[Z_eto,R] = readgeoraster('extendedcoast.tiff') ;
+[rows,cols] = size(Z_eto) ;
+[rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
+[YY_eto, XX_eto] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto = double(Z_eto) ;
+coast_range = (Z_eto>=0) & (Z_eto<=5) ; % 0-5 m coastline
+Z_masked = Z_eto ;
+depth_min = 0 ;
+depth_max = 5 ;
+figure;
+[C,h] = contour(XX_eto, YY_eto, Z_masked,[depth_min,depth_max]);
+xlabel('Longitude');
+ylabel('Latitude');
+
+clear rowGrid colGrid cols R te rows depth_min depth_max
+%%
 % Defining Coastline
 run = 2 ;
 for i = 1:1:1
