@@ -1,7 +1,7 @@
 % Load Data
 cd('C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt') ;
 addpath('seawater','C:\Users\ajs82292\Desktop\Research\Matlab\Source\seawater') ;
-load("02cleanNODC.mat")
+load("02cleanNODC_updated.mat")
 load("x_coast.mat")
 load("y_coast.mat")
 % Commonly Changed Variables for box size and day interval (set run to one
@@ -24,13 +24,31 @@ coast_range = (Z_eto>=0) & (Z_eto<=5) ; % 0-5 m coastline
 Z_masked = Z_eto ;
 depth_min = 0 ;
 depth_max = 5 ;
+run = 2 ;
+for i = 1:1:1
+    if run == 1
 figure;
-[C,h] = contour(XX_eto, YY_eto, Z_masked,[depth_min,depth_max]);
+[C,h] = contour(XX_eto, YY_eto, Z_masked,[depth_min,depth_max]) ;
 xlabel('Longitude');
 ylabel('Latitude');
-
-clear rowGrid colGrid cols R te rows depth_min depth_max
-%%
+%C(wholeNumberIndex) = NaN ;
+zeroidx = (C == 0) ;
+for i = 1:1:length(C)
+    if C(1,i) == 0
+C(:,i) = NaN ;
+    end
+end
+indices = find(C > 0 & C < 10,1);
+[row, col] = ind2sub(size(C), indices);
+C = C(:,1:col-1) ;
+cx = [cx;C(1,:)'] ;
+cy = [cy;C(2,:)'] ;
+save 'cx-cy.mat' cx cy
+    end
+end
+load 'cx-cy.mat' cx cy
+clear rowGrid colGrid cols R te rows depth_min depth_max C Z_eto XX_eto YY_eto Z_masked coast_range h indices zeroidx
+%
 % Defining Coastline
 run = 2 ;
 for i = 1:1:1
@@ -62,13 +80,14 @@ load("x_coast.mat")
 load("y_coast.mat")
     end
 end
+% refference coastline (for angles rectangles)
 run = 2 ;
 for i = 1:1:1
     if run == 1
 clf
 hold on
 plot(cx,cy,'k')
-xlim([-75,-37])
+xlim([-75,-30])
 ylim([59,77])
 daspect([1 aspect_ratio 1])
 x_reff = [];
@@ -92,7 +111,40 @@ save("y_reff.mat","y_reff")
 load("x_reff.mat")
 load("y_reff.mat")    
 end
+% added coastline
+run = 2 ;
+for i = 1:1:1
+    if run == 1
+clf
+hold on
+plot(cx,cy,'k')
+plot(x_coast,y_coast,'r')
+xlim([-45,-30])
+ylim([59,77])
+daspect([1 aspect_ratio 1])
+extra_x = [] ;
+extra_y = [] ;
+run = true;
+while run
+    [x, y, button] = ginput(1);
+    if isempty(button) || button == 13
+        run = false;
+    else
+        plot(x, y, 'ro'); % Plot the point
+        xlim([x-3, x+3])
+        ylim([y-3, y+3])
+        extra_x = [extra_x; x];
+        extra_y = [extra_y; y];
+    end
+end
+save 'extra_coast.mat' extra_x extra_y
+    end
+end
+load 'extra_coast.mat' extra_x extra_y
 reff_cord = [] ;
+%combine coasts
+x_coast = [x_coast;extra_x] ;
+y_coast = [y_coast;extra_y] ;
 for i = 1:1:length(x_reff)-1
     x = [(x_reff(i)+x_reff(i+1))/2,(y_reff(i)+y_reff(i+1))/2] ;   %middle point of refference lines
     reff_cord(i,:) = x ;
@@ -102,6 +154,7 @@ for i = 1:1:length(x_reff)-1
     reff_slope(i,:) = x ;
 end
 num_points = 10 ;
+%%
 for i=1:1:length(x_reff)-1
 x_reff_new(i,:) = linspace(x_reff(i),x_reff(i+1),num_points) ; % each row is a different line segment
 slope_new(i,:) = repmat(reff_slope(i,:),1,num_points) ;
