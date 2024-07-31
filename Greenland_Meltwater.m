@@ -2,6 +2,7 @@
 cd('C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt') ;
 addpath('seawater','C:\Users\ajs82292\Desktop\Research\Matlab\Source\seawater') ;
 load("02cleanNODC_updated.mat")
+load('OMG_data.mat')
 load("x_coast.mat")
 load("y_coast.mat")
 % Commonly Changed Variables for box size and day interval (set run to one
@@ -13,7 +14,16 @@ radius = 20 ; % km circle for opean ocean
 min_count = 4 ; % the minimum # of data points needed in order to plot the statistics of a cast (std dev, anomalies ect.)
 aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
 target  = 100 ; % km from coast
-
+%combine OMG_data into NODC data
+lat = [lat,OMG_lat] ;
+lon = [lon,OMG_lon] ;
+dep = [dep,OMG_depth] ;
+mon = [mon,OMG_mon] ;
+yea = [yea,OMG_yea] ;
+sal = [sal,OMG_sal] ;
+temp = [temp,OMG_temp] ;
+day = [day,OMG_day] ;
+clear OMG_temp OMG_sal OMG_day OMG_mon OMG_yea OMG_lat OMG_lon OMG_depth
 % extend coastline to -30 using ETOPO depth data and 0-5 countour
 [Z_eto,R] = readgeoraster('extendedcoast.tiff') ;
 [rows,cols] = size(Z_eto) ;
