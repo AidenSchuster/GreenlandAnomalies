@@ -332,8 +332,8 @@ clear x_perp_plus2 y_reff y_perp_minus y_perp_minus2 y_perp_plus y_perp_plus2 x_
 clear ref_minusy ref_plusy ref_plus2y dist lengthdeg_coast off_x off_y nan_idx2 nan_idx num_points reff_cords 
 % Find Casts within defined area (concatenate off coast and coast to make one polygon
 %hand removing verticies that cause self-intersection
-intersect_x = [-55.2664; -55.1943; -51.6715; -51.2208; -50.9012; -40.8574;-39; -39.1132; -38.8448; -39.3609;-39.1381]; % Hand picked for 100 km, needds to be edited if coastline or size changes
-intersect_y = [66.734; 66.1034; 61.8243; 61.7822; 61.3371;62.2753; 63.5719; 63.7534; 64.2143; 64.1142;64.2335] ; % Hand picked for 100 km, needds to be edited if coastline or size changes
+intersect_x = [-55.2664; -55.1943; -51.6715; -51.2208; -50.9012; -40.8574;-39; -39.1132; -38.8448; -39.3609;-39.1381;-40.181;-39.1862;-38.2976]; % Hand picked for 100 km, needds to be edited if coastline or size changes
+intersect_y = [66.734; 66.1034; 61.8243; 61.7822; 61.3371;62.2753; 63.5719; 63.7534; 64.2143; 64.1142;64.2335;61.8788;64.23;64.7891] ; % Hand picked for 100 km, needds to be edited if coastline or size changes
 tolerance = 1e-4 ;
 idx_remove = [] ;
 for i = 1:length(intersect_y)
@@ -536,6 +536,7 @@ clear differences_plus differences_minus dist_plus dist_minus % need to tweak so
 %% get rid of compartment
 % Interpolate every 1 m for the region (will eventually need to exclude
 % fjord stuff via inpolygon indexing)
+dep = cellfun(@double, dep, 'UniformOutput', false);
 max_length = max(cellfun(@max,dep)) ; %might be source of problem as its based off length not max value
 DepInterval = (0:1:max_length); % 1 m intervals
 run = 2 ; % will rerun interpolated, temp and salinity as well as cast box indicies, when changing box size you need to set to 1
@@ -578,7 +579,10 @@ Middle_range = datenum_coast(middle_idx)- day_range ;
 Middle_range(2,:) = datenum_coast(middle_idx)+ day_range ;
 Dec_range = datenum_coast(latedec_idx)- day_range ;
 Dec_range(2,:) = datenum_coast(latedec_idx)-365+day_range;
-ranges = [Jan_range,Middle_range,Dec_range] ;
+range = zeros(2,length(coastal_lat)) ;
+range(:,earlyjan_idx) = Jan_range ;
+range(:,middle_idx) = Middle_range ;
+range(:,latedec_idx) = Dec_range ;
 % remove fjord casts and create variables to use
 in_idx = inpolygon(lon,lat,polygon_x,polygon_y) ;
 lon_a = lon(~in_idx) ;
@@ -604,55 +608,69 @@ Middle_range_open = datenum_open(middle_idx)- day_range ;
 Middle_range_open(2,:) = datenum_open(middle_idx)+ day_range ;
 Dec_range_open = datenum_open(latedec_idx)- day_range ;
 Dec_range_open(2,:) = datenum_open(latedec_idx)-365+day_range;
-ranges_open = [Jan_range_open,Middle_range_open,Dec_range_open] ;
+range_open = zeros(2,length(lat_open)) ;
+range_open(:,earlyjan_idx) = Jan_range_open ;
+range_open(:,middle_idx) = Middle_range_open ;
+range_open(:,latedec_idx) = Dec_range_open ;
 clear polygon_x polygon_y datenum lat lon
 clear middle_idx latedec_idx earlyjan_idx
 %%
-% Create indicies for individual rectangles (coastal only for now) 
+% Create indicies for coastal casts within box and date range 
 run = 2 ;
 for i = 1:length(vert)
-    for j = 1:length(lon_a)
         if run == 1 ; 
-            if lon_a(j) <= coastal_lon(i)+1 && lon_a(j) >= coastal_lon(i)-1
-            poly_idx(j,i) = inpolygon(lon_a(j),lat_a(j),vert{i}(1,:),vert{i}(2,:)) ; % each collumn corresponds to a different cast
-    end
+            poly_idx = inpolygon(lon_a,lat_a,vert{i}(1,:),vert{i}(2,:)) ; % each collumn corresponds to a different cast
+                if datenum_coast(i) > 14 && datenum_coast(i) < 350 % Middle ranges
+                   coastal_idx = datenum_a >= range(1,i) & datenum_a <= range(2,i) ; 
+                elseif datenum_coast(i) <= 14 || datenum_coast(i) >= 351 % Early Jan and Late Dec 
+                   coastal_idx = datenum_a >= range(1,i) | datenum_a <= range(2,i) ;
+                end
+                % combine indices
+                combined_idx = poly_idx & coastal_idx ;
+                coast_find{i} = find(combined_idx == 1) ;
         end
-    end
-     j =1 ;
+save("coast_find.mat",'coast_find')
 end
-for i = 1:1
-    if run == 1
- save("poly_idx.mat",'poly_idx')
-    end
-end
-    load('poly_idx.mat') 
-% Create find index of values that are found within each box to simplify calculations later
+load('coast_find.mat') ;
+clear combined_idx coastal_idx poly_idx  
+% Create find index of values that are found within each box to simplify
+% calculations later (I think  I can get rid of this little section?)
 % Preallocate cell array to store indices for each column
-indices_cell = cell(1, size(poly_idx, 2));
+%indices_cell = cell(1, size(poly_idx, 2));
 % Iterate over each column of poly_idx
-for i = 1:size(poly_idx, 2)
+%for i = 1:size(poly_idx, 2)
     % Find the row indices where the value is 1 in the current column
-    column_indices = find(poly_idx(:, i) == 1);
+ %   column_indices = find(poly_idx(:, i) == 1);
     % Store the row indices in the cell array
-    indices_cell{i} = column_indices;
-end
+  %  indices_cell{i} = column_indices;
+%end
 clear index_minus index_minus_vert index_plus index_plus_vert intersect_x intersect_y idx_remove offset min_minus min_plus num_points reff_cord reff_slope reff_x reff_y 
 clear row run slope_coast slope_new target target_length target_width tolerance vert W column_indices exten indices_cell
-%% Use sw_dist to create index of which casts are within 20 km of each open ocean cast
+%% Use sw_dist to create index for open casts within box and date range  (currently working on now)
 %refference lat and lon
-run = 2 ;
+run = 1 ;
 for i = 1:length(lon_open)
     if run == 1
-reff_lon = [repmat(lon_open(i),1,length(lon_a));lon_a] ;
-reff_lat = [repmat(lat_open(i),1,length(lat_a));lat_a] ;
+reff_lon = [repmat(lon_open(i),1,length(lon_a))] ;
+reff_lat = [repmat(lat_open(i),1,length(lat_a))] ;
+lon_inter = reshape([reff_lon;lon_a],1,[])
+lat_inter = reshape([reff_lat;lat_a],1,[])
         for j = 1:length(lon_a)
-        open_dist = sw_dist(reff_lat(:,j),reff_lon(:,j),'km') ;
-            if open_dist <= recwidth ; % all casts less than 20km away
-            circle_idx{i}(j) = j ;
+        open_dist = sw_dist(reff_lat(:,j),reff_lon(:,j),'km') ; % calculates distance for every point to the target cast (i) (needs to be edited, only storing one value)
+        circle_idx = open_dist <= recwidth ; % all casts less than 20km away
+        if datenum_open(i) > 14 && datenum_open(i) < 350 % Middle ranges
+                   open_idx = datenum_a >= range_open(1,i) & datenum_a <= range_open(2,i) ; 
+                elseif datenum_open(i) <= 14 || datenum_open(i) >= 351 % Early Jan and Late Dec 
+                   open_idx = datenum_a >= range_open(1,i) | datenum_a <= range_open(2,i) ;
+                end
+                % combine indices
+                combined_idx = circle_idx & open_idx ;
+                open_find{i} = find(combined_idx == 1) ;
             end
-        end
-   end
+    end
+    save open_find.mat open_find 
 end
+load open_find.mat
 % simplify
 for i = 1:length(lon_open)  % circle_idx?
     if run == 1
@@ -685,7 +703,7 @@ for i = 1:numCells
     circle_idx_mat(:,i) =logical_array ;
 end
  clear logical_arrays logical_array length_open index circle_idx
-%% Date indicies for off coast casts
+%% Date indicies for off coast casts (moved further up, run and then delete this)
 jan_idx = false(1,length(datenum_a)) ;
 Middle_idx = false(1,length(datenum_a)) ;
 dec_idx = false(1,length(datenum_a)) ;
@@ -699,7 +717,7 @@ for i = 1:length(datenum_a)
     end
 end
 % Middle  (still concerned this won't hold up over the entire region)
-run = 2 ;
+run = 1 ;
 for i = 1:length(datenum_a)
     for j = 1:length(Middle_range)
             if run == 1 ;
@@ -728,7 +746,7 @@ for i = 1:length(date_idx_cell)
  idx = poly_idx(:,i)' & date_idx_cell{i} ; % will eventually be all casts
  cast_idx_coast{i} = idx ; % combined cast index, sorted by collumn
 end
-%% Open Date Indices 
+%% Open Date Indices (think i can delete?)
 jan_idx = false(1,length(datenum_a)) ;
 Middle_idx = false(1,length(datenum_a)) ;
 dec_idx = false(1,length(datenum_a)) ;
@@ -742,7 +760,7 @@ for i = 1:length(datenum_a)
     end
 end
 % Middle
-run = 2 ;
+run = 1 ;
 for i = 1:length(datenum_a)
     for j = 1:length(Middle_range_open)
             if run == 1 ;
@@ -772,7 +790,7 @@ for i = 1:length(date_idx_cell_open)
  idx = circle_idx_mat(:,i)' & date_idx_cell_open{i} ; % will eventually be all casts
  cast_idx_open{i} = idx ; % combined cast index, sorted by collumn
 end
-clear idx temp temp_lon poly_idx date_idx_cell ranges Dec_range Jan_range circle_idx_open dec_idx date_idx_cell_open Dec_open individual_array jan_idx Jan_open Middle_idx Middle_open non_zero_elements
+clear idx temp temp_lon poly_idx date_idx_cell range Dec_range Jan_range circle_idx_open dec_idx date_idx_cell_open Dec_open individual_array jan_idx Jan_open Middle_idx Middle_open non_zero_elements
 clear Middle_range Jan_indices Jan_range_open Dec_range_open Middle_range_open ranges_open reff_lon reff_lat off_coast circle_idx_mat day lengthdeg mon numCells sal 
 clear i j max_length poly_off radius reclength_coast dist
 %% Format interp data into matrices
@@ -782,7 +800,7 @@ numCells = length(interp_temp_a) ;
 rows = length(DepInterval) ;
 interp_sal_mat =  zeros(rows, numCells) ;
 interp_temp_mat =  zeros(rows, numCells) ;
-run = 2 ;
+run = 1 ;
 for i = 1:length(interp_temp_a)
     if run == 1 
 insidearray1 = interp_temp_a{i}' ;
@@ -836,7 +854,7 @@ end
 clear coastal_sal coastal_temp 
 %% Open casts
 % Coast means/std
-run = 2 ;
+run = 1 ;
 for i = 1:1
     if run == 1
     open_temp_mat = [] ;
