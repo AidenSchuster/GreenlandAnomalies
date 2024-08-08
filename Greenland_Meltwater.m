@@ -628,8 +628,8 @@ for i = 1:length(vert)
                 % combine indices
                 combined_idx = poly_idx & coastal_idx ;
                 coast_find{i} = find(combined_idx == 1) ;
+                save("coast_find.mat",'coast_find')
         end
-save("coast_find.mat",'coast_find')
 end
 load('coast_find.mat') ;
 clear combined_idx coastal_idx poly_idx  
@@ -648,16 +648,26 @@ clear index_minus index_minus_vert index_plus index_plus_vert intersect_x inters
 clear row run slope_coast slope_new target target_length target_width tolerance vert W column_indices exten indices_cell
 %% Use sw_dist to create index for open casts within box and date range  (currently working on now)
 %refference lat and lon
-run = 1 ;
-for i = 1:length(lon_open)
-    if run == 1
-reff_lon = [repmat(lon_open(i),1,length(lon_a))] ;
-reff_lat = [repmat(lat_open(i),1,length(lat_a))] ;
-lon_inter = reshape([reff_lon;lon_a],1,[])
-lat_inter = reshape([reff_lat;lat_a],1,[])
-        for j = 1:length(lon_a)
-        open_dist = sw_dist(reff_lat(:,j),reff_lon(:,j),'km') ; % calculates distance for every point to the target cast (i) (needs to be edited, only storing one value)
-        circle_idx = open_dist <= recwidth ; % all casts less than 20km away
+start_pattern = [true,false] ;
+pattern = [true,true,false] ;  %pattern for opendist/sw_dist data sorting
+num_repeat = ceil(141249/length(pattern)) ; % # should be equal to length of open_dist -2
+pattern = repmat(pattern,1,num_repeat) ;
+pattern = [start_pattern,pattern,true] ; % concats start and end values
+clear num_repeat start_pattern
+run = 2 ;
+if run == 1
+    for i = 1:length(lon_open)
+reff_lon = [repmat(lon_open(i),1,length(lon_a)/2)] ; % half the length of lat/lon_a to interleave
+reff_lat = [repmat(lat_open(i),1,length(lat_a)/2)] ;
+lon_reshaped = reshape(lon_a,2,[]) ;
+lat_reshaped = reshape(lat_a,2,[]) ;
+lon_inter = reshape([reff_lon;lon_reshaped],1,[]) ;
+lon_inter = [lon_inter,lon_open(i)] ;
+lat_inter = reshape([reff_lat;lat_reshaped],1,[]) ;
+lat_inter = [lat_inter,lat_open(i)] ;
+        open_dist = sw_dist(lon_inter,lat_inter,'km') ; % calculates distance for every point to the target cast (i) (needs to be edited, only storing one value)
+        open_dist_final = open_dist(pattern) ;%remove trash distances
+        circle_idx = open_dist_final <= recwidth ; % all casts less than 20km away
         if datenum_open(i) > 14 && datenum_open(i) < 350 % Middle ranges
                    open_idx = datenum_a >= range_open(1,i) & datenum_a <= range_open(2,i) ; 
                 elseif datenum_open(i) <= 14 || datenum_open(i) >= 351 % Early Jan and Late Dec 
@@ -666,11 +676,12 @@ lat_inter = reshape([reff_lat;lat_a],1,[])
                 % combine indices
                 combined_idx = circle_idx & open_idx ;
                 open_find{i} = find(combined_idx == 1) ;
-            end
     end
-    save open_find.mat open_find 
+     save open_find.mat open_find 
 end
 load open_find.mat
+clear lon_inter lat_inter lon_reshaped lat_reshaped reff_lat reff_lon pattern
+%%
 % simplify
 for i = 1:length(lon_open)  % circle_idx?
     if run == 1
