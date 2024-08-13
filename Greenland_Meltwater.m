@@ -680,162 +680,73 @@ lat_inter = [lat_inter,lat_open(i)] ;
      save open_find.mat open_find 
 end
 load open_find.mat
-clear lon_inter lat_inter lon_reshaped lat_reshaped reff_lat reff_lon pattern
-%%
+clear lon_inter lat_inter lon_reshaped lat_reshaped reff_lat reff_lon pattern open_idx open_dist_final open_dist num_repeat start_pattern
+%% (I think this entire thing is pointless now that I've got it in a cell?)
 % simplify
-for i = 1:length(lon_open)  % circle_idx?
-    if run == 1
-    individual_array = circle_idx{i};
-    non_zero_elements = [];
-        for j = 1:length(individual_array)
-            if individual_array(j) ~= 0
-            % Append non-zero elements to the non_zero_elements array
-            non_zero_elements = [non_zero_elements, individual_array(j)];
-            end
-        end
-    circle_idx{i} = non_zero_elements; %moved above second to last end
-    end
-end
-for i =1:1
-    if run == 1 
-    save("circle_idx.mat",'circle_idx','-v7.3')
-    end
-end
-load('circle_idx.mat','circle_idx')
+%for i = 1:length(lon_open)  % circle_idx?
+ %   if run == 1
+  %  individual_array = circle_idx{i};
+   % non_zero_elements = [];
+    %    for j = 1:length(individual_array)
+     %       if individual_array(j) ~= 0
+      %      % Append non-zero elements to the non_zero_elements array
+       %     non_zero_elements = [non_zero_elements, individual_array(j)];
+        %    end
+       % end
+   % circle_idx{i} = non_zero_elements; %moved above second to last end
+   % end
+% end
+% for i =1:1
+  %  if run == 1 
+   % save("circle_idx.mat",'circle_idx','-v7.3')
+    % end
+%end
+%load('circle_idx.mat','circle_idx')
 % create logical indices for use late combining with date_idx
-numCells = length(circle_idx) ;
-logical_arrays = cell(1, numCells);
-for i = 1:numCells
+%numCells = length(circle_idx) ;
+%logical_arrays = cell(1, numCells);
+%for i = 1:numCells
     % Get the current index array
-    index = circle_idx{i};
-    length_open = length(datenum_a);
-    logical_array = zeros(1, length_open);
-    logical_array(index) = 1;
-    circle_idx_mat(:,i) =logical_array ;
-end
- clear logical_arrays logical_array length_open index circle_idx
-%% Date indicies for off coast casts (moved further up, run and then delete this)
-jan_idx = false(1,length(datenum_a)) ;
-Middle_idx = false(1,length(datenum_a)) ;
-dec_idx = false(1,length(datenum_a)) ;
-% Jan
-for i = 1:length(datenum_a)
-    for j = 1:length(Jan_range)
-        if datenum_a(i) >= Jan_range(1,j) || datenum_a(i) <= Jan_range(2,j)
-        jan_idx(i) = 1 ;
-        Jan{j} = jan_idx ;
-        end
-    end
-end
-% Middle  (still concerned this won't hold up over the entire region)
-run = 1 ;
-for i = 1:length(datenum_a)
-    for j = 1:length(Middle_range)
-            if run == 1 ;
-                if datenum_a(i) >= Middle_range(1,j) && datenum_a(i) <= Middle_range(2,j)
-Middle_idx(i) = 1;
-Middle{j} = Middle_idx ;
-save("Middle.mat",'Middle')
-                end
-            end
-    end
-end
-load('Middle.mat')
-% Dec
-for i = 1:length(datenum_a)
-    for j = 1:length(Dec_range)
-         if datenum_a(i) >= Dec_range(1,j) | datenum_a(i) <= Dec_range(2,j)
-        dec_idx(i) = 1 ;
-       Dec{j} = dec_idx ;
-        end
-    end
-end
-date_idx_cell =  ([Jan,Middle,Dec]) ; % includes an index with an index for every cast that falls within the date range of each cast
-clear Jan Middle Dec jan_idx middle_idx dec_idx
-% Combine Date and Polygon indicies for temp and sal
-for i = 1:length(date_idx_cell)
- idx = poly_idx(:,i)' & date_idx_cell{i} ; % will eventually be all casts
- cast_idx_coast{i} = idx ; % combined cast index, sorted by collumn
-end
-%% Open Date Indices (think i can delete?)
-jan_idx = false(1,length(datenum_a)) ;
-Middle_idx = false(1,length(datenum_a)) ;
-dec_idx = false(1,length(datenum_a)) ;
-% Jan
-for i = 1:length(datenum_a)
-    for j = 1:length(Jan_range_open)
-        if datenum_a(i) >= Jan_range_open(1,j) || datenum_a(i) <= Jan_range_open(2,j)
-        jan_idx(i) = 1 ;
-        Jan_open{j} = jan_idx ;
-        end
-    end
-end
-% Middle
-run = 1 ;
-for i = 1:length(datenum_a)
-    for j = 1:length(Middle_range_open)
-            if run == 1 ;
-                if datenum_a(i) >= Middle_range_open(1,j) && datenum_a(i) <= Middle_range_open(2,j)
-Middle_idx(i) = 1;
-Middle_open{j} = Middle_idx ;
-save("Middle_open.mat",'Middle_open') 
-%variable
-                end
-            end
-    end
-end
-load('Middle_open.mat')
-% Dec
-for i = 1:length(datenum_a)
-    for j = 1:length(Dec_range_open)
-         if datenum_a(i) >= Dec_range_open(1,j) | datenum_a(i) <= Dec_range_open(2,j)
-        dec_idx(i) = 1 ;
-       Dec_open{j} = dec_idx ;
-        end
-    end
-end
-%combine
-date_idx_cell_open =  ([Jan_open,Middle_open,Dec_open]) ; % includes an index with an index for every cast that falls within the date range of each cast
-%combine indices
-for i = 1:length(date_idx_cell_open)
- idx = circle_idx_mat(:,i)' & date_idx_cell_open{i} ; % will eventually be all casts
- cast_idx_open{i} = idx ; % combined cast index, sorted by collumn
-end
+%    index = circle_idx{i};
+ %   length_open = length(datenum_a);
+  %  logical_array = zeros(1, length_open);
+   % logical_array(index) = 1;
+    %circle_idx_mat(:,i) =logical_array ;
+% end
+% clear logical_arrays logical_array length_open index circle_idx
 clear idx temp temp_lon poly_idx date_idx_cell range Dec_range Jan_range circle_idx_open dec_idx date_idx_cell_open Dec_open individual_array jan_idx Jan_open Middle_idx Middle_open non_zero_elements
 clear Middle_range Jan_indices Jan_range_open Dec_range_open Middle_range_open ranges_open reff_lon reff_lat off_coast circle_idx_mat day lengthdeg mon numCells sal 
-clear i j max_length poly_off radius reclength_coast dist
-%% Format interp data into matrices
+clear i j max_length poly_off radius reclength_coast dist dep
+%% format into matrices
 interp_temp_a = interp_temp(~in_idx) ;
 interp_sal_a = interp_sal(~in_idx) ;
 numCells = length(interp_temp_a) ;
 rows = length(DepInterval) ;
 interp_sal_mat =  zeros(rows, numCells) ;
 interp_temp_mat =  zeros(rows, numCells) ;
-run = 1 ;
-for i = 1:length(interp_temp_a)
+run = 2 ;
     if run == 1 
+for i = 1:length(interp_temp_a)
 insidearray1 = interp_temp_a{i}' ;
 insidearray2 = interp_sal_a{i}' ;
 interp_temp_mat(:,i) = insidearray1 ;
 interp_sal_mat(:,i) = insidearray2 ;
-    end
 end
-clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a %(need interp_sal_a/temp for open casts)
-for i = 1:1
-    if run ==1
 save("interp_sal_mat.mat",'interp_sal_mat','-v7.3')
 save("interp_temp_mat.mat",'interp_temp_mat','-v7.3')
     end
-end
 load("interp_sal_mat.mat")
 load("interp_temp_mat.mat")
+clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a %(need interp_sal_a/temp for open casts)
 % Coast means/std
+run = 2 ;
+if run == 1
 for i = 1:1
     coastal_temp_mat = [] ;
     coastal_sal_mat = [] ;
-    for j = 1:length(cast_idx_coast)
-    coastal_temp_mat = interp_temp_mat(:,cast_idx_coast{j}) ;
-    coastal_sal_mat = interp_sal_mat(:,cast_idx_coast{j}) ;
+    for j = 1:length(coast_find)
+    coastal_temp_mat = interp_temp_mat(:,coast_find{j}) ;
+    coastal_sal_mat = interp_sal_mat(:,coast_find{j}) ;
     coastal_sal_mean{j} = mean(coastal_sal_mat,2,'omitnan') ; 
     coastal_temp_mean{j} = mean(coastal_temp_mat,2,'omitnan') ;
     coastal_temp_std{j} = std(coastal_temp_mat,0,2,'omitnan') ;
@@ -862,33 +773,44 @@ for i = 1:length(coast_sal_avg(1,:)) ;
 coast_sal_anom(:,i) = coastal_sal(:,i) - coast_sal_avg(:,i) ;
 coast_temp_anom(:,i) = coastal_temp(:,i) - coast_temp_avg(:,i) ;
 end
-clear coastal_sal coastal_temp 
+save coast_sal_anom.mat coast_sal_anom
+save coast_temp_anom.mat coast_temp_anom
+end
+load coast_sal_anom.mat % can be used later, will clear now for space
+load coast_temp_anom.mat
+clear coastal_sal coastal_temp  coast_sal_avg coast_temp_avg range_open range coast_temp_anom coast_sal_anom coastal_sal_std coastal_temp_std date
 %% Open casts
 % Coast means/std
-run = 1 ;
+open_sal = interp_sal_mat(:,~in_a) ;
+open_temp = interp_temp_mat(:,~in_a) ;
+run = 2 ;
 for i = 1:1
     if run == 1
     open_temp_mat = [] ;
     open_sal_mat = [] ;
-        for j = 1:length(cast_idx_open)
-    open_temp_mat = interp_temp_mat(:,cast_idx_open{j}) ;
-    open_sal_mat = interp_sal_mat(:,cast_idx_open{j}) ;
-    open_sal_mean{j} = mean(open_sal_mat,2,'omitnan') ; 
-    open_temp_mean{j} = mean(open_temp_mat,2,'omitnan') ;
-    open_temp_std{j} = std(open_temp_mat,0,2,'omitnan') ;
-    open_sal_std{j} = std(open_sal_mat,0,2,'omitnan') ;
+        for j = 1:length(open_find)
+    open_temp_mat = interp_temp_mat(:,open_find{j}) ;
+    open_sal_mat = interp_sal_mat(:,open_find{j}) ;
+    open_sal_mean = mean(open_sal_mat,2,'omitnan') ; 
+    open_temp_mean = mean(open_temp_mat,2,'omitnan') ;
+    open_sal_anom(:,j) = open_sal(:,j) - open_temp_mean ;
+    open_temp_anom(:,j) = open_temp(:,j) - open_temp_mean ;
+    %open_temp_std{j} = std(open_temp_mat,0,2,'omitnan') ;
+    %open_sal_std{j} = std(open_sal_mat,0,2,'omitnan') ; %only run either
+    %anomaly or std at a time
         end
-   save("open_temp_mean.mat",'open_temp_mean')
-   save("open_sal_mean.mat",'open_sal_mean')
-   save("open_temp_std.mat",'open_temp_std')
-   save("open_sal_std",'open_sal_std')
+   save("open_temp_anom.mat",'open_temp_anom','-v7.3')
+   save("open_sal_anom.mat",'open_sal_anom','-v7.3')
+  % save("open_temp_std.mat",'open_temp_std')
+   %save("open_sal_std",'open_sal_std')
     end
 end
-load("open_temp_mean.mat") 
-load("open_sal_mean.mat")
-load("open_temp_std.mat")
-load("open_sal_std.mat")
-% Expand
+load("open_temp_anom.mat") 
+load("open_sal_anom.mat")
+%load("open_temp_std.mat")
+%load("open_sal_std.mat")
+%%
+% Expand (don't think i need any of this now)
 numCells = length(open_temp_mean) ;
 rows = length(DepInterval) ;
 open_temp_avg =  zeros(rows, numCells) ;
