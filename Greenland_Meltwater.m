@@ -681,39 +681,6 @@ lat_inter = [lat_inter,lat_open(i)] ;
 end
 load open_find.mat
 clear lon_inter lat_inter lon_reshaped lat_reshaped reff_lat reff_lon pattern open_idx open_dist_final open_dist num_repeat start_pattern
-%% (I think this entire thing is pointless now that I've got it in a cell?)
-% simplify
-%for i = 1:length(lon_open)  % circle_idx?
- %   if run == 1
-  %  individual_array = circle_idx{i};
-   % non_zero_elements = [];
-    %    for j = 1:length(individual_array)
-     %       if individual_array(j) ~= 0
-      %      % Append non-zero elements to the non_zero_elements array
-       %     non_zero_elements = [non_zero_elements, individual_array(j)];
-        %    end
-       % end
-   % circle_idx{i} = non_zero_elements; %moved above second to last end
-   % end
-% end
-% for i =1:1
-  %  if run == 1 
-   % save("circle_idx.mat",'circle_idx','-v7.3')
-    % end
-%end
-%load('circle_idx.mat','circle_idx')
-% create logical indices for use late combining with date_idx
-%numCells = length(circle_idx) ;
-%logical_arrays = cell(1, numCells);
-%for i = 1:numCells
-    % Get the current index array
-%    index = circle_idx{i};
- %   length_open = length(datenum_a);
-  %  logical_array = zeros(1, length_open);
-   % logical_array(index) = 1;
-    %circle_idx_mat(:,i) =logical_array ;
-% end
-% clear logical_arrays logical_array length_open index circle_idx
 clear idx temp temp_lon poly_idx date_idx_cell range Dec_range Jan_range circle_idx_open dec_idx date_idx_cell_open Dec_open individual_array jan_idx Jan_open Middle_idx Middle_open non_zero_elements
 clear Middle_range Jan_indices Jan_range_open Dec_range_open Middle_range_open ranges_open reff_lon reff_lat off_coast circle_idx_mat day lengthdeg mon numCells sal 
 clear i j max_length poly_off radius reclength_coast dist dep
@@ -778,7 +745,7 @@ save coast_temp_anom.mat coast_temp_anom
 end
 load coast_sal_anom.mat % can be used later, will clear now for space
 load coast_temp_anom.mat
-clear coastal_sal coastal_temp  coast_sal_avg coast_temp_avg range_open range coast_temp_anom coast_sal_anom coastal_sal_std coastal_temp_std date
+clear coast_sal_avg coast_temp_avg range_open range coast_temp_anom coast_sal_anom coastal_sal_std coastal_temp_std date
 %% Open casts
 % Coast means/std
 open_sal = interp_sal_mat(:,~in_a) ;
@@ -810,35 +777,36 @@ load("open_sal_anom.mat")
 %load("open_temp_std.mat")
 %load("open_sal_std.mat")
 %%
-% Expand (don't think i need any of this now)
-numCells = length(open_temp_mean) ;
-rows = length(DepInterval) ;
-open_temp_avg =  zeros(rows, numCells) ;
-open_sal_avg =  zeros(rows, numCells) ;
-for i = 1:length(open_sal_mean) 
-insidearray1 = open_temp_mean{i}' ;
-insidearray2 = open_sal_mean{i}' ;
-open_temp_avg(:,i) = insidearray1 ;
-open_sal_avg(:,i) = insidearray2 ;
-end
-% open anomaly
-in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
-open_sal = interp_sal_mat(:,~in_a) ;
-open_temp = interp_temp_mat(:,~in_a) ;
-for i = 1:length(open_sal_avg(1,:)) 
-open_sal_anom(:,i) = open_sal(:,i) - open_sal_avg(:,i) ;
-open_temp_anom(:,i) = open_temp(:,i) - open_temp_avg(:,i) ;
-end
-% Pressure (db) from Depth (can clear after getting potential temp)
+% Pressure (db) from Depth and Density (can clear after getting potential temp)
 numpoints = length(DepInterval) ;
 for i = 1:length(lat_a)
 k = sw_pres(DepInterval,repmat(lat_a(i),1,numpoints)) ;
 press_a(:,i) = k ;
 end
-% Potential Temp
+coast_press = press_a(:,in_a) ;
+open_press = press_a(:,~in_a) ;
+%%
+open_dens = sw_dens(open_sal,open_temp,open_press) ; % kg/m^3
+coastal_dens = sw_dens(coastal_sal,coastal_temp,coast_press) ;
+clear press_a
+% Vectorize and combine
+open_vector_temp_anom = open_temp_anom(:) ;
+open_vector_sal_anom = open_sal_anom(:) ;
+open_vector_dens_anom =open_dens(:) ;
+coast_vector_temp_anom = coast_temp_anom(:) ;
+coast_vector_sal_anom = coast_sal_anom(:) ;
+coast_vector_dens_anom = coastal_dens(:) ;
+clear coast_press open_press
+open_combined = [open_vector_temp_anom,open_vector_sal_anom,open_vector_dens_anom] ;
+coast_combined = [coast_vector_temp_anom,coast_vector_sal_anom, coast_vector_dens_anom]
+%PCA (untested and need to plot)
+[open_coeff, open_score, open_latent, open_tsquared, open_explained] = pca(open_combined);
+[coast_coeff, coast_score, coast_latent, coast_tsquared, coast_explained] = pca(coast_combined);
+%%
+% Potential Temp = [] ;
 press_reff = 10 ; % not sure what a good refference would be
 ptmp_a = sw_ptmp(interp_sal_mat,interp_temp_mat,press_a,press_reff) ;
-clear interp_sal interp_temp numCells rows open_sal_mean open_temp_mean insidearray1 insidearray2 open_sal open_temp k num_points press_reff
+clear interp_sal interp_temp numCells rows open_sal_mean open_temp_mean insidearray1 insidearray2 open_sal open_temp k num_points press_reff 
 %%  Statistics
 %number of observations for each cast box
 for i = 1:length(cast_idx_coast)
