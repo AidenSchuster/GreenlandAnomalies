@@ -731,7 +731,7 @@ insidearray2 = coastal_sal_mean{i}' ;
 coast_temp_avg(:,i) = insidearray1 ;
 coast_sal_avg(:,i) = insidearray2 ;
 end
-clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean coastal_lat coastal_lon watdep twd insidearray2 insidearray1
+clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean watdep twd insidearray2 insidearray1
 % coast anomaly
 in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
 coastal_sal = interp_sal_mat(:,in_a) ;
@@ -745,9 +745,10 @@ save coast_temp_anom.mat coast_temp_anom
 end
 load coast_sal_anom.mat % can be used later, will clear now for space
 load coast_temp_anom.mat
-clear coast_sal_avg coast_temp_avg range_open range coast_temp_anom coast_sal_anom coastal_sal_std coastal_temp_std date
+clear coast_sal_avg coast_temp_avg range_open range coastal_sal_std coastal_temp_std date
 %% Open casts
 % Coast means/std
+in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
 open_sal = interp_sal_mat(:,~in_a) ;
 open_temp = interp_temp_mat(:,~in_a) ;
 run = 2 ;
@@ -776,6 +777,7 @@ load("open_temp_anom.mat")
 load("open_sal_anom.mat")
 %load("open_temp_std.mat")
 %load("open_sal_std.mat")
+clear coast_find open_find % will need these back eventually
 %%
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 numpoints = length(DepInterval) ;
@@ -783,25 +785,40 @@ for i = 1:length(lat_a)
 k = sw_pres(DepInterval,repmat(lat_a(i),1,numpoints)) ;
 press_a(:,i) = k ;
 end
+coastal_sal = interp_sal_mat(:,in_a) ;
+coastal_temp = interp_temp_mat(:,in_a) ;
 coast_press = press_a(:,in_a) ;
 open_press = press_a(:,~in_a) ;
-%%
 open_dens = sw_dens(open_sal,open_temp,open_press) ; % kg/m^3
 coastal_dens = sw_dens(coastal_sal,coastal_temp,coast_press) ;
 clear press_a
 % Vectorize and combine
+x = length(DepInterval) ;
+coastal_lat_mat = repmat(coastal_lat,x,1) ;
+coastal_lon_mat = repmat(coastal_lon,x,1) ;
+open_lat_mat = repmat(lat_open,x,1) ;
+open_lon_mat = repmat(lon_open,x,1) ;
+clear coastal_lon coastal_lat lon_open lat_open coastal_sal coastal_temp open_sal open_temp interp_temp_a interp_sal_a interp_sal_mat interp_temp_mat
+%%
 open_vector_temp_anom = open_temp_anom(:) ;
 open_vector_sal_anom = open_sal_anom(:) ;
 open_vector_dens_anom =open_dens(:) ;
+open_vector_lat = open_lat_mat(:) ;
+open_vector_lon = open_lon_mat(:) ;
 coast_vector_temp_anom = coast_temp_anom(:) ;
 coast_vector_sal_anom = coast_sal_anom(:) ;
 coast_vector_dens_anom = coastal_dens(:) ;
-clear coast_press open_press
-open_combined = [open_vector_temp_anom,open_vector_sal_anom,open_vector_dens_anom] ;
-coast_combined = [coast_vector_temp_anom,coast_vector_sal_anom, coast_vector_dens_anom]
-%PCA (untested and need to plot)
-[open_coeff, open_score, open_latent, open_tsquared, open_explained] = pca(open_combined);
-[coast_coeff, coast_score, coast_latent, coast_tsquared, coast_explained] = pca(coast_combined);
+coast_vector_lat = coastal_lat_mat(:) ;
+coast_vector_lon = coastal_lon_mat (:) ;
+clear coast_press open_press open_lat_mat open_lon_mat open_dens coastal_dens
+open_combined = [open_vector_temp_anom,open_vector_sal_anom,open_vector_dens_anom,open_vector_lat,open_vector_lon] ;
+coast_combined = [coast_vector_temp_anom,coast_vector_sal_anom, coast_vector_dens_anom,coast_vector_lat,coast_vector_lon] ;
+clear coast_vector_lon coast_vector_lat open_vector_lon open_vector_lat open_vector_sal_anom open_vector_temp_anom open_vector_dens_anom coast_vector_temp_anom coast_vector_temp_anom coast_vector_dens_anom
+%PCA (run one at a time)
+[~, ~, ~ , ~, open_explained] = pca(open_combined);
+%%
+[~, ~, ~, ~, coast_explained] = pca(coast_combined);
+clear k 
 %%
 % Potential Temp = [] ;
 press_reff = 10 ; % not sure what a good refference would be
@@ -841,7 +858,7 @@ Jul = find(mon_comb == 7) ;
 Aug = find(mon_comb == 8) ;
 Sep = find(mon_comb == 9) ;
 Oct = find(mon_comb == 10) ;
-clear temp open_lat open_lon coast_lat coast_lon count_coast count_open coastal_mon open_mon 
+clear temp coast_lat coast_lon count_coast count_open coastal_mon open_mon 
 clear open_sal_anom open_sal_std open_sal_avg open_temp_std open_temp_avg open_temp_anom coast_sal_anom coastal_sal_std coast_sal_avg coast_temp_anom coast_temp_avg coastal_temp_std % for clearing memory, will need these eventually
 %% Boxes for avg counts
 increment = 0.1 ; % degrees
