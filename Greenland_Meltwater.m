@@ -761,7 +761,7 @@ for i = 1:1
     open_sal_mat = interp_sal_mat(:,open_find{j}) ;
     open_sal_mean = mean(open_sal_mat,2,'omitnan') ; 
     open_temp_mean = mean(open_temp_mat,2,'omitnan') ;
-    open_sal_anom(:,j) = open_sal(:,j) - open_temp_mean ;
+    open_sal_anom(:,j) = open_sal(:,j) - open_sal_mean ;
     open_temp_anom(:,j) = open_temp(:,j) - open_temp_mean ;
     %open_temp_std{j} = std(open_temp_mat,0,2,'omitnan') ;
     %open_sal_std{j} = std(open_sal_mat,0,2,'omitnan') ; %only run either
@@ -777,48 +777,52 @@ load("open_temp_anom.mat")
 load("open_sal_anom.mat")
 %load("open_temp_std.mat")
 %load("open_sal_std.mat")
-clear coast_find open_find % will need these back eventually
+clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
 %%
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
-numpoints = length(DepInterval) ;
-for i = 1:length(lat_a)
-k = sw_pres(DepInterval,repmat(lat_a(i),1,numpoints)) ;
-press_a(:,i) = k ;
-end
-coastal_sal = interp_sal_mat(:,in_a) ;
-coastal_temp = interp_temp_mat(:,in_a) ;
-coast_press = press_a(:,in_a) ;
-open_press = press_a(:,~in_a) ;
-open_dens = sw_dens(open_sal,open_temp,open_press) ; % kg/m^3
-coastal_dens = sw_dens(coastal_sal,coastal_temp,coast_press) ;
+%numpoints = length(DepInterval) ;
+%for i = 1:length(lat_a)
+%k = sw_pres(DepInterval,repmat(lat_a(i),1,numpoints)) ;
+%press_a(:,i) = k ;
+%end
+%coastal_sal = interp_sal_mat(:,in_a) ; (don't think i need this any
+%longer)
+%coastal_temp = interp_temp_mat(:,in_a) ;
+%coast_press = press_a(:,in_a) ;
+%open_press = press_a(:,~in_a) ;
+%open_dens = sw_dens(open_sal,open_temp,open_press) ; % kg/m^3
+%coastal_dens = sw_dens(coastal_sal,coastal_temp,coast_press) ;
 clear press_a
 % Vectorize and combine
-x = length(DepInterval) ;
-coastal_lat_mat = repmat(coastal_lat,x,1) ;
-coastal_lon_mat = repmat(coastal_lon,x,1) ;
-open_lat_mat = repmat(lat_open,x,1) ;
-open_lon_mat = repmat(lon_open,x,1) ;
-clear coastal_lon coastal_lat lon_open lat_open coastal_sal coastal_temp open_sal open_temp interp_temp_a interp_sal_a interp_sal_mat interp_temp_mat
+clear coastal_sal coastal_temp open_sal open_temp interp_temp_a interp_sal_a interp_sal_mat interp_temp_mat
 %%
-open_vector_temp_anom = open_temp_anom(:) ;
-open_vector_sal_anom = open_sal_anom(:) ;
-open_vector_dens_anom =open_dens(:) ;
-open_vector_lat = open_lat_mat(:) ;
-open_vector_lon = open_lon_mat(:) ;
-coast_vector_temp_anom = coast_temp_anom(:) ;
-coast_vector_sal_anom = coast_sal_anom(:) ;
-coast_vector_dens_anom = coastal_dens(:) ;
-coast_vector_lat = coastal_lat_mat(:) ;
-coast_vector_lon = coastal_lon_mat (:) ;
-clear coast_press open_press open_lat_mat open_lon_mat open_dens coastal_dens
-open_combined = [open_vector_temp_anom,open_vector_sal_anom,open_vector_dens_anom,open_vector_lat,open_vector_lon] ;
-coast_combined = [coast_vector_temp_anom,coast_vector_sal_anom, coast_vector_dens_anom,coast_vector_lat,coast_vector_lon] ;
-clear coast_vector_lon coast_vector_lat open_vector_lon open_vector_lat open_vector_sal_anom open_vector_temp_anom open_vector_dens_anom coast_vector_temp_anom coast_vector_temp_anom coast_vector_dens_anom
-%PCA (run one at a time)
-[~, ~, ~ , ~, open_explained] = pca(open_combined);
-%%
-[~, ~, ~, ~, coast_explained] = pca(coast_combined);
-clear k 
+%top 300 m of both open and coastal
+sal_anom_combined = [coast_sal_anom,open_sal_anom] ;
+sal_anom_combined = sal_anom_combined(1:300, :);
+lat_combined = [coastal_lat,lat_open] ;
+lon_combined = [coastal_lon,lon_open] ;
+% replace NaN with 0's (0 meaning that the refference cast was the only
+% value anyway, can change them all to nan later)
+NaN_idx = isnan(sal_anom_combined) ;
+sal_anom_combined(NaN_idx) = 0 ;
+sal_anom_combined = sal_anom_combined' ;
+% month idx's
+coastal_mon = mon_a(in_a) ;
+open_mon = mon_a(~in_a) ;
+mon_comb = [coastal_mon,open_mon] ;
+May = find(mon_comb == 5) ;
+Jun = find(mon_comb == 6) ;
+Jul = find(mon_comb == 7) ;
+Aug = find(mon_comb == 8) ;
+Sep = find(mon_comb == 9) ;
+Oct = find(mon_comb == 10) ;
+clear open_mon coastal_mon mon_comb
+%% PCA change month as desired
+[coeff, score, latent , tsquared, explained] = pca(sal_anom_combined');
+first_PC = score(:,1) ; % first principal component
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+clear coastal_lon coastal_lat lon_open lat_open
 %%
 % Potential Temp = [] ;
 press_reff = 10 ; % not sure what a good refference would be

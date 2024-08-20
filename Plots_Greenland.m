@@ -2,11 +2,11 @@
 clf
 hold on
 plot(cx,cy,'k')
-scatter(lon,lat,3,'MarkerFaceColor','g','MarkerEdgeAlpha','.05')
-xlim([-80,-35])
+scatter(lon,lat,3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
+scatter(OMG_lon,OMG_lat,7,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
+xlim([-75,-30])
 ylim([55,80])
 daspect([1 aspect_ratio 1])
-plot(x_coast,y_coast,'r')
 hold off
 %%
 %Plot Angled Rectangles
@@ -73,6 +73,7 @@ plot(rotvertcell{10}(1,:),rotvertcell{10}(2,:), 'k')
 scatter(reff_x,reff_y,'k')
 hold off
 %% box
+box_number = 10000 ;
 hold on
 clf
 hold on
@@ -80,14 +81,12 @@ plot(cx,cy,'k')
 plot(x_coast,y_coast,'b')
 xlim([-80,-35])
 ylim([55,80])
+plot(vert{box_number}(1,:),vert{box_number}(2,:),'r')
 scatter(reff_x,reff_y,'k')
-scatter(coastal_lon(1,1),coastal_lat(1,1),'c')
-scatter(vert{1}(1,1),vert{1}(2,1),'r')
-scatter(vert{1}(1,2),vert{1}(2,2),'b')
-scatter(vert{1}(1,3),vert{1}(2,3),'y')
-scatter(vert{1}(1,4),vert{1}(2,4),'g')
+scatter(coastal_lon(1,box_number),coastal_lat(1,box_number),'b.')
 scatter(exten_minus(1,1),exten_minus(2,1),'k')
 scatter(exten_plus(1,1),exten_plus(2,1),'k')
+daspect([1 aspect_ratio 1])
 hold off
 %%
 test = inpolygon(coastal_lon,coastal_lat,vert{1}(1,:),vert{1}(2,:)) ; % test points
@@ -103,24 +102,26 @@ plot(vert{1}(1,:),vert{1}(2,:),'r')
 scatter(coastal_lon(test),coastal_lat(test),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
 hold off
 %%
+cast = 702 ;
 clf
 hold on
 plot(cx,cy,'k')
 daspect([1 aspect_ratio 1])
 xlim([-80,-35])
 ylim([55,80])
-plot(polygon_x,polygon_y,'r')
-scatter(lon(~in_idx),lat(~in_idx),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
+scatter(lon_a(coast_find{cast}),lat_a(coast_find{cast}),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
+scatter(coastal_lon(cast),coastal_lat(cast),10,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
 hold off
 %% Open Ocean Casts
+cast = 74806 ;
 clf
 hold on
 plot(cx,cy,'k')
 daspect([1 aspect_ratio 1])
 xlim([-80,-35])
 ylim([55,80])
-scatter(lon_a(cast_idx_open{2}),lat_a(cast_idx_open{2}),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
-scatter(lon_a(2),lat_a(2),3,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
+scatter(lon_a(open_find{cast}),lat_a(open_find{cast}),10,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
+scatter(lon_open(cast),lat_open(cast),10,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
 hold off
 %% Plot Anomaly example w/ std dev
 number = 1006 ;
@@ -224,4 +225,30 @@ caxis([0 50]);
 ylabel(c,'Avg # of profiles')
 title('October') % check value of month
 plot(cx,cy,'k','MarkerSize',200)
+hold off
+%% PCA plot (coast)
+figure;
+pareto(open_explained);  % 'explained' contains the variance explained by each component
+xlabel('Principal Component');
+ylabel('Variance Explained (%)');
+title('Open Casts');
+%% PCA plot (open)
+figure;
+pareto(coast_explained);  % 'explained' contains the variance explained by each component
+xlabel('Principal Component');
+ylabel('Variance Explained (%)');
+title('Coastal Casts');
+%% PCA correct
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+scatter(lon_combined(Sep), lat_combined(Sep), 50, first_PC, 'filled');
+colorbar;
+%caxis([-50 50]);
+colormap('cool')
+plot(cx,cy,'k') ;
+xlabel('Longitude');
+ylabel('Latitude');
+title('First Principal Component of Salinty Anomaly in September');
 hold off
