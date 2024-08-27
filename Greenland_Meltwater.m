@@ -684,6 +684,20 @@ clear lon_inter lat_inter lon_reshaped lat_reshaped reff_lat reff_lon pattern op
 clear idx temp temp_lon poly_idx date_idx_cell range Dec_range Jan_range circle_idx_open dec_idx date_idx_cell_open Dec_open individual_array jan_idx Jan_open Middle_idx Middle_open non_zero_elements
 clear Middle_range Jan_indices Jan_range_open Dec_range_open Middle_range_open ranges_open reff_lon reff_lat off_coast circle_idx_mat day lengthdeg mon numCells sal 
 clear i j max_length poly_off radius reclength_coast dist dep
+%% remove from indicies, profiles that contain less than 4 total profiles (3 not including the source profile)
+cutoff = 4 ; % number of profiles needed to make a good average
+numElements_open = cellfun(@numel, open_find);
+numElements_coast = cellfun(@numel, coast_find);
+numElements = [numElements_open,numElements_coast] ; % for plotting
+open_idx = numElements_open >= cutoff ;
+coast_idx = numElements_coast >= cutoff ;
+open_find = open_find(open_idx) ;
+%lat_open = lat_open(open_idx) ; % only will include lat and lon for coast and open that we'll have anomalies for, will leave lat_a lon_a for all together
+%lon_open = lon_open(open_idx) ;
+coast_find = coast_find(coast_idx) ;
+%coastal_lat = coastal_lat(coast_idx) ;
+%coastal_lon = coastal_lon(coast_idx) ;
+clear numElements_open numElements_coast numElements cutoff
 %% format into matrices
 interp_temp_a = interp_temp(~in_idx) ;
 interp_sal_a = interp_sal(~in_idx) ;
@@ -705,6 +719,10 @@ save("interp_temp_mat.mat",'interp_temp_mat','-v7.3')
 load("interp_sal_mat.mat")
 load("interp_temp_mat.mat")
 clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a %(need interp_sal_a/temp for open casts)
+% coast anomaly setup
+in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
+coastal_sal = interp_sal_mat(:,in_a) ;
+coastal_temp = interp_temp_mat(:,in_a) ;
 % Coast means/std
 run = 2 ;
 if run == 1
@@ -732,11 +750,16 @@ coast_temp_avg(:,i) = insidearray1 ;
 coast_sal_avg(:,i) = insidearray2 ;
 end
 clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean watdep twd insidearray2 insidearray1
-% coast anomaly
-in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
-coastal_sal = interp_sal_mat(:,in_a) ;
-coastal_temp = interp_temp_mat(:,in_a) ;
-for i = 1:length(coast_sal_avg(1,:)) ;
+% remove casts with salinties under 30 (subject to change)
+[~, col] = find(coastal_sal <= 30 | coastal_sal >= 40);
+unique_col = unique(col, 'stable');
+unique_col_idx_coast = false(1,length(coastal_sal)) ;
+unique_col_idx_coast(unique_col) = true ;
+coastal_sal(:, unique_col) = [] ;
+coastal_temp(:, unique_col) = [] ;
+coast_sal_avg(:, unique_col) = [] ;
+coast_temp_avg(:, unique_col) = [] ;
+for i = 1:length(coast_sal_avg(1,:)) 
 coast_sal_anom(:,i) = coastal_sal(:,i) - coast_sal_avg(:,i) ;
 coast_temp_anom(:,i) = coastal_temp(:,i) - coast_temp_avg(:,i) ;
 end
@@ -745,12 +768,24 @@ save coast_temp_anom.mat coast_temp_anom
 end
 load coast_sal_anom.mat % can be used later, will clear now for space
 load coast_temp_anom.mat
+%combined idx
+[~, col] = find(coastal_sal <= 30 | coastal_sal >= 40); % this is in the code twice because it needs to be able to run if run = 2
+unique_col = unique(col, 'stable');
+unique_col_idx_coast = false(1,length(coastal_sal)) ;
+unique_col_idx_coast(unique_col) = true ;
+combined_idx_coast = coast_idx | unique_col_idx_coast ;
+coastal_lat(:, combined_idx_coast) = [];
+coastal_lon(:, combined_idx_coast) = [];
 clear coast_sal_avg coast_temp_avg range_open range coastal_sal_std coastal_temp_std date
 %% Open casts
 % Coast means/std
 in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
 open_sal = interp_sal_mat(:,~in_a) ;
 open_temp = interp_temp_mat(:,~in_a) ;
+[~, col] = find(open_sal <= 30| open_sal >= 40);
+unique_col = unique(col, 'stable');
+unique_col_idx_open = false(1,length(open_sal)) ;
+unique_col_idx_open(unique_col) = true ;
 run = 2 ;
 for i = 1:1
     if run == 1
@@ -775,6 +810,13 @@ for i = 1:1
 end
 load("open_temp_anom.mat") 
 load("open_sal_anom.mat")
+%open_sal_anom(:, unique_col) = [] ; (should be taken care of by the
+%open_find index length)
+%combined index of cutoff and sal outliers
+combined_idx_open = open_idx | unique_col_idx_open ;
+lat_open(:, combined_idx_open) = [] ;
+lon_open(:, combined_idx_open) = [] ;
+clear col unique_col
 %load("open_temp_std.mat")
 %load("open_sal_std.mat")
 clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
@@ -794,34 +836,49 @@ clear coast_find open_find open_temp_mat open_sal_mat % will need these back eve
 %coastal_dens = sw_dens(coastal_sal,coastal_temp,coast_press) ;
 clear press_a
 % Vectorize and combine
-clear coastal_sal coastal_temp open_sal open_temp interp_temp_a interp_sal_a interp_sal_mat interp_temp_mat
+clear  coastal_temp open_temp interp_temp_a interp_sal_a interp_sal_mat interp_temp_mat
 %%
 %top 300 m of both open and coastal
-sal_anom_combined = [coast_sal_anom,open_sal_anom] ;
+sal_anom_combined = [open_sal_anom,coast_sal_anom] ;
 sal_anom_combined = sal_anom_combined(1:300, :);
-lat_combined = [coastal_lat,lat_open] ;
-lon_combined = [coastal_lon,lon_open] ;
-% replace NaN with 0's (0 meaning that the refference cast was the only
-% value anyway, can change them all to nan later)
-NaN_idx = isnan(sal_anom_combined) ;
-sal_anom_combined(NaN_idx) = 0 ;
+lat_combined = [lat_open,coastal_lat] ;
+lon_combined = [lon_open,coastal_lon ] ;
+%remove insane (>=10) anomalies
+[row,col] = find(sal_anom_combined >= 10) ;
+unique_col = unique(col, 'stable');
+sal_anom_combined(:,unique_col)= [] ; % moves profiles with anomalies greater than 10
+lat_combined(unique_col)= [] ;
+lon_combined(unique_col) = [] ;
+% extropolate and replace NaN from 10 m to surface 
+
+
+
+
+
 sal_anom_combined = sal_anom_combined' ;
 % month idx's
 coastal_mon = mon_a(in_a) ;
+coastal_mon = coastal_mon(combined_idx_coast) ;
 open_mon = mon_a(~in_a) ;
-mon_comb = [coastal_mon,open_mon] ;
+open_mon = open_mon(combined_idx_open)
+mon_comb = [open_mon,coastal_mon] ;
 May = find(mon_comb == 5) ;
 Jun = find(mon_comb == 6) ;
 Jul = find(mon_comb == 7) ;
 Aug = find(mon_comb == 8) ;
 Sep = find(mon_comb == 9) ;
 Oct = find(mon_comb == 10) ;
-clear open_mon coastal_mon mon_comb
+clear open_mon coastal_mon mon_comb %combined_idx_open combined_idx_coast
 %% PCA change month as desired
-[coeff, score, latent , tsquared, explained] = pca(sal_anom_combined');
+[coeff, score, latent , tsquared, explained] = pca(sal_anom_combined);
 first_PC = score(:,1) ; % first principal component
 second_PC = score(:,2) ; % second
 third_PC = score(:,3) ;
+% Odd cast data (hopefully not needed)
+%odd_sal_anom_idx = find(first_PC >= 100 | first_PC <= -100) ;
+%odd_sal_anom = sal_anom_combined(odd_sal_anom_idx,:) ;
+%odd_lat = 
+%odd_lon =
 clear coastal_lon coastal_lat lon_open lat_open
 %%
 % Potential Temp = [] ;

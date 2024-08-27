@@ -170,24 +170,6 @@ xlabel('Temperature Std')
 ylabel('Depth (M)')
 title('Temperature Std vs Depth')
 hold off
-%% Trisurf for count (do one where every cast is included, and then seperate by month)
-idx = Aug ; % for easy changing of month idx
-tri = delaunay(lon_comb(idx), lat_comb(idx)) ;
-clf 
-hold on
-trisurf(tri,lon_comb(idx),lat_comb(idx),count_comb(idx),'FaceColor', 'interp', 'EdgeColor', 'none') ;
-daspect([1 aspect_ratio 1])
-xlim([-80,-35])
-ylim([55,80])
-cb= colorbar()
-caxis([0 20]);
-plot(cx,cy,'k','MarkerSize',200)
-xlabel('Lon');
-ylabel('Lat');
-ylabel(cb, '# of casts contained'); % Label the colorbar
-zlabel('# of casts contained');
-title('Aug casts')
-hold off
 %% Meshgrid for count (too large I think)
 clf 
 hold on
@@ -199,6 +181,9 @@ colormap('hsv')
 colorbar
 plot(cx,cy)
 hold off
+%% Histogram 
+histogram(numElements, 'BinMethod', 'integers');
+xlim([0,10])
 %% TS Diagram (need to select a subsect or something)
 clf
 hold on
@@ -243,12 +228,45 @@ hold on
 daspect([1 aspect_ratio 1])
 xlim([-80,-30])
 ylim([55,80])
-scatter(lon_combined(Sep), lat_combined(Sep), 50, first_PC, 'filled');
+scatter(lon_combined, lat_combined, 50, first_PC, 'filled');
 colorbar;
-%caxis([-50 50]);
+%caxis([-5 5]);
 colormap('cool')
 plot(cx,cy,'k') ;
 xlabel('Longitude');
 ylabel('Latitude');
-title('First Principal Component of Salinty Anomaly in September');
+title('First Principal Component of Salinty Anomaly');
+hold off
+%% find sal anom issue
+test = sal_anom_combined >= 5 | sal_anom_combined <= -5 ;
+column_keep = any(test,1) ;
+sal_anom_combined(:,~column_keep) = [] ;
+lat_combined(:,~column_keep) = [] ;
+lon_combined(:,~column_keep) = [] ;
+%plot 
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+scatter(lon_combined,lat_combined,50,'k')
+plot(cx,cy,'k') ;
+xlabel('Longitude');
+ylabel('Latitude');
+hold off
+%% example bad data with profile 80,064
+hold on 
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+scatter(lon_combined(80064),lat_combined(80064),50,'k')
+plot(cx,cy,'k') ;
+xlabel('Longitude');
+ylabel('Latitude');
+hold off
+
+hold on 
+plot(open_sal(:,80064),DepInterval) ;
+xlabel('Salinity');
+ylabel('Depth');
+axis ij
 hold off
