@@ -102,7 +102,7 @@ plot(vert{1}(1,:),vert{1}(2,:),'r')
 scatter(coastal_lon(test),coastal_lat(test),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
 hold off
 %%
-cast = 702 ;
+cast = 700 ;
 clf
 hold on
 plot(cx,cy,'k')
@@ -237,6 +237,11 @@ xlabel('Longitude');
 ylabel('Latitude');
 title('First Principal Component of Salinty Anomaly');
 hold off
+%% Plot Coeff
+hold on
+plot(first_coeff,DepInterval_300)
+axis ij
+hold off
 %% find sal anom issue
 test = sal_anom_combined >= 5 | sal_anom_combined <= -5 ;
 column_keep = any(test,1) ;
@@ -268,5 +273,32 @@ hold on
 plot(open_sal(:,80064),DepInterval) ;
 xlabel('Salinity');
 ylabel('Depth');
+axis ij
+hold off
+%% Plot Sal_Anom (combined)
+DepInterval_300 = DepInterval(1:300) ;
+hold on,
+plot(sal_anom_combined,DepInterval_300) ;
+axis ij
+hold off
+%% Plot coast sal_anom
+hold on,
+plot(coast_sal_anom(1:300, :),DepInterval_300) ;
+axis ij
+hold off
+%% Plot coastal sal
+hold on,
+plot(coastal_sal(1:300, :),DepInterval_300) ;
+axis ij
+hold off
+
+%% Plot open Sal_anom
+hold on
+plot(open_sal_anom(1:300, :),DepInterval_300) ;
+axis ij
+hold off
+%% Plot open Sal
+hold on,
+plot(open_sal(1:300,:),DepInterval_300) ;
 axis ij
 hold off
