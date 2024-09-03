@@ -224,20 +224,23 @@ xlabel('Principal Component');
 ylabel('Variance Explained (%)');
 title('Coastal Casts');
 %% PCA correct
+month = Oct ;
 hold on
 daspect([1 aspect_ratio 1])
 xlim([-80,-30])
 ylim([55,80])
-scatter(lon_combined, lat_combined, 50, first_PC, 'filled');
+scatter(lon_combined(:,month), lat_combined(:,month), 50, second_PC, 'filled');
 colorbar;
 %caxis([-5 5]);
 colormap('cool')
 plot(cx,cy,'k') ;
 xlabel('Longitude');
 ylabel('Latitude');
-title('First Principal Component of Salinty Anomaly');
+title('October First Principal Component of Salinty Anomaly');
 hold off
-%% Plot Coeff
+% Plot Coeff
+DepInterval_300 = DepInterval(1:300) ;
+figure
 hold on
 plot(first_coeff,DepInterval_300)
 axis ij

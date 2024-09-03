@@ -873,24 +873,30 @@ sal_anom_combined = [open_sal_anom,coast_sal_anom] ;
 sal_anom_combined = sal_anom_combined(1:300, :);
 lat_combined = [lat_open,coastal_lat] ;
 lon_combined = [lon_open,coastal_lon ] ;
-%remove insane (>=10) anomalies
-[row,col] = find(sal_anom_combined >= 10 | sal_anom_combined <= -10) ; % removes values with anomalies greater than abs(10)
-unique_col = unique(col, 'stable');
-sal_anom_combined(:,unique_col)= [] ; % removes profiles with anomalies greater than 10
-lat_combined(unique_col)= [] ;
-lon_combined(unique_col) = [] ;
-% extropolate and replace NaN from 10 m to surface 
-
-
-
-
-
+% extropolate and replace NaN from 10 m to surface (avg of top three values
+% or lacking that top value gets repeated to surface)
+for i = 1:size(sal_anom_combined, 2)
+    top10 = sal_anom_combined(1:10, i);  % Extract the top 10 rows of the column
+    nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
+    if length(nonNaN_values) >= 3
+        % Average the top three non-NaN values
+        avg_value = mean(nonNaN_values(1:3));
+        sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', avg_value);
+    elseif length(nonNaN_values) >= 1
+        % If fewer than 3 non-NaN values, use the top-most non-NaN value
+        top_most_value = nonNaN_values(1);
+        sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
+    end
+end
+clear top_most_value top10 nonNaN_values avg_value
+% Invert
 sal_anom_combined = sal_anom_combined' ;
 % month idx's
 coastal_mon = mon_a(in_a) ;
-coastal_mon = coastal_mon(combined_idx_coast) ;
+coastal_mon = coastal_mon(coast_idx) ;
 open_mon = mon_a(~in_a) ;
-open_mon = open_mon(combined_idx_open)
+open_mon = open_mon(open_idx);
+%open_mon = open_mon(combined_idx_open)
 mon_comb = [open_mon,coastal_mon] ;
 May = find(mon_comb == 5) ;
 Jun = find(mon_comb == 6) ;
@@ -898,9 +904,9 @@ Jul = find(mon_comb == 7) ;
 Aug = find(mon_comb == 8) ;
 Sep = find(mon_comb == 9) ;
 Oct = find(mon_comb == 10) ;
-clear open_mon coastal_mon mon_comb %combined_idx_open combined_idx_coast
+clear open_mon coastal_mon %combined_idx_open combined_idx_coast
 %% PCA change month as desired
-[coeff, score, latent , tsquared] = eof225(sal_anom_combined,NaN,50); % Renato's Function (50 is number he gave)
+[coeff, score, latent , tsquared] = eof225(sal_anom_combined(Oct,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
