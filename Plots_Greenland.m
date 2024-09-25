@@ -211,39 +211,62 @@ ylabel(c,'Avg # of profiles')
 title('October') % check value of month
 plot(cx,cy,'k','MarkerSize',200)
 hold off
-%% PCA plot (coast)
-figure;
-pareto(open_explained);  % 'explained' contains the variance explained by each component
-xlabel('Principal Component');
-ylabel('Variance Explained (%)');
-title('Open Casts');
-%% PCA plot (open)
-figure;
-pareto(coast_explained);  % 'explained' contains the variance explained by each component
-xlabel('Principal Component');
-ylabel('Variance Explained (%)');
-title('Coastal Casts');
-%% PCA correct
-month = Oct ;
+%% PCA correct (includes coeff and sal_anom/salinity)
+%DepInterval_custom = DepInterval(1:10) ;
 hold on
 daspect([1 aspect_ratio 1])
 xlim([-80,-30])
 ylim([55,80])
-scatter(lon_combined(:,month), lat_combined(:,month), 50, second_PC, 'filled');
+scatter(lon_combined(:,year_mon), lat_combined(:,year_mon), 50, second_PC, 'filled');
 colorbar;
-%caxis([-5 5]);
+%caxis([-3 3]);
 colormap('cool')
 plot(cx,cy,'k') ;
 xlabel('Longitude');
 ylabel('Latitude');
-title('October First Principal Component of Salinty Anomaly');
+title(sprintf('First Principal Component of Salinity Anomaly for %s %d', month_selected, year_selected));
 hold off
 % Plot Coeff
-DepInterval_300 = DepInterval(1:300) ;
 figure
 hold on
-plot(first_coeff,DepInterval_300)
+plot(first_coeff,DepInterval)
 axis ij
+hold off
+% Plot sal_anom
+figure
+hold on
+plot(sal_anom_combined(year_mon,:),DepInterval) ;
+%ylim([0,300])
+axis ij
+hold off
+title('0-10 Salinity Anomaly')
+xlabel('Salinity Anomaly')
+ylabel('Depth')
+hold off
+%% Plot Salinity
+figure
+hold on
+plot(sal_combined(1:10,:),DepInterval_custom) ;
+axis ij
+title('Salinity 0-10m')
+xlabel('Salinity')
+ylabel('Depth')
+hold off
+clear month month_a
+%% Find and plot salinites with 0-1 m measurements >15 (should only be very near coast measurements) (eventually add back in if it produces good results
+sal_combined = sal_combined(1:2,:) ;
+[~,col] = find(sal_combined <= 15) ;
+unique_col = unique(col, 'stable');
+clear col
+%plot
+hold on
+scatter(lon_a(unique_col),lat_a(unique_col),'r') 
+plot(cx,cy,'k') ;
+xlim([-80,-30])
+ylim([55,80])
+xlabel('Longitude');
+ylabel('Latitude');
+daspect([1 aspect_ratio 1])
 hold off
 %% find sal anom issue
 test = sal_anom_combined >= 5 | sal_anom_combined <= -5 ;
@@ -276,32 +299,5 @@ hold on
 plot(open_sal(:,80064),DepInterval) ;
 xlabel('Salinity');
 ylabel('Depth');
-axis ij
-hold off
-%% Plot Sal_Anom (combined)
-DepInterval_300 = DepInterval(1:300) ;
-hold on,
-plot(sal_anom_combined,DepInterval_300) ;
-axis ij
-hold off
-%% Plot coast sal_anom
-hold on,
-plot(coast_sal_anom(1:300, :),DepInterval_300) ;
-axis ij
-hold off
-%% Plot coastal sal
-hold on,
-plot(coastal_sal(1:300, :),DepInterval_300) ;
-axis ij
-hold off
-
-%% Plot open Sal_anom
-hold on
-plot(open_sal_anom(1:300, :),DepInterval_300) ;
-axis ij
-hold off
-%% Plot open Sal
-hold on,
-plot(open_sal(1:300,:),DepInterval_300) ;
 axis ij
 hold off
