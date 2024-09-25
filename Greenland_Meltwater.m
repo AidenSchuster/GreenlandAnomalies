@@ -869,6 +869,14 @@ clear press_a
 clear  coastal_temp open_temp interp_temp_a interp_sal_a interp_sal_mat interp_temp_mat
 %%
 %top 300 m of both open and coastal
+sal_combined = [open_sal,coastal_sal] ;
+sal_combined = sal_combined(1:300,:) ;
+May_a = mon_a == 5 ;
+Jun_a = mon_a == 6 ;
+Jul_a = mon_a == 7 ;
+Aug_a = mon_a == 8 ;
+Sep_a = mon_a == 9 ;
+Oct_a = mon_a == 10 ;
 sal_anom_combined = [open_sal_anom,coast_sal_anom] ;
 sal_anom_combined = sal_anom_combined(1:300, :);
 lat_combined = [lat_open,coastal_lat] ;
@@ -888,25 +896,41 @@ for i = 1:size(sal_anom_combined, 2)
         sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
     end
 end
-clear top_most_value top10 nonNaN_values avg_value
-% Invert
+clear top_most_value top10 nonNaN_values avg_value Sep_a Aug_a Oct_a Jul_a Jun_a May_a
+%% Invert
 sal_anom_combined = sal_anom_combined' ;
-% month idx's
+% month and year idx's
 coastal_mon = mon_a(in_a) ;
 coastal_mon = coastal_mon(coast_idx) ;
 open_mon = mon_a(~in_a) ;
 open_mon = open_mon(open_idx);
-%open_mon = open_mon(combined_idx_open)
+coastal_yea = yea_a(in_a) ;
+coastal_yea = coastal_yea(coast_idx) ;
+open_yea = yea_a(~in_a) ;
+open_yea = open_yea(open_idx) ; 
+% month
 mon_comb = [open_mon,coastal_mon] ;
-May = find(mon_comb == 5) ;
-Jun = find(mon_comb == 6) ;
-Jul = find(mon_comb == 7) ;
-Aug = find(mon_comb == 8) ;
-Sep = find(mon_comb == 9) ;
-Oct = find(mon_comb == 10) ;
+month_selected = 5 ; % for sprintf
+month_s = mon_comb == month_selected ; % # of desired month;
+% year
+yea_combined = [open_yea, coastal_yea] ;
+year_selected = 2007 ; % for sprintf
+year = yea_combined == year_selected ; % replace with desired year
+%combine
+year_mon = year & month_s ;
 clear open_mon coastal_mon %combined_idx_open combined_idx_coast
-%% PCA change month as desired
-[coeff, score, latent , tsquared] = eof225(sal_anom_combined(Oct,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+copy = sal_anom_combined ; % for copying 
+%% Subsections and removals
+% Index casts that have NO nan's through 300 m
+sal_anom_combined = copy ;
+sal_anom_combined = sal_anom_combined(:,1:10) ;
+NaN_idx = isnan(sal_anom_combined) ;
+columnSums = sum(NaN_idx,2); % Sum along rows to get column sums
+NoNaN = columnSums == 0; % Find columns with no true values
+sal_anom_combined = sal_anom_combined(NoNaN,:) ;
+clear columnSums NaN_idx
+%% PCA change month/index as desired
+[coeff, score, latent , tsquared] = eof225(sal_anom_combined(year_mon,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
