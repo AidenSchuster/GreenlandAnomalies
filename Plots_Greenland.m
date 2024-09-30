@@ -212,37 +212,60 @@ title('October') % check value of month
 plot(cx,cy,'k','MarkerSize',200)
 hold off
 %% PCA correct (includes coeff and sal_anom/salinity)
-%DepInterval_custom = DepInterval(1:10) ;
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-03-24\2013' ; % change depending on folderlocation
+DepInterval_custom = DepInterval(1:300) ;
 hold on
 daspect([1 aspect_ratio 1])
 xlim([-80,-30])
 ylim([55,80])
-scatter(lon_combined(:,year_mon), lat_combined(:,year_mon), 50, second_PC, 'filled');
+scatter(lon_combined(:,year_mon), lat_combined(:,year_mon), 50, first_PC, 'filled');
 colorbar;
-%caxis([-3 3]);
+% caxis([-3 3]);
 colormap('cool')
 plot(cx,cy,'k') ;
 xlabel('Longitude');
 ylabel('Latitude');
-title(sprintf('First Principal Component of Salinity Anomaly for %s %d', month_selected, year_selected));
+title(sprintf('First Principal Component of Salinity Anomaly for %s %d', month_string{month_selected}, year_selected));
 hold off
+filename = sprintf('PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot Coeff
 figure
 hold on
-plot(first_coeff,DepInterval)
+plot(first_coeff,DepInterval_custom)
+title('1st Coefficients vs Depth ')
 axis ij
 hold off
+filename = sprintf('coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot sal_anom
 figure
 hold on
-plot(sal_anom_combined(year_mon,:),DepInterval) ;
-%ylim([0,300])
+plot(sal_anom_combined(year_mon,:),DepInterval_custom) ;
+ylim([0,300])
 axis ij
 hold off
-title('0-10 Salinity Anomaly')
+title('0-300m Salinity Anomaly')
 xlabel('Salinity Anomaly')
 ylabel('Depth')
 hold off
+filename = sprintf('sal_anom_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Create Scree Plot
+figure
+hold on
+plot(1:length(explained), explained, 'o-', 'LineWidth', 2);
+xlabel('Principal Component');
+xlim([0,5])
+xticks(1:5); 
+ylabel('Variance Explained (%)');
+title('Scree Plot');
+grid on;
+hold off
+filename = sprintf('scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+
+clear filename
 %% Plot Salinity
 figure
 hold on

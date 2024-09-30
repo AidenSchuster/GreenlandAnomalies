@@ -909,12 +909,13 @@ coastal_yea = coastal_yea(coast_idx) ;
 open_yea = yea_a(~in_a) ;
 open_yea = open_yea(open_idx) ; 
 % month
+month_string = {'January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'} ;
 mon_comb = [open_mon,coastal_mon] ;
-month_selected = 5 ; % for sprintf
+month_selected = 9 ; % for sprintf
 month_s = mon_comb == month_selected ; % # of desired month;
 % year
 yea_combined = [open_yea, coastal_yea] ;
-year_selected = 2007 ; % for sprintf
+year_selected = 2013 ; % for sprintf
 year = yea_combined == year_selected ; % replace with desired year
 %combine
 year_mon = year & month_s ;
@@ -935,6 +936,7 @@ first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
 third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
 %%
 % Potential Temp = [] ;
 press_reff = 10 ; % not sure what a good refference would be
