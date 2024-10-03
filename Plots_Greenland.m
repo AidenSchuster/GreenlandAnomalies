@@ -218,7 +218,7 @@ hold on
 daspect([1 aspect_ratio 1])
 xlim([-80,-30])
 ylim([55,80])
-scatter(lon_combined(:,year_mon), lat_combined(:,year_mon), 50, first_PC, 'filled');
+scatter(lon_coast(:,year_mon_coast), lat_coast(:,year_mon_coast), 50, first_PC, 'filled');
 colorbar;
 % caxis([-3 3]);
 colormap('cool')
@@ -227,7 +227,7 @@ xlabel('Longitude');
 ylabel('Latitude');
 title(sprintf('First Principal Component of Salinity Anomaly for %s %d', month_string{month_selected}, year_selected));
 hold off
-filename = sprintf('PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('coast_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot Coeff
 figure
@@ -236,12 +236,12 @@ plot(first_coeff,DepInterval_custom)
 title('1st Coefficients vs Depth ')
 axis ij
 hold off
-filename = sprintf('coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('coast_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot sal_anom
 figure
 hold on
-plot(sal_anom_combined(year_mon,:),DepInterval_custom) ;
+plot(coast_sal_anom(year_mon_coast,:),DepInterval_custom) ;
 ylim([0,300])
 axis ij
 hold off
@@ -249,7 +249,7 @@ title('0-300m Salinity Anomaly')
 xlabel('Salinity Anomaly')
 ylabel('Depth')
 hold off
-filename = sprintf('sal_anom_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('coast_sal_anom_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 % Create Scree Plot
 figure
@@ -262,7 +262,7 @@ ylabel('Variance Explained (%)');
 title('Scree Plot');
 grid on;
 hold off
-filename = sprintf('scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('coast_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 
 clear filename

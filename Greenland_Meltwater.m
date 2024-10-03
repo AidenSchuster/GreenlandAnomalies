@@ -870,6 +870,7 @@ clear  coastal_temp open_temp interp_temp_a interp_sal_a interp_sal_mat interp_t
 %%
 %top 300 m of both open and coastal
 sal_combined = [open_sal,coastal_sal] ;
+length_open = length(open_sal) ;
 sal_combined = sal_combined(1:300,:) ;
 May_a = mon_a == 5 ;
 Jun_a = mon_a == 6 ;
@@ -896,9 +897,11 @@ for i = 1:size(sal_anom_combined, 2)
         sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
     end
 end
-clear top_most_value top10 nonNaN_values avg_value Sep_a Aug_a Oct_a Jul_a Jun_a May_a
+clear top_most_value top10 nonNaN_values avg_value Sep_a Aug_a Oct_a Jul_a Jun_a May_a open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
 %% Invert
+if size(sal_anom_combined,2) > 301
 sal_anom_combined = sal_anom_combined' ;
+end
 % month and year idx's
 coastal_mon = mon_a(in_a) ;
 coastal_mon = coastal_mon(coast_idx) ;
@@ -911,16 +914,30 @@ open_yea = open_yea(open_idx) ;
 % month
 month_string = {'January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'} ;
 mon_comb = [open_mon,coastal_mon] ;
-month_selected = 9 ; % for sprintf
+month_selected = 7 ; % for sprintf
 month_s = mon_comb == month_selected ; % # of desired month;
+month_open = open_mon == month_selected ;
+month_coast = coastal_mon == month_selected ;
 % year
 yea_combined = [open_yea, coastal_yea] ;
-year_selected = 2013 ; % for sprintf
-year = yea_combined == year_selected ; % replace with desired year
+year_selected = 2013 ; % for sprintf, replace with desired year
+year = yea_combined == year_selected ;
+year_open = open_yea == year_selected ;
+year_coast = coastal_yea == year_selected ;
 %combine
 year_mon = year & month_s ;
-clear open_mon coastal_mon %combined_idx_open combined_idx_coast
-copy = sal_anom_combined ; % for copying 
+year_mon_open = year_open & month_open ;
+year_mon_coast = year_coast & month_coast ;
+%clear open_mon coastal_mon %combined_idx_open combined_idx_coast
+copy = sal_anom_combined ; % for copying
+in_combined = inpolygon(lon_combined,lat_combined,combined_x,combined_y) ;
+open_sal_anom = sal_anom_combined(~in_combined,:) ;
+coast_sal_anom = sal_anom_combined(in_combined,:) ;
+lon_coast = lon_combined(in_combined) ;
+lon_open = lon_combined(~in_combined) ;
+lat_coast = lat_combined(in_combined) ;
+lat_open = lat_combined(~in_combined) ;
+clear length_open yea year_coast month_coast month_open year_open
 %% Subsections and removals
 % Index casts that have NO nan's through 300 m
 sal_anom_combined = copy ;
@@ -931,7 +948,7 @@ NoNaN = columnSums == 0; % Find columns with no true values
 sal_anom_combined = sal_anom_combined(NoNaN,:) ;
 clear columnSums NaN_idx
 %% PCA change month/index as desired
-[coeff, score, latent , tsquared] = eof225(sal_anom_combined(year_mon,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff, score, latent , tsquared] = eof225(coast_sal_anom(year_mon_coast,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
@@ -1009,7 +1026,7 @@ in_box = inpolygon(lon_comb(month),lat_comb(month),cast_boxes{i}(2,:),cast_boxes
 avg = mean(count_comb(in_box)) ;
 box_avg(:,i) = avg ; 
 end
-clear x y latCorners LonCorners XX YY increment boxes % in_box avg
+clear x y latCorners LonCorners XX YY ZZ increment boxes % in_box avg
 %% Number of Obersvations at each depth (DELETE)
 for i= 1:length(DepInterval)
     for j= 1:length(SW_poly_temp_clean)
