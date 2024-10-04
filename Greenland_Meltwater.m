@@ -597,17 +597,30 @@ load("interp_sal_mat.mat")
 load("interp_temp_mat.mat")
 % remove anomalous profiles from interp_sal and interp_temp
 temp_sal = interp_sal_mat(50:end, :);
-[~, col] = find(temp_sal <= 30); % finds casts with sals >30 at depths greater than 50 m
-unique_col = unique(col, 'stable');
+bad_profiles = temp_sal <= 30; % finds casts with sals >30 at depths greater than 50 m
+remove_profiles = any(bad_profiles,1) ;
+% Clean Sal_mat data
+% approx derivative of salinity/depth, remove those that fail
+salinity_diff = diff(interp_sal_mat, 1, 1);  % row-wise diff
+threshold = 0.5 ; % max salinity jump meter to meter, anything larger gets weeded out
+abs_diff = abs(salinity_diff) >= threshold;
+anomalous_profiles = any(abs_diff, 1);
+% certain % of non-NaN values in 0-100 m
+top_100 = interp_sal_mat(1:100,:) ;
+nan_count = sum(isnan(top_100), 1);  % Count NaNs along rows for each column
+threshold = 50 ; % max number of NaN values permitted in top 100 m
+too_many_nans = nan_count > threshold ;
+% combined idx and remove from dataset
+unique_col = remove_profiles | anomalous_profiles | too_many_nans ;
 interp_sal_mat(:, unique_col) = [];
 interp_temp_mat(:,unique_col) = [];
+clear salinity_diff threshold abs_diff anomalous_profiles too_many_nans nan_count top_100
 clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a col %(need interp_sal_a/temp for open casts)
 % edit the variables in preperation for indexing
 lon_temp = lon_a ; % for use in coastal indexing section
 lat_temp = lat_a ;
 lon_a(:,unique_col) = [] ;
 lat_a(:,unique_col) = [] ;
-%
 %%
 % Create 15 day indicies regardless of year 
 date = ([yea; mon; day]) ;

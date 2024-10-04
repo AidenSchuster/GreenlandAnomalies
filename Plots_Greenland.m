@@ -267,15 +267,18 @@ print(fullfile(folderPath, filename), '-djpeg') ;
 
 clear filename
 %% Plot Salinity
+step = 10 ; % 1/ how many we plot
+sal_combined_reduced = sal_combined(:, 1:step:end) ;
+DepInterval_custom = DepInterval(1:300) ;
 figure
 hold on
-plot(sal_combined(1:10,:),DepInterval_custom) ;
+plot(sal_combined_reduced,DepInterval_custom) ;
+title('Salinity Profiles Pre-Cleaning')
 axis ij
-title('Salinity 0-10m')
 xlabel('Salinity')
 ylabel('Depth')
 hold off
-clear month month_a
+clear step sal_combined_reduced
 %% Find and plot salinites with 0-1 m measurements >15 (should only be very near coast measurements) (eventually add back in if it produces good results
 sal_combined = sal_combined(1:2,:) ;
 [~,col] = find(sal_combined <= 15) ;
