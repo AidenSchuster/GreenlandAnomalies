@@ -245,7 +245,7 @@ for i = 1:1:length(ref_plusy)
     end
     j = 1 ;
 end
-clear widthdeg_lon
+clear widthdeg_lon extra_x extra_y
 %%
 % Find point closest to x km within y km
 for i = 1:1:length(dist_minus)
@@ -614,7 +614,7 @@ too_many_nans = nan_count > threshold ;
 unique_col = remove_profiles | anomalous_profiles | too_many_nans ;
 interp_sal_mat(:, unique_col) = [];
 interp_temp_mat(:,unique_col) = [];
-clear salinity_diff threshold abs_diff anomalous_profiles too_many_nans nan_count top_100
+clear salinity_diff threshold abs_diff anomalous_profiles too_many_nans nan_count top_100 bad_profiles remove_profiles
 clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a col %(need interp_sal_a/temp for open casts)
 % edit the variables in preperation for indexing
 lon_temp = lon_a ; % for use in coastal indexing section
@@ -662,7 +662,7 @@ range_open(:,earlyjan_idx) = Jan_range_open ;
 range_open(:,middle_idx) = Middle_range_open ;
 range_open(:,latedec_idx) = Dec_range_open ;
 clear polygon_x polygon_y datenum lat lon
-clear middle_idx latedec_idx earlyjan_idx
+clear middle_idx latedec_idx earlyjan_idx day_a
 %%
 % Get rid of garbage casts
 in = inpolygon(lon_temp,lat_temp,combined_x,combined_y) ; % All coasts within coastal section 
@@ -711,14 +711,16 @@ dummy_lat = lat_a ;
 %refference lat and lon
 start_pattern = [true,false] ;
 pattern = [true,true,false] ;  %pattern for opendist/sw_dist data sorting
-num_repeat = ceil(141114/length(pattern)) ; % # should be equal to length of open_dist -2
+num_repeat = ceil(127149/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
 pattern = repmat(pattern,1,num_repeat) ;
 pattern = [start_pattern,pattern,true] ; % concats start and end values
-clear num_repeat start_pattern
+clear num_repeat start_pattern lon_temp
 lon_a = dummy_lon ;
 lat_a = dummy_lat ;% for rerunning
+if mod(length(lon_a),2) == 1
 lon_a = [lon_a,0] ; % add additional garbage point to make even (remove after done)
 lat_a = [lat_a,0] ;
+end
 run = 2 ;
 if run == 1
     for i = 1:length(lon_open)
@@ -733,8 +735,10 @@ lat_inter = [lat_inter,lat_open(i)] ;
         open_dist = sw_dist(lon_inter,lat_inter,'km') ; % calculates distance for every point to the target cast (i) (needs to be edited, only storing one value)
         open_dist_final = open_dist(pattern) ;%remove trash distances
         circle_idx = open_dist_final <= recwidth ; % all casts less than 20km away
+        if mod(length(lon_a),2) == 1
         circle_idx = [circle_idx,0] ; % to match idx length
-        if datenum_open(i) > 14 && datenum_open(i) < 350 % Middle ranges
+        end
+                if datenum_open(i) > 14 && datenum_open(i) < 350 % Middle ranges
                    open_idx = datenum_a >= range_open(1,i) & datenum_a <= range_open(2,i) ; 
                 elseif datenum_open(i) <= 14 || datenum_open(i) >= 351 % Early Jan and Late Dec 
                    open_idx = datenum_a >= range_open(1,i) | datenum_a <= range_open(2,i) ;
@@ -742,8 +746,8 @@ lat_inter = [lat_inter,lat_open(i)] ;
                 % combine indices
                 combined_idx = circle_idx & open_idx ;
                 open_find{i} = find(combined_idx == 1) ;
-    end
-     save open_find.mat open_find 
+                end
+    save open_find.mat open_find 
 end
 load open_find.mat
 clear lon_inter lat_inter lon_reshaped lat_reshaped reff_lat reff_lon pattern open_idx open_dist_final open_dist num_repeat start_pattern
@@ -798,7 +802,7 @@ insidearray2 = coastal_sal_mean{i}' ;
 coast_temp_avg(:,i) = insidearray1 ;
 coast_sal_avg(:,i) = insidearray2 ;
 end
-clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean watdep twd insidearray2 insidearray1
+clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean insidearray2 insidearray1
 for i = 1:length(coast_sal_avg(1,:)) 
 coast_sal_anom(:,i) = coastal_sal(:,i) - coast_sal_avg(:,i) ;
 coast_temp_anom(:,i) = coastal_temp(:,i) - coast_temp_avg(:,i) ;
@@ -816,7 +820,7 @@ load coast_temp_anom.mat
 %combined_idx_coast = coast_idx | unique_col_idx_coast ;
 %coastal_lat(:, combined_idx_coast) = [];
 %coastal_lon(:, combined_idx_coast) = [];
-clear coast_sal_avg coast_temp_avg range_open range coastal_sal_std coastal_temp_std date
+clear coast_sal_avg coast_temp_avg range_open range coastal_sal_std coastal_temp_std date watdep twd
 %% Open casts
 % Coast means/std
 in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
@@ -883,6 +887,8 @@ clear  coastal_temp open_temp interp_temp_a interp_sal_a interp_sal_mat interp_t
 %%
 %top 300 m of both open and coastal
 sal_combined = [open_sal,coastal_sal] ;
+coastal_sal = coastal_sal(1:300,:) ;
+open_sal = open_sal(1:300,:) ;
 length_open = length(open_sal) ;
 sal_combined = sal_combined(1:300,:) ;
 May_a = mon_a == 5 ;
@@ -912,35 +918,57 @@ for i = 1:size(sal_anom_combined, 2)
 end
 clear top_most_value top10 nonNaN_values avg_value Sep_a Aug_a Oct_a Jul_a Jun_a May_a open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
 %% Invert
+month_selected = 7 ; % for sprintf
+year_selected = 2013 ; % for sprintf, replace with desired year
 if size(sal_anom_combined,2) > 301
 sal_anom_combined = sal_anom_combined' ;
 end
+if size(coastal_sal,2) > 301
+coastal_sal = coastal_sal' ;
+open_sal = open_sal' ;
+end
+% create variables for non-anomaly use
+lat_coast_n = lat_a(in_a) ;
+lon_coast_n = lon_a(in_a) ;
+lat_open_n = lat_a(~in_a) ;
+lon_open_n = lon_a(~in_a) ;
 % month and year idx's
-coastal_mon = mon_a(in_a) ;
+coastal_mon = mon_a(in) ;
 coastal_mon = coastal_mon(coast_idx) ;
 open_mon = mon_a(~in_a) ;
 open_mon = open_mon(open_idx);
-coastal_yea = yea_a(in_a) ;
+coastal_yea = yea_a(in) ;
 coastal_yea = coastal_yea(coast_idx) ;
 open_yea = yea_a(~in_a) ;
 open_yea = open_yea(open_idx) ; 
 % month
 month_string = {'January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'} ;
 mon_comb = [open_mon,coastal_mon] ;
-month_selected = 7 ; % for sprintf
 month_s = mon_comb == month_selected ; % # of desired month;
 month_open = open_mon == month_selected ;
 month_coast = coastal_mon == month_selected ;
+% Salinity Month
+month_coast_n = mon_a(in_a) ;
+month_open_n = mon_a(~in_a) ;
+month_coast_n = month_coast_n == month_selected ;
+month_open_n = month_open_n == month_selected ;
 % year
 yea_combined = [open_yea, coastal_yea] ;
-year_selected = 2013 ; % for sprintf, replace with desired year
 year = yea_combined == year_selected ;
 year_open = open_yea == year_selected ;
 year_coast = coastal_yea == year_selected ;
+% Salinity Year
+year_coast_n = yea_a(in_a) ;
+year_open_n = yea_a(~in_a) ;
+year_coast_n = year_coast_n == year_selected ;
+year_open_n = year_open_n == year_selected ;
 %combine
 year_mon = year & month_s ;
 year_mon_open = year_open & month_open ;
 year_mon_coast = year_coast & month_coast ;
+% Salinity combine
+yeamon_n_coast = year_coast_n | month_coast_n ;
+yeamon_n_open = year_open_n | month_open_n ;
 %clear open_mon coastal_mon %combined_idx_open combined_idx_coast
 copy = sal_anom_combined ; % for copying
 in_combined = inpolygon(lon_combined,lat_combined,combined_x,combined_y) ;
@@ -950,28 +978,35 @@ lon_coast = lon_combined(in_combined) ;
 lon_open = lon_combined(~in_combined) ;
 lat_coast = lat_combined(in_combined) ;
 lat_open = lat_combined(~in_combined) ;
-clear length_open yea year_coast month_coast month_open year_open
-%% Subsections and removals
+clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n
+%% Subsections and removals (maybe get rid of this?)
 % Index casts that have NO nan's through 300 m
-sal_anom_combined = copy ;
-sal_anom_combined = sal_anom_combined(:,1:10) ;
-NaN_idx = isnan(sal_anom_combined) ;
-columnSums = sum(NaN_idx,2); % Sum along rows to get column sums
-NoNaN = columnSums == 0; % Find columns with no true values
-sal_anom_combined = sal_anom_combined(NoNaN,:) ;
-clear columnSums NaN_idx
+%sal_anom_combined = copy ;
+%sal_anom_combined = sal_anom_combined(:,1:10) ;
+%NaN_idx = isnan(sal_anom_combined) ;
+%columnSums = sum(NaN_idx,2); % Sum along rows to get column sums
+%NoNaN = columnSums == 0; % Find columns with no true values
+%sal_anom_combined = sal_anom_combined(NoNaN,:) ;
+%clear columnSums NaN_idx NoNaN
 %% PCA change month/index as desired
 [coeff, score, latent , tsquared] = eof225(coast_sal_anom(year_mon_coast,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
-first_PC = score(:,1) ; % first principal component
-first_coeff = coeff(:,1); % first pc coeff
-second_PC = score(:,2) ; % second
-third_PC = score(:,3) ;
-explained = 100 * latent / sum(latent);
+first_PC_anom = score(:,1) ; % first principal component
+first_coeff_anom = coeff(:,1); % first pc coeff
+second_PC_anom = score(:,2) ; % second
+third_PC_anom = score(:,3) ;
+explained_anom = 100 * latent / sum(latent);
+%% corresponding raw salinity data (includes all salinity profiles)
+[coeff_n, score_n, latent_n , ~] = eof225(coastal_sal(yeamon_n_coast,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC_n = score_n(:,1) ; % first principal component
+first_coeff_n = coeff_n(:,1); % first pc coeff
+second_PC_n = score_n(:,2) ; % second
+third_PC_n = score_n(:,3) ;
+explained_n = 100 * latent_n / sum(latent_n);
 %%
 % Potential Temp = [] ;
 press_reff = 10 ; % not sure what a good refference would be
 ptmp_a = sw_ptmp(interp_sal_mat,interp_temp_mat,press_a,press_reff) ;
-clear interp_sal interp_temp numCells rows open_sal_mean open_temp_mean insidearray1 insidearray2 open_sal open_temp k num_points press_reff 
+clear interp_sal interp_temp numCells rows open_sal_mean open_temp_mean insidearray1 insidearray2 open_sal open_temp k num_points press_reff copy
 %%  Statistics
 %number of observations for each cast box
 for i = 1:length(cast_idx_coast)
