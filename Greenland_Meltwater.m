@@ -916,6 +916,34 @@ for i = 1:size(sal_anom_combined, 2)
         sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
     end
 end
+% same for open salinity 
+for i = 1:size(open_sal, 2)
+    top10 = open_sal(1:10, i);  % Extract the top 10 rows of the column
+    nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
+    if length(nonNaN_values) >= 3
+        % Average the top three non-NaN values
+        avg_value = mean(nonNaN_values(1:3));
+        open_sal(1:10, i) = fillmissing(top10, 'constant', avg_value);
+    elseif length(nonNaN_values) >= 1
+        % If fewer than 3 non-NaN values, use the top-most non-NaN value
+        top_most_value = nonNaN_values(1);
+        open_sal(1:10, i) = fillmissing(top10, 'constant', top_most_value);
+    end
+end
+% same for coastal_salinity
+for i = 1:size(coastal_sal, 2)
+    top10 = coastal_sal(1:10, i);  % Extract the top 10 rows of the column
+    nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
+    if length(nonNaN_values) >= 3
+        % Average the top three non-NaN values
+        avg_value = mean(nonNaN_values(1:3));
+        coastal_sal(1:10, i) = fillmissing(top10, 'constant', avg_value);
+    elseif length(nonNaN_values) >= 1
+        % If fewer than 3 non-NaN values, use the top-most non-NaN value
+        top_most_value = nonNaN_values(1);
+        coastal_sal(1:10, i) = fillmissing(top10, 'constant', top_most_value);
+    end
+end
 clear top_most_value top10 nonNaN_values avg_value Sep_a Aug_a Oct_a Jul_a Jun_a May_a open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
 %% Invert
 month_selected = 7 ; % for sprintf
@@ -967,8 +995,8 @@ year_mon = year & month_s ;
 year_mon_open = year_open & month_open ;
 year_mon_coast = year_coast & month_coast ;
 % Salinity combine
-yeamon_n_coast = year_coast_n | month_coast_n ;
-yeamon_n_open = year_open_n | month_open_n ;
+yeamon_n_coast = year_coast_n & month_coast_n ;
+yeamon_n_open = year_open_n & month_open_n ;
 %clear open_mon coastal_mon %combined_idx_open combined_idx_coast
 copy = sal_anom_combined ; % for copying
 in_combined = inpolygon(lon_combined,lat_combined,combined_x,combined_y) ;
@@ -996,7 +1024,7 @@ second_PC_anom = score(:,2) ; % second
 third_PC_anom = score(:,3) ;
 explained_anom = 100 * latent / sum(latent);
 %% corresponding raw salinity data (includes all salinity profiles)
-[coeff_n, score_n, latent_n , ~] = eof225(coastal_sal(yeamon_n_coast,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff_n, score_n, latent_n , ~] = eof225(open_sal(yeamon_n_open,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC_n = score_n(:,1) ; % first principal component
 first_coeff_n = coeff_n(:,1); % first pc coeff
 second_PC_n = score_n(:,2) ; % second

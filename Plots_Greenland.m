@@ -266,7 +266,7 @@ filename = sprintf('coast_scree_%s_%d.jpg',month_string{month_selected},year_sel
 print(fullfile(folderPath, filename), '-djpeg') ;
 
 clear filename
-%% Salinity PCA's
+%% Salinity PCA's (coastal only!)
 folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-10-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:300) ;
 hold on
@@ -280,7 +280,7 @@ colormap('cool')
 plot(cx,cy,'k') ;
 xlabel('Longitude');
 ylabel('Latitude');
-title(sprintf('First Principal Component of Salinity for %s %d', month_string{month_selected}, year_selected));
+title(sprintf('First Principal Component of Salinity for coastal casts %s %d', month_string{month_selected}, year_selected));
 hold off
 filename = sprintf('sal_coast_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
@@ -315,7 +315,7 @@ end
 figure
 hold on
 plot(coastal_sal(:,yeamon_n_coast),DepInterval_custom) ;
-title(sprintf('Salinity vs Depth %s %d', month_string{month_selected}, year_selected))
+title(sprintf('Salinity vs Depth for coastal casts %s %d', month_string{month_selected}, year_selected))
 axis ij
 xlabel('Salinity')
 ylabel('Depth')
@@ -325,6 +325,65 @@ print(fullfile(folderPath, filename), '-djpeg') ;
 clear step sal_combined_reduced
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
+open_sal = open_sal' ;
+end
+%% Salinity PCA's (open only!)
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-10-24' ; % change depending on folderlocation
+DepInterval_custom = DepInterval(1:300) ;
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+scatter(lon_open_n(:,yeamon_n_open), lat_open_n(:,yeamon_n_open), 50, first_PC_n, 'filled');
+colorbar;
+% caxis([-3 3]);
+colormap('cool')
+plot(cx,cy,'k') ;
+xlabel('Longitude');
+ylabel('Latitude');
+title(sprintf('First Principal Component of open ocean Salinity for %s %d', month_string{month_selected}, year_selected));
+hold off
+filename = sprintf('sal_open_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Plot Coeff
+figure
+hold on
+plot(first_coeff_n,DepInterval_custom)
+title('1st Coefficients vs Depth ')
+axis ij
+hold off
+filename = sprintf('sal_open_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Create Scree Plot
+figure
+hold on
+plot(1:length(explained_n), explained_n, 'o-', 'LineWidth', 2);
+xlabel('Principal Component');
+xlim([0,5])
+xticks(1:5); 
+ylabel('Variance Explained (%)');
+title('Scree Plot');
+grid on;
+hold off
+filename = sprintf('sal_open_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear filename
+% Plot Salinity
+if size(open_sal,2) < 301
+open_sal = open_sal' ;
+end
+figure
+hold on
+plot(open_sal(:,yeamon_n_open),DepInterval_custom) ;
+title(sprintf('Salinity vs Depth for open ocean %s %d', month_string{month_selected}, year_selected))
+axis ij
+xlabel('Salinity')
+ylabel('Depth')
+hold off
+filename = sprintf('sal_open_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear step sal_combined_reduced
+if size(open_sal,2) > 301
 open_sal = open_sal' ;
 end
 %% Find and plot salinites with 0-1 m measurements >15 (should only be very near coast measurements) (eventually add back in if it produces good results
