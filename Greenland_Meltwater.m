@@ -371,6 +371,8 @@ dist = .3 ;
 num_points = 1000 ;
 %10 km towards and away from refference line (max distance off by 2.5 km)
 % minus
+run = 2 ;
+if run == 1
 for i = 1:length(coastal_lon)
 W = linspace(coastal_lon(1,i), coastal_lon(1,i) - dist, num_points); % minus longitude for western facing coasts
 x_perp_minus{1,i} = W' ;
@@ -414,7 +416,7 @@ index = index_plus(i) ;
    exten_plus(:,i) = [x_perp_plus{i}(index),y_perp_plus{i}(index)] ; %cords for side poins ~10km away
 end
 clear x_perp_plus y_perp_plus ref_plusx ref_plusy index
-%% make verticies points target reclength away
+% make verticies points target reclength away
 %vert1 (uses exten_minus)
 slope_coast = slope_new(idx)';
 for i = 1:length(exten_minus)
@@ -504,7 +506,7 @@ index = index_plus_vert(i) ;
    vert_4(:,i) = [bodge_xplus{i}(index),bodge_yplus{i}(index)] ; %cords for side poins ~10km away
 end
 clear exten_minus exten2 exten_plus i 
-%%
+%
 %combine verticies (not ordered)
 for i= 1:1:length(vert_1)
 vertices = [vert_1(:,i), vert_2(:,i), vert_3(:,i), vert_4(:,i)];
@@ -531,6 +533,9 @@ for i = 1:length(order)
     s = v(:,o) ;
     vert{i} = s ;
 end
+save("vert.mat","vert")  
+end
+load("vert.mat","vert")
 clear v o s vert_combined vert_1 vert_2 vert_3 vert_4 vertices angles angles angle_vert bodge_yplus bodge_yminus bodge_xminus bodge_xplus order sortOrder inverse_new ref_plusx ref_minusy ref_plusy ref_minusx
 clear differences_plus differences_minus dist_plus dist_minus % need to tweak some stuff here eventually
 %% get rid of compartment
@@ -595,44 +600,70 @@ save("interp_temp_mat.mat",'interp_temp_mat','-v7.3')
     end
 load("interp_sal_mat.mat")
 load("interp_temp_mat.mat")
-% remove anomalous profiles from interp_sal and interp_temp
-temp_sal = interp_sal_mat(50:end, :);
-bad_profiles = temp_sal <= 30; % finds casts with sals >30 at depths greater than 50 m
-remove_profiles = any(bad_profiles,1) ;
 % Clean Sal_mat data
+%create coastal variables to clean vert along with everything else
+in_temp = inpolygon(lon_a,lat_a,combined_x,combined_y) ;
+coast_sal_temporary = interp_sal_mat(:,in_temp) ;
 % approx derivative of salinity/depth, remove those that fail
 salinity_diff = diff(interp_sal_mat, 1, 1);  % row-wise diff
+coast_diff = diff(coast_sal_temporary, 1, 1);  % row-wise diff
 threshold = 0.5 ; % max salinity jump meter to meter, anything larger gets weeded out
 abs_diff = abs(salinity_diff) >= threshold;
-anomalous_profiles = any(abs_diff, 1);
+coast_abs_diff = abs(coast_diff) >= threshold;
+abs_diff_expanded = [abs_diff; false(1, size(abs_diff, 2))] | [false(1, size(abs_diff, 2)); abs_diff];
+coast_abs_diff_expanded = [coast_abs_diff; false(1, size(coast_abs_diff, 2))] | [false(1, size(coast_abs_diff, 2)); coast_abs_diff];
+%remove only offending values from sal_mat and temp_mat
+interp_sal_mat(abs_diff_expanded) = NaN ;
+inter_temp_mat(abs_diff_expanded) = NaN ;
+coast_sal_temporary(coast_abs_diff_expanded) = NaN ;
+% remove anomalous profiles from interp_sal and interp_temp
+temp_sal = interp_sal_mat(50:end, :) ;
+coast_temp_sal = coast_sal_temporary(50:end,:) ;
+bad_profiles = temp_sal <= 30; % finds casts with sals >30 at depths greater than 50 m
+bad_coast_profiles = coast_temp_sal <= 30; % finds casts with sals >30 at depths greater than 50 m
+remove_profiles = any(bad_profiles,1) ;
+remove_coast_profiles = any(bad_coast_profiles) ;
 % certain % of non-NaN values in 0-100 m
 top_100 = interp_sal_mat(1:100,:) ;
+top_100_coast = coast_sal_temporary(1:100,:) ;
 nan_count = sum(isnan(top_100), 1);  % Count NaNs along rows for each column
+coast_nan_count = sum(isnan(top_100_coast), 1);  % Count NaNs along rows for each column
 threshold = 50 ; % max number of NaN values permitted in top 100 m
 too_many_nans = nan_count > threshold ;
+coast_many_nans = coast_nan_count > threshold ;
 % combined idx and remove from dataset
-unique_col = remove_profiles | anomalous_profiles | too_many_nans ;
+vert_idx = bad_coast_profiles | coast_many_nans ;
+vert_idx = any(vert_idx,1) ;
+unique_col = remove_profiles | too_many_nans ;
+vert(:,vert_idx) = [] ;
 interp_sal_mat(:, unique_col) = [];
 interp_temp_mat(:,unique_col) = [];
-clear salinity_diff threshold abs_diff anomalous_profiles too_many_nans nan_count top_100 bad_profiles remove_profiles
-clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a col %(need interp_sal_a/temp for open casts)
+clear salinity_diff threshold abs_diff anomalous_profiles too_many_nans nan_count top_100 bad_profiles remove_profiles abs_diff_expanded in_temp coast_abs_diff coast_sal_temporary
+clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a col coast_diff coast_abs_diff_expanded bad_coast_profiles %(need interp_sal_a/temp for open casts)
+clear coast_temp_sal remove_coast_profiles coast_many_nans coast_nan_count vert_idx
 % edit the variables in preperation for indexing
 lon_temp = lon_a ; % for use in coastal indexing section
 lat_temp = lat_a ;
 lon_a(:,unique_col) = [] ;
 lat_a(:,unique_col) = [] ;
+mon_a(:,unique_col) = [] ;
+yea_a(:,unique_col) = [] ;
+day_a(:,unique_col) = [] ;
 %%
 % Create 15 day indicies regardless of year 
+in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
 date = ([yea; mon; day]) ;
 date(4,:) = datenum(0,date(2,:),date(3,:));% everything set in the year 0 to make for easy sorting by day and month
 datenum = datenum(0,date(2,:),date(3,:)) ;% everything set in the year 0 to make for easy sorting by day and month
 datenum_a = datenum(~in_idx) ;
-datenum_a(:,unique_col) = [] ;
-datenum_coast = datenum(in) ;
+datenum_a(:,unique_col) = [] ; 
+date_a = date(:,~in_idx) ;
+date_a(:,unique_col) = [] ; 
+datenum_coast = datenum_a(in_a) ;
 day_range_2 = day_range*2 ; % For dynamic naming
-middle_idx = date(4,in) >= day_range & date(4,in) <= 365-day_range; % idx for coastal ranges, will need to go back for open ocean stuff
-earlyjan_idx = (date(4,in) < day_range) ; % only includes earliest part of Jan that overlaps with interval 
-latedec_idx = (date(4,in) > 365-day_range); % only includes latest part of Dec that overlaps with interval 
+middle_idx = date_a(4,in_a) >= day_range & date_a(4,in_a) <= 365-day_range; % idx for coastal ranges, will need to go back for open ocean stuff
+earlyjan_idx = (date_a(4,in_a) < day_range) ; % only includes earliest part of Jan that overlaps with interval 
+latedec_idx = (date_a(4,in_a) > 365-day_range); % only includes latest part of Dec that overlaps with interval 
 Jan_range = 365-day_range + (datenum_coast(earlyjan_idx) ); % Earliest Day to include
 Jan_range(2,:) = datenum_coast(earlyjan_idx)+day_range ; % Latest Day to include
 Middle_range = datenum_coast(middle_idx)- day_range ;
@@ -645,12 +676,12 @@ range(:,middle_idx) = Middle_range ;
 range(:,latedec_idx) = Dec_range ;
 % Open Ocean Casts
 open = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
-datenum_open = datenum(~open) ;
+datenum_open = datenum_a(~open) ;
 lat_open = lat_a(~open) ;
 lon_open = lon_a(~open) ;
-middle_idx = date(4,~open) >= day_range & date(4,~open) <= 365-day_range; % idx for coastal ranges, will need to go back for open ocean stuff
-earlyjan_idx = (date(4,~open) < day_range) ; % only includes earliest part of Jan that overlaps with interval 
-latedec_idx = (date(4,~open) > 365-day_range); % only includes latest part of Dec that overlaps with interval 
+middle_idx = date_a(4,~open) >= day_range & date_a(4,~open) <= 365-day_range; % idx for coastal ranges, will need to go back for open ocean stuff
+earlyjan_idx = (date_a(4,~open) < day_range) ; % only includes earliest part of Jan that overlaps with interval 
+latedec_idx = (date_a(4,~open) > 365-day_range); % only includes latest part of Dec that overlaps with interval 
 Jan_range_open(1,:) = 365-day_range + (datenum_open(earlyjan_idx) ); % Earliest Day to include
 Jan_range_open(2,:) = datenum_open(earlyjan_idx)+day_range ; % Latest Day to include
 Middle_range_open = datenum_open(middle_idx)- day_range ;
@@ -665,19 +696,18 @@ clear polygon_x polygon_y datenum lat lon
 clear middle_idx latedec_idx earlyjan_idx day_a
 %%
 % Get rid of garbage casts
-in = inpolygon(lon_temp,lat_temp,combined_x,combined_y) ; % All coasts within coastal section 
-temp_sal = temp_sal(:,in) ;
-[~, col] = find(temp_sal <= 30); % finds casts with sals >30 at depths greater than 50 m
-unique_col = unique(col, 'stable');
-vert(:,unique_col) = [] ;
-coastal_lon(:,unique_col) = [] ;
-coastal_lat(:,unique_col) = [] ;
-range(:,unique_col) = [] ;
-clear temp_sal
+%temp_sal = temp_sal(:,in) ;
+%[~, col] = find(temp_sal <= 30); % finds casts with sals >30 at depths greater than 50 m
+%unique_col = unique(col, 'stable');
+%vert(:,unique_col) = [] ;
+%coastal_lon(:,unique_col) = [] ;
+%coastal_lat(:,unique_col) = [] ;
+%range(:,unique_col) = [] ;
+%clear temp_sal
 % Create indicies for coastal casts within box and date range 
 run = 2 ;
 for i = 1:length(vert)
-        if run == 1 ; 
+        if run == 1  
             poly_idx = inpolygon(lon_a,lat_a,vert{i}(1,:),vert{i}(2,:)) ; % each collumn corresponds to a different cast
                 if datenum_coast(i) > 14 && datenum_coast(i) < 350 % Middle ranges
                    coastal_idx = datenum_a >= range(1,i) & datenum_a <= range(2,i) ; 
@@ -711,7 +741,7 @@ dummy_lat = lat_a ;
 %refference lat and lon
 start_pattern = [true,false] ;
 pattern = [true,true,false] ;  %pattern for opendist/sw_dist data sorting
-num_repeat = ceil(127149/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
+num_repeat = ceil(129744/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
 pattern = repmat(pattern,1,num_repeat) ;
 pattern = [start_pattern,pattern,true] ; % concats start and end values
 clear num_repeat start_pattern lon_temp
@@ -735,18 +765,18 @@ lat_inter = [lat_inter,lat_open(i)] ;
         open_dist = sw_dist(lon_inter,lat_inter,'km') ; % calculates distance for every point to the target cast (i) (needs to be edited, only storing one value)
         open_dist_final = open_dist(pattern) ;%remove trash distances
         circle_idx = open_dist_final <= recwidth ; % all casts less than 20km away
-        if mod(length(lon_a),2) == 1
-        circle_idx = [circle_idx,0] ; % to match idx length
-        end
                 if datenum_open(i) > 14 && datenum_open(i) < 350 % Middle ranges
                    open_idx = datenum_a >= range_open(1,i) & datenum_a <= range_open(2,i) ; 
                 elseif datenum_open(i) <= 14 || datenum_open(i) >= 351 % Early Jan and Late Dec 
                    open_idx = datenum_a >= range_open(1,i) | datenum_a <= range_open(2,i) ;
                 end
+                        if length(circle_idx) < length(open_idx)
+                        circle_idx = [circle_idx,0] ; % to match idx length
+                        end
                 % combine indices
                 combined_idx = circle_idx & open_idx ;
                 open_find{i} = find(combined_idx == 1) ;
-                end
+    end
     save open_find.mat open_find 
 end
 load open_find.mat
@@ -820,7 +850,7 @@ load coast_temp_anom.mat
 %combined_idx_coast = coast_idx | unique_col_idx_coast ;
 %coastal_lat(:, combined_idx_coast) = [];
 %coastal_lon(:, combined_idx_coast) = [];
-clear coast_sal_avg coast_temp_avg range_open range coastal_sal_std coastal_temp_std date watdep twd
+clear coast_sal_avg coast_temp_avg range_open range coastal_sal_std coastal_temp_std date_a watdep twd
 %% Open casts
 % Coast means/std
 in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
@@ -947,7 +977,7 @@ end
 clear top_most_value top10 nonNaN_values avg_value Sep_a Aug_a Oct_a Jul_a Jun_a May_a open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
 %% Invert
 month_selected = 7 ; % for sprintf
-year_selected = 2013 ; % for sprintf, replace with desired year
+year_selected = 2012 ; % for sprintf, replace with desired year
 if size(sal_anom_combined,2) > 301
 sal_anom_combined = sal_anom_combined' ;
 end
@@ -961,11 +991,11 @@ lon_coast_n = lon_a(in_a) ;
 lat_open_n = lat_a(~in_a) ;
 lon_open_n = lon_a(~in_a) ;
 % month and year idx's
-coastal_mon = mon_a(in) ;
+coastal_mon = mon_a(in_a) ;
 coastal_mon = coastal_mon(coast_idx) ;
 open_mon = mon_a(~in_a) ;
 open_mon = open_mon(open_idx);
-coastal_yea = yea_a(in) ;
+coastal_yea = yea_a(in_a) ;
 coastal_yea = coastal_yea(coast_idx) ;
 open_yea = yea_a(~in_a) ;
 open_yea = open_yea(open_idx) ; 
@@ -1017,14 +1047,21 @@ clear length_open yea year_coast month_coast month_open year_open year_coast_n y
 %sal_anom_combined = sal_anom_combined(NoNaN,:) ;
 %clear columnSums NaN_idx NoNaN
 %% PCA change month/index as desired
-[coeff, score, latent , tsquared] = eof225(coast_sal_anom(year_mon_coast,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+sal_anom = coast_sal_anom(year_mon_coast, :);
+% Find the first column where all values are NaN
+first_nan_col = find(all(isnan(sal_anom), 1), 1);
+if ~isempty(first_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal_anom = sal_anom(:, 1:first_nan_col-1);
+end
+[coeff, score, latent , tsquared] = eof225(sal_anom,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC_anom = score(:,1) ; % first principal component
 first_coeff_anom = coeff(:,1); % first pc coeff
 second_PC_anom = score(:,2) ; % second
 third_PC_anom = score(:,3) ;
 explained_anom = 100 * latent / sum(latent);
 %% corresponding raw salinity data (includes all salinity profiles)
-[coeff_n, score_n, latent_n , ~] = eof225(open_sal(yeamon_n_open,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff_n, score_n, latent_n , ~] = eof225(coastal_sal(yeamon_n_coast,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC_n = score_n(:,1) ; % first principal component
 first_coeff_n = coeff_n(:,1); % first pc coeff
 second_PC_n = score_n(:,2) ; % second

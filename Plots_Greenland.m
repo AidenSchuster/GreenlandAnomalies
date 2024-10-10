@@ -212,13 +212,13 @@ title('October') % check value of month
 plot(cx,cy,'k','MarkerSize',200)
 hold off
 %% PCA correct (includes coeff and sal_anom/salinity)
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-03-24\2013' ; % change depending on folderlocation
-DepInterval_custom = DepInterval(1:300) ;
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-10-24' ; % change depending on folderlocation
+DepInterval_custom = DepInterval(1:length(sal_anom)) ;
 hold on
 daspect([1 aspect_ratio 1])
 xlim([-80,-30])
 ylim([55,80])
-scatter(lon_coast(:,year_mon_coast), lat_coast(:,year_mon_coast), 50, first_PC, 'filled');
+scatter(lon_coast(:,year_mon_coast), lat_coast(:,year_mon_coast), 50, first_PC_anom, 'filled');
 colorbar;
 % caxis([-3 3]);
 colormap('cool')
@@ -227,21 +227,21 @@ xlabel('Longitude');
 ylabel('Latitude');
 title(sprintf('First Principal Component of Salinity Anomaly for %s %d', month_string{month_selected}, year_selected));
 hold off
-filename = sprintf('coast_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('coast_anom_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot Coeff
 figure
 hold on
-plot(first_coeff,DepInterval_custom)
+plot(first_coeff_anom,DepInterval_custom)
 title('1st Coefficients vs Depth ')
 axis ij
 hold off
-filename = sprintf('coast_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('coast_anom_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot sal_anom
 figure
 hold on
-plot(coast_sal_anom(year_mon_coast,:),DepInterval_custom) ;
+plot(sal_anom,DepInterval_custom) ;
 ylim([0,300])
 axis ij
 hold off
@@ -254,7 +254,7 @@ print(fullfile(folderPath, filename), '-djpeg') ;
 % Create Scree Plot
 figure
 hold on
-plot(1:length(explained), explained, 'o-', 'LineWidth', 2);
+plot(1:length(explained_anom), explained_anom, 'o-', 'LineWidth', 2);
 xlabel('Principal Component');
 xlim([0,5])
 xticks(1:5); 
@@ -262,9 +262,8 @@ ylabel('Variance Explained (%)');
 title('Scree Plot');
 grid on;
 hold off
-filename = sprintf('coast_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('coast_anom_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
-
 clear filename
 %% Salinity PCA's (coastal only!)
 folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-10-24' ; % change depending on folderlocation
@@ -386,6 +385,17 @@ clear step sal_combined_reduced
 if size(open_sal,2) > 301
 open_sal = open_sal' ;
 end
+%% Plot 1/10 salinities
+DepInterval_custom = DepInterval(1:300) ;
+step = 10 ;
+reduced = sal_combined(:,1:step:end) ;
+figure
+plot(reduced,DepInterval_custom) ;
+xlim([0,40])
+axis ij
+xlabel('Salinity');
+ylabel('Depth');
+title('Salinity profiles post cleaning changes');
 %% Find and plot salinites with 0-1 m measurements >15 (should only be very near coast measurements) (eventually add back in if it produces good results
 sal_combined = sal_combined(1:2,:) ;
 [~,col] = find(sal_combined <= 15) ;
