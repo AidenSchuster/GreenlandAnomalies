@@ -636,6 +636,8 @@ vert_idx = bad_coast_profiles | coast_many_nans ;
 vert_idx = any(vert_idx,1) ;
 unique_col = remove_profiles | too_many_nans ;
 vert(:,vert_idx) = [] ;
+coastal_lat(:,vert_idx) = [] ;
+coastal_lon(:,vert_idx) = [] ;
 interp_sal_mat(:, unique_col) = [];
 interp_temp_mat(:,unique_col) = [];
 clear salinity_diff threshold abs_diff anomalous_profiles too_many_nans nan_count top_100 bad_profiles remove_profiles abs_diff_expanded in_temp coast_abs_diff coast_sal_temporary
@@ -929,7 +931,7 @@ Sep_a = mon_a == 9 ;
 Oct_a = mon_a == 10 ;
 sal_anom_combined = [open_sal_anom,coast_sal_anom] ;
 sal_anom_combined = sal_anom_combined(1:300, :);
-lat_combined = [lat_open,coastal_lat] ;
+lat_combined = [lat_open,coastal_lat] ; % this coastal_lat/lon is NOT correct
 lon_combined = [lon_open,coastal_lon ] ;
 % extropolate and replace NaN from 10 m to surface (avg of top three values
 % or lacking that top value gets repeated to surface)
@@ -1006,20 +1008,20 @@ month_s = mon_comb == month_selected ; % # of desired month;
 month_open = open_mon == month_selected ;
 month_coast = coastal_mon == month_selected ;
 % Salinity Month
-month_coast_n = mon_a(in_a) ;
-month_open_n = mon_a(~in_a) ;
-month_coast_n = month_coast_n == month_selected ;
-month_open_n = month_open_n == month_selected ;
+month_coast_n_test = mon_a(in_a) ;
+month_open_n_test = mon_a(~in_a) ;
+month_coast_n = month_coast_n_test == month_selected ;
+month_open_n = month_open_n_test == month_selected ;
 % year
 yea_combined = [open_yea, coastal_yea] ;
 year = yea_combined == year_selected ;
 year_open = open_yea == year_selected ;
 year_coast = coastal_yea == year_selected ;
 % Salinity Year
-year_coast_n = yea_a(in_a) ;
-year_open_n = yea_a(~in_a) ;
-year_coast_n = year_coast_n == year_selected ;
-year_open_n = year_open_n == year_selected ;
+year_coast_n_test = yea_a(in_a) ;
+year_open_n_test = yea_a(~in_a) ;
+year_coast_n = year_coast_n_test == year_selected ;
+year_open_n = year_open_n_test == year_selected ;
 %combine
 year_mon = year & month_s ;
 year_mon_open = year_open & month_open ;
@@ -1036,7 +1038,8 @@ lon_coast = lon_combined(in_combined) ;
 lon_open = lon_combined(~in_combined) ;
 lat_coast = lat_combined(in_combined) ;
 lat_open = lat_combined(~in_combined) ;
-clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n
+clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
+clear month_open_n_test
 %% Subsections and removals (maybe get rid of this?)
 % Index casts that have NO nan's through 300 m
 %sal_anom_combined = copy ;

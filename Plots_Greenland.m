@@ -21,18 +21,18 @@ plot(x_Wcoast,y_SWcoast, 'r')
 plot(x5_Wcoast,y_SWcoast,'r')
 hold off
 %%
-% Test of Inpolygon
+% Test of non-overlapping lat-lons should line up with blue having some
+% values with no red but not the alternative
 clf
 hold on
 plot(cx,cy,'k')
 daspect([1 aspect_ratio 1])
 xlim([-80,-35])
 ylim([55,80])
-plot(polygon_x,polygon_y,'b')
-scatter(exten_plus(~in_plus,1),exten_plus(~in_plus,2),'r')
-scatter(exten_plus2(~in_plus2,1),exten_plus2(~in_plus2,2),'r')
-scatter(exten_minus(~in_minus,1),exten_minus(~in_minus,2),'r')
-scatter(exten_minus(~in_minus2,1),exten_minus2(~in_minus2,2),'r')
+scatter(coastal_lon(:,year_mon_coast),coastal_lat(:,year_mon_coast),'MarkerFaceColor','r')
+%scatter(lon_open(:,year_mon_open),lat_open(:,year_mon_open),'MarkerFaceColor','r')
+scatter(lon_coast_n(:,yeamon_n_coast),lat_coast_n(:,yeamon_n_coast),'b')
+%scatter(lon_open_n(:,yeamon_n_open),lat_open_n(:,yeamon_n_open),'b')
 hold off
 %% Final Extended Coast plot
 clf
@@ -212,7 +212,7 @@ title('October') % check value of month
 plot(cx,cy,'k','MarkerSize',200)
 hold off
 %% PCA correct (includes coeff and sal_anom/salinity)
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-10-24' ; % change depending on folderlocation
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:length(sal_anom)) ;
 hold on
 daspect([1 aspect_ratio 1])
@@ -266,7 +266,7 @@ filename = sprintf('coast_anom_scree_%s_%d.jpg',month_string{month_selected},yea
 print(fullfile(folderPath, filename), '-djpeg') ;
 clear filename
 %% Salinity PCA's (coastal only!)
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-10-24' ; % change depending on folderlocation
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:300) ;
 hold on
 daspect([1 aspect_ratio 1])
