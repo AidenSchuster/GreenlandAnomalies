@@ -1050,7 +1050,7 @@ clear month_open_n_test
 %sal_anom_combined = sal_anom_combined(NoNaN,:) ;
 %clear columnSums NaN_idx NoNaN
 %% PCA change month/index as desired
-sal_anom = coast_sal_anom(year_mon_coast, :);
+sal_anom = coast_sal_anom(year_mon_coast, :); % should just be able to change this
 % Find the first column where all values are NaN
 first_nan_col = find(all(isnan(sal_anom), 1), 1);
 if ~isempty(first_nan_col)
@@ -1064,7 +1064,10 @@ second_PC_anom = score(:,2) ; % second
 third_PC_anom = score(:,3) ;
 explained_anom = 100 * latent / sum(latent);
 %% corresponding raw salinity data (includes all salinity profiles)
-[coeff_n, score_n, latent_n , ~] = eof225(coastal_sal(yeamon_n_coast,:),NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+mean_sal = nanmean(coastal_sal(yeamon_n_coast, :), 1); % mean ignoring NaNs
+std_sal = nanstd(coastal_sal(yeamon_n_coast, :), 0, 1); % standard deviation ignoring NaNs
+coastal_sal_std = (coastal_sal(yeamon_n_coast, :) - mean_sal) ./ std_sal;
+[coeff_n, score_n, latent_n , ~] = eof225(coastal_sal_std,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC_n = score_n(:,1) ; % first principal component
 first_coeff_n = coeff_n(:,1); % first pc coeff
 second_PC_n = score_n(:,2) ; % second

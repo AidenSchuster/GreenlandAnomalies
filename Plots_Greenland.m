@@ -282,7 +282,7 @@ ylabel('Latitude');
 title(sprintf('First Principal Component of Salinity for coastal casts %s %d', month_string{month_selected}, year_selected));
 hold off
 filename = sprintf('sal_coast_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
-print(fullfile(folderPath, filename), '-djpeg') ;
+%print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot Coeff
 figure
 hold on
@@ -291,7 +291,7 @@ title('1st Coefficients vs Depth ')
 axis ij
 hold off
 filename = sprintf('sal_coast_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
-print(fullfile(folderPath, filename), '-djpeg') ;
+%print(fullfile(folderPath, filename), '-djpeg') ;
 % Create Scree Plot
 figure
 hold on
@@ -304,7 +304,7 @@ title('Scree Plot');
 grid on;
 hold off
 filename = sprintf('sal_coast_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
-print(fullfile(folderPath, filename), '-djpeg') ;
+%print(fullfile(folderPath, filename), '-djpeg') ;
 clear filename
 % Plot Salinity
 if size(coastal_sal,2) < 301
@@ -320,7 +320,7 @@ xlabel('Salinity')
 ylabel('Depth')
 hold off
 filename = sprintf('sal_coast_%s_%d.jpg',month_string{month_selected},year_selected) ;
-print(fullfile(folderPath, filename), '-djpeg') ;
+%print(fullfile(folderPath, filename), '-djpeg') ;
 clear step sal_combined_reduced
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
