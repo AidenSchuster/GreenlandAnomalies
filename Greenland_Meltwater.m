@@ -604,7 +604,24 @@ load("interp_temp_mat.mat")
 %create coastal variables to clean vert along with everything else
 in_temp = inpolygon(lon_a,lat_a,combined_x,combined_y) ;
 coast_sal_temporary = interp_sal_mat(:,in_temp) ;
-% approx derivative of salinity/depth, remove those that fail
+
+%% loop through collumns and calculate derivatives (delta y /delta x)
+run = 1 ;
+if run == 1
+    diff_result = NaN(size(interp_sal_mat)) ;
+    for i  = 1:length(interp_sal_mat)
+    non_nan = find(~isnan(interp_sal_mat(:,i))) ;
+    non_nan_store{i} = non_nan ;
+    temporary = interp_sal_mat(:,i) ;
+    diff_sal = diff(temporary(non_nan),1,1) ;
+    diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
+    end
+   % threshold_15 = 2 ;
+   % threshhold = 0.3 ;
+     top_15 = diff_result(1:15,:) ;
+     bottom = diff_result(16:end,:) ;   
+end
+%% approx derivative of salinity/depth, remove those that fail
 salinity_diff = diff(interp_sal_mat, 1, 1);  % row-wise diff
 coast_diff = diff(coast_sal_temporary, 1, 1);  % row-wise diff
 threshold = 0.5 ; % max salinity jump meter to meter, anything larger gets weeded out
@@ -616,6 +633,11 @@ coast_abs_diff_expanded = [coast_abs_diff; false(1, size(coast_abs_diff, 2))] | 
 interp_sal_mat(abs_diff_expanded) = NaN ;
 inter_temp_mat(abs_diff_expanded) = NaN ;
 coast_sal_temporary(coast_abs_diff_expanded) = NaN ;
+
+
+
+
+
 % remove anomalous profiles from interp_sal and interp_temp
 temp_sal = interp_sal_mat(50:end, :) ;
 coast_temp_sal = coast_sal_temporary(50:end,:) ;

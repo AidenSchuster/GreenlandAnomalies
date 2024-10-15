@@ -396,6 +396,26 @@ axis ij
 xlabel('Salinity');
 ylabel('Depth');
 title('Salinity profiles post cleaning changes');
+%% Plot abs derivatives (line 622)
+hold on
+step = 20 ;
+xline_half = 0.5 * ones(1,length(DepInterval)) ;
+xline_half_2 = 0.3 * ones(1,length(DepInterval)) ;
+xline_two = 2 * ones(1,length(DepInterval)) ;
+reduced = diff_result(:,1:step:end) ;
+plot(reduced,DepInterval) ;
+plot(xline_half,DepInterval,'--r')
+plot(xline_half_2,DepInterval,'--g')
+plot(xline_two,DepInterval,'--b')
+xlim([0,40])
+axis ij
+xlabel('Salinity Derivatives');
+ylabel('Depth');
+title('Salinity Derivatives vs Depth');
+xlim([0,5])
+ylim([0,300]) 
+hold off
+clear step reduced xline_half xline_two
 %% Find and plot salinites with 0-1 m measurements >15 (should only be very near coast measurements) (eventually add back in if it produces good results
 sal_combined = sal_combined(1:2,:) ;
 [~,col] = find(sal_combined <= 15) ;
