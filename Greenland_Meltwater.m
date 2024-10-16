@@ -616,10 +616,25 @@ if run == 1
     diff_sal = diff(temporary(non_nan),1,1) ;
     diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
     end
-   % threshold_15 = 2 ;
-   % threshhold = 0.3 ;
-     top_15 = diff_result(1:15,:) ;
-     bottom = diff_result(16:end,:) ;   
+   threshold_15 = 2 ; % 0-50 m
+   threshold = 0.3 ; % 50-end m
+   %%
+     top_15 = diff_result(1:50,:) ;
+     bottom = diff_result(51:end,:) ;
+     top_15_remove = top_15 >= threshold_15 ; % idx of bottom that has derivatives greater than threshold
+     bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
+     remove = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     for i = 1:length(remove) 
+     idx = find(remove(:,i) == 1) ;
+        for j = length(idx)
+            if size(idx) >= 1
+        value_below_idx = non_nan_store(idx(j) + 1, i); % Get the value directly below in non_nan_store (NOT CORRECT)
+        remove(value_below_idx, i) = 1; % Mark the value from non_nan_store for removal
+            end
+        end
+     end
+     clear top_15 bottom threshold bottom_remove top_15 remove threshold_15 diff_sal temporary non_nan 
+     % remove the offending value (using non_nan_store)
 end
 %% approx derivative of salinity/depth, remove those that fail
 salinity_diff = diff(interp_sal_mat, 1, 1);  % row-wise diff

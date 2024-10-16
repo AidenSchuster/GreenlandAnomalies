@@ -398,7 +398,7 @@ ylabel('Depth');
 title('Salinity profiles post cleaning changes');
 %% Plot abs derivatives (line 622)
 hold on
-step = 20 ;
+step = 5 ;
 xline_half = 0.5 * ones(1,length(DepInterval)) ;
 xline_half_2 = 0.3 * ones(1,length(DepInterval)) ;
 xline_two = 2 * ones(1,length(DepInterval)) ;
