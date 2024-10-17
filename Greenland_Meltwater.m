@@ -606,7 +606,7 @@ in_temp = inpolygon(lon_a,lat_a,combined_x,combined_y) ;
 coast_sal_temporary = interp_sal_mat(:,in_temp) ;
 
 %% loop through collumns and calculate derivatives (delta y /delta x)
-run = 1 ;
+run = 2 ;
 if run == 1
     diff_result = NaN(size(interp_sal_mat)) ;
     for i  = 1:length(interp_sal_mat)
@@ -618,7 +618,6 @@ if run == 1
     end
    threshold_15 = 2 ; % 0-50 m
    threshold = 0.3 ; % 50-end m
-   %%
      top_15 = diff_result(1:50,:) ;
      bottom = diff_result(51:end,:) ;
      top_15_remove = top_15 >= threshold_15 ; % idx of bottom that has derivatives greater than threshold
@@ -626,33 +625,50 @@ if run == 1
      remove = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
      for i = 1:length(remove) 
      idx = find(remove(:,i) == 1) ;
-        for j = length(idx)
+        for j = 1:length(idx)
             if size(idx) >= 1
-        value_below_idx = non_nan_store(idx(j) + 1, i); % Get the value directly below in non_nan_store (NOT CORRECT)
-        remove(value_below_idx, i) = 1; % Mark the value from non_nan_store for removal
+        value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
+        value_below = non_nan_store{i}(value_below_idx) ;
+        remove(value_below, i) = 1; % Mark the value from non_nan_store for removal
             end
         end
      end
-     clear top_15 bottom threshold bottom_remove top_15 remove threshold_15 diff_sal temporary non_nan 
-     % remove the offending value (using non_nan_store)
+save 'remove.mat' 'remove'
+clear top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_15_remove
+%same thing but for coast (for vert idx)
+    diff_result = NaN(size(coast_sal_temporary)) ;
+    for i  = 1:length(coast_sal_temporary)
+    non_nan = find(~isnan(coast_sal_temporary(:,i))) ;
+    non_nan_store{i} = non_nan ;
+    temporary = coast_sal_temporary(:,i) ;
+    diff_sal = diff(coast_sal_temporary(non_nan),1,1) ;
+    diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
+    end
+   threshold_15 = 2 ; % 0-50 m
+   threshold = 0.3 ; % 50-end m
+     top_15 = diff_result(1:50,:) ;
+     bottom = diff_result(51:end,:) ;
+     top_15_remove = top_15 >= threshold_15 ; % idx of bottom that has derivatives greater than threshold
+     bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
+     remove_coast = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     for i = 1:length(remove_coast) 
+     idx = find(remove_coast(:,i) == 1) ;
+        for j = 1:length(idx)
+            if size(idx) >= 1
+        value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
+        value_below = non_nan_store{i}(value_below_idx) ;
+        remove_coast(value_below, i) = 1; % Mark the value from non_nan_store for removal
+            end
+        end
+     end
+save 'remove_coast.mat' 'remove_coast'
+clear remove_coast top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store top_15_remove
 end
-%% approx derivative of salinity/depth, remove those that fail
-salinity_diff = diff(interp_sal_mat, 1, 1);  % row-wise diff
-coast_diff = diff(coast_sal_temporary, 1, 1);  % row-wise diff
-threshold = 0.5 ; % max salinity jump meter to meter, anything larger gets weeded out
-abs_diff = abs(salinity_diff) >= threshold;
-coast_abs_diff = abs(coast_diff) >= threshold;
-abs_diff_expanded = [abs_diff; false(1, size(abs_diff, 2))] | [false(1, size(abs_diff, 2)); abs_diff];
-coast_abs_diff_expanded = [coast_abs_diff; false(1, size(coast_abs_diff, 2))] | [false(1, size(coast_abs_diff, 2)); coast_abs_diff];
-%remove only offending values from sal_mat and temp_mat
-interp_sal_mat(abs_diff_expanded) = NaN ;
-inter_temp_mat(abs_diff_expanded) = NaN ;
-coast_sal_temporary(coast_abs_diff_expanded) = NaN ;
-
-
-
-
-
+load 'remove.mat'
+load 'remove_coast.mat'
+interp_sal_mat(remove) = NaN ;
+interp_temp_mat(remove) = NaN ;
+coast_sal_temporary(remove_coast) = NaN ;
 % remove anomalous profiles from interp_sal and interp_temp
 temp_sal = interp_sal_mat(50:end, :) ;
 coast_temp_sal = coast_sal_temporary(50:end,:) ;
@@ -780,7 +796,7 @@ dummy_lat = lat_a ;
 %refference lat and lon
 start_pattern = [true,false] ;
 pattern = [true,true,false] ;  %pattern for opendist/sw_dist data sorting
-num_repeat = ceil(129744/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
+num_repeat = ceil(129752/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
 pattern = repmat(pattern,1,num_repeat) ;
 pattern = [start_pattern,pattern,true] ; % concats start and end values
 clear num_repeat start_pattern lon_temp
@@ -952,7 +968,7 @@ clear coast_find open_find open_temp_mat open_sal_mat % will need these back eve
 %coastal_dens = sw_dens(coastal_sal,coastal_temp,coast_press) ;
 clear press_a
 % Vectorize and combine
-clear  coastal_temp open_temp interp_temp_a interp_sal_a interp_sal_mat interp_temp_mat
+clear  coastal_temp open_temp interp_temp_a interp_sal_a %interp_sal_mat interp_temp_mat
 %%
 %top 300 m of both open and coastal
 sal_combined = [open_sal,coastal_sal] ;
@@ -975,11 +991,11 @@ lon_combined = [lon_open,coastal_lon ] ;
 for i = 1:size(sal_anom_combined, 2)
     top10 = sal_anom_combined(1:10, i);  % Extract the top 10 rows of the column
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
-    if length(nonNaN_values) >= 3
+    %if length(nonNaN_values) >= 3
         % Average the top three non-NaN values
-        avg_value = mean(nonNaN_values(1:3));
-        sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', avg_value);
-    elseif length(nonNaN_values) >= 1
+        %avg_value = mean(nonNaN_values(1:3));
+        %sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', avg_value);
+    if length(nonNaN_values) >= 1
         % If fewer than 3 non-NaN values, use the top-most non-NaN value
         top_most_value = nonNaN_values(1);
         sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
@@ -989,11 +1005,11 @@ end
 for i = 1:size(open_sal, 2)
     top10 = open_sal(1:10, i);  % Extract the top 10 rows of the column
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
-    if length(nonNaN_values) >= 3
+    %if length(nonNaN_values) >= 3
         % Average the top three non-NaN values
-        avg_value = mean(nonNaN_values(1:3));
-        open_sal(1:10, i) = fillmissing(top10, 'constant', avg_value);
-    elseif length(nonNaN_values) >= 1
+        %avg_value = mean(nonNaN_values(1:3));
+        %open_sal(1:10, i) = fillmissing(top10, 'constant', avg_value);
+    if length(nonNaN_values) >= 1
         % If fewer than 3 non-NaN values, use the top-most non-NaN value
         top_most_value = nonNaN_values(1);
         open_sal(1:10, i) = fillmissing(top10, 'constant', top_most_value);
@@ -1003,11 +1019,11 @@ end
 for i = 1:size(coastal_sal, 2)
     top10 = coastal_sal(1:10, i);  % Extract the top 10 rows of the column
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
-    if length(nonNaN_values) >= 3
+    %if length(nonNaN_values) >= 3
         % Average the top three non-NaN values
-        avg_value = mean(nonNaN_values(1:3));
-        coastal_sal(1:10, i) = fillmissing(top10, 'constant', avg_value);
-    elseif length(nonNaN_values) >= 1
+        %avg_value = mean(nonNaN_values(1:3));
+        %coastal_sal(1:10, i) = fillmissing(top10, 'constant', avg_value);
+    if length(nonNaN_values) >= 1
         % If fewer than 3 non-NaN values, use the top-most non-NaN value
         top_most_value = nonNaN_values(1);
         coastal_sal(1:10, i) = fillmissing(top10, 'constant', top_most_value);
@@ -1087,7 +1103,7 @@ clear month_open_n_test
 %sal_anom_combined = sal_anom_combined(NoNaN,:) ;
 %clear columnSums NaN_idx NoNaN
 %% PCA change month/index as desired
-sal_anom = coast_sal_anom(year_mon_coast, :); % should just be able to change this
+sal_anom = open_sal_anom(year_mon_open, :); % should just be able to change this
 % Find the first column where all values are NaN
 first_nan_col = find(all(isnan(sal_anom), 1), 1);
 if ~isempty(first_nan_col)
@@ -1101,10 +1117,11 @@ second_PC_anom = score(:,2) ; % second
 third_PC_anom = score(:,3) ;
 explained_anom = 100 * latent / sum(latent);
 %% corresponding raw salinity data (includes all salinity profiles)
-mean_sal = nanmean(coastal_sal(yeamon_n_coast, :), 1); % mean ignoring NaNs
-std_sal = nanstd(coastal_sal(yeamon_n_coast, :), 0, 1); % standard deviation ignoring NaNs
-coastal_sal_std = (coastal_sal(yeamon_n_coast, :) - mean_sal) ./ std_sal;
-[coeff_n, score_n, latent_n , ~] = eof225(coastal_sal_std,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+sal = open_sal(yeamon_n_open,:) ; % change this to open/coast
+mean_sal = nanmean(sal, 1); % mean ignoring NaNs
+std_sal = nanstd(sal, 0, 1); % standard deviation ignoring NaNs
+sal_std = (sal - mean_sal) ./ std_sal;
+[coeff_n, score_n, latent_n , ~] = eof225(sal_std,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC_n = score_n(:,1) ; % first principal component
 first_coeff_n = coeff_n(:,1); % first pc coeff
 second_PC_n = score_n(:,2) ; % second

@@ -265,6 +265,60 @@ hold off
 filename = sprintf('coast_anom_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 clear filename
+%% Sal Anom Open PCAS
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
+DepInterval_custom = DepInterval(1:length(sal_anom)) ;
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+scatter(lon_open(:,year_mon_open), lat_open(:,year_mon_open), 50, first_PC_anom, 'filled');
+colorbar;
+% caxis([-3 3]);
+colormap('cool')
+plot(cx,cy,'k') ;
+xlabel('Longitude');
+ylabel('Latitude');
+title(sprintf('First Principal Component of Salinity Anomaly for %s %d', month_string{month_selected}, year_selected));
+hold off
+filename = sprintf('open_anom_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Plot Coeff
+figure
+hold on
+plot(first_coeff_anom,DepInterval_custom)
+title('1st Coefficients vs Depth ')
+axis ij
+hold off
+filename = sprintf('open_anom_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Plot sal_anom
+figure
+hold on
+plot(sal_anom,DepInterval_custom) ;
+ylim([0,300])
+axis ij
+hold off
+title('0-300m Salinity Anomaly')
+xlabel('Salinity Anomaly')
+ylabel('Depth')
+hold off
+filename = sprintf('open_sal_anom_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Create Scree Plot
+figure
+hold on
+plot(1:length(explained_anom), explained_anom, 'o-', 'LineWidth', 2);
+xlabel('Principal Component');
+xlim([0,5])
+xticks(1:5); 
+ylabel('Variance Explained (%)');
+title('Scree Plot');
+grid on;
+hold off
+filename = sprintf('open_anom_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear filename
 %% Salinity PCA's (coastal only!)
 folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:300) ;
@@ -282,7 +336,7 @@ ylabel('Latitude');
 title(sprintf('First Principal Component of Salinity for coastal casts %s %d', month_string{month_selected}, year_selected));
 hold off
 filename = sprintf('sal_coast_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
-%print(fullfile(folderPath, filename), '-djpeg') ;
+print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot Coeff
 figure
 hold on
@@ -291,7 +345,7 @@ title('1st Coefficients vs Depth ')
 axis ij
 hold off
 filename = sprintf('sal_coast_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
-%print(fullfile(folderPath, filename), '-djpeg') ;
+print(fullfile(folderPath, filename), '-djpeg') ;
 % Create Scree Plot
 figure
 hold on
@@ -304,7 +358,7 @@ title('Scree Plot');
 grid on;
 hold off
 filename = sprintf('sal_coast_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
-%print(fullfile(folderPath, filename), '-djpeg') ;
+print(fullfile(folderPath, filename), '-djpeg') ;
 clear filename
 % Plot Salinity
 if size(coastal_sal,2) < 301
@@ -320,14 +374,14 @@ xlabel('Salinity')
 ylabel('Depth')
 hold off
 filename = sprintf('sal_coast_%s_%d.jpg',month_string{month_selected},year_selected) ;
-%print(fullfile(folderPath, filename), '-djpeg') ;
+print(fullfile(folderPath, filename), '-djpeg') ;
 clear step sal_combined_reduced
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
 open_sal = open_sal' ;
 end
 %% Salinity PCA's (open only!)
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-10-24' ; % change depending on folderlocation
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:300) ;
 hold on
 daspect([1 aspect_ratio 1])
@@ -385,6 +439,29 @@ clear step sal_combined_reduced
 if size(open_sal,2) > 301
 open_sal = open_sal' ;
 end
+%% Reconstruct a salinity profile using the 1st principal component
+DepInterval_custom = DepInterval(1:300) ;
+number = 1 ; % which profile
+number_profile = coastal_sal(yeamon_n_coast,:) ;
+run = 2 ;
+if run == 1
+coeff_n = coeff_n';
+end
+z_reconstructed = score_n(number,1) * coeff_n(:,1)' ;  % Multiply the score by the transpose of coeff
+x_reconstructed = z_reconstructed .* std_sal(number) + mean_sal(number) ;
+z_reconstructed_2 = score_n(number, 1:2) * coeff_n(:, 1:2)';  % for PC's 1/2
+x_reconstructed_2 = z_reconstructed_2 .* std_sal(number,:) + mean_sal(number,:) ;
+z_3 = score_n(number, 1:3) * coeff_n(:, 1:3)';  % for PC's 1/2/3
+x_3 = z_3 .* std_sal(number,:) + mean_sal(number,:) ;
+hold on
+plot(number_profile(1,:),DepInterval_custom,'b')
+plot(x_reconstructed,DepInterval_custom,'r')
+plot(x_reconstructed_2,DepInterval_custom,'g')
+plot(x_3,DepInterval_custom,'k')
+axis ij
+legend({'Raw Salinity', '1st PC Only', 'Top 2 PCs','Top 3'});
+hold off
+clear number_profile number z_reconstructed z_reconstructed_2 x_reconstructed x_reconstructed_2 x_3 z_3
 %% Plot 1/10 salinities
 DepInterval_custom = DepInterval(1:300) ;
 step = 10 ;
@@ -395,7 +472,7 @@ xlim([0,40])
 axis ij
 xlabel('Salinity');
 ylabel('Depth');
-title('Salinity profiles post cleaning changes');
+title('Salinity profiles with new cleaning changes');
 %% Plot abs derivatives (line 622)
 hold on
 step = 5 ;
