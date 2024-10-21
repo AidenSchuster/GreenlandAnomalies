@@ -1030,6 +1030,45 @@ for i = 1:size(coastal_sal, 2)
     end
 end
 clear top_most_value top10 nonNaN_values avg_value Sep_a Aug_a Oct_a Jul_a Jun_a May_a open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
+%% Canadian area selection
+% Defining Coastline
+run = 2 ;
+for i = 1:1:1
+    if run == 1
+clf
+hold on
+plot(cx,cy,'k')
+scatter(lon_open(:,year_mon_open), lat_open(:,year_mon_open));
+xlim([-80,-50])
+ylim([50,77])
+daspect([1 aspect_ratio 1])
+x_canada = [];
+y_canada = [];
+run = true;
+while run
+    [x, y, button] = ginput(1);
+    if isempty(button) || button == 13
+        run = false;
+    else
+        plot(x, y, 'ro'); % Plot the point
+        xlim([x-10, x+10])
+        ylim([y-10, y+10])
+        x_canada = [x_canada; x];
+        y_canada = [y_canada; y];
+    end
+end
+save("x_canada.mat","x_canada")
+save("y_canada.mat","y_canada")
+    end
+end
+load("x_canada.mat")
+load("y_canada.mat")
+canada = inpolygon(lon_open,lat_open,x_canada,y_canada) ;
+can_lon = lon_open(canada) ;
+can_lat = lat_open(canada) ;
+lon_open(~canada) ;
+lat_open(~canada) ;
+copy = open_sal ;
 %% Invert
 month_selected = 7 ; % for sprintf
 year_selected = 2012 ; % for sprintf, replace with desired year
@@ -1050,10 +1089,14 @@ coastal_mon = mon_a(in_a) ;
 coastal_mon = coastal_mon(coast_idx) ;
 open_mon = mon_a(~in_a) ;
 open_mon = open_mon(open_idx);
+can_mon = open_mon(canada) ;
+open_mon = open_mon(~canada) ;
 coastal_yea = yea_a(in_a) ;
 coastal_yea = coastal_yea(coast_idx) ;
 open_yea = yea_a(~in_a) ;
-open_yea = open_yea(open_idx) ; 
+open_yea = open_yea(open_idx) ;
+can_yea = open_yea(canada) ;
+open_yea = open_yea(~canada) ;
 % month
 month_string = {'January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'} ;
 mon_comb = [open_mon,coastal_mon] ;
@@ -1083,7 +1126,7 @@ year_mon_coast = year_coast & month_coast ;
 yeamon_n_coast = year_coast_n & month_coast_n ;
 yeamon_n_open = year_open_n & month_open_n ;
 %clear open_mon coastal_mon %combined_idx_open combined_idx_coast
-copy = sal_anom_combined ; % for copying
+%copy = sal_anom_combined ; % for copying
 in_combined = inpolygon(lon_combined,lat_combined,combined_x,combined_y) ;
 open_sal_anom = sal_anom_combined(~in_combined,:) ;
 coast_sal_anom = sal_anom_combined(in_combined,:) ;
@@ -1091,6 +1134,18 @@ lon_coast = lon_combined(in_combined) ;
 lon_open = lon_combined(~in_combined) ;
 lat_coast = lat_combined(in_combined) ;
 lat_open = lat_combined(~in_combined) ;
+% Canada 
+copy_anom = open_sal_anom ;
+canada_n = inpolygon(lon_open_n,lat_open_n,x_canada,y_canada) ;
+can_lon_n = lon_open_n(canada_n) ;
+can_lat_n = lat_open_n(canada_n) ;
+lat_open_n = lat_a(~canada_n) ;
+lon_open_n = lon_a(~canada_n) ;
+%sal/anom/temp/anom
+can_sal = copy(canada_n) ; % copy so we can rerun this section as needed
+can_sal_anom = copy_anom(canada) ;
+%can_temp
+%can_temp_anom =
 clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
 clear month_open_n_test
 %% Subsections and removals (maybe get rid of this?)
