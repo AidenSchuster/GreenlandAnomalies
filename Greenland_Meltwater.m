@@ -1064,16 +1064,13 @@ end
 load("x_canada.mat")
 load("y_canada.mat")
 canada = inpolygon(lon_open,lat_open,x_canada,y_canada) ;
-can_lon = lon_open(canada) ;
-can_lat = lat_open(canada) ;
-lon_open(~canada) ;
-lat_open(~canada) ;
 copy = open_sal ;
 %% Invert
 month_selected = 7 ; % for sprintf
 year_selected = 2012 ; % for sprintf, replace with desired year
 if size(sal_anom_combined,2) > 301
 sal_anom_combined = sal_anom_combined' ;
+can_invert = canada' ;
 end
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
@@ -1134,20 +1131,31 @@ lon_coast = lon_combined(in_combined) ;
 lon_open = lon_combined(~in_combined) ;
 lat_coast = lat_combined(in_combined) ;
 lat_open = lat_combined(~in_combined) ;
-% Canada 
-copy_anom = open_sal_anom ;
+% Canada
 canada_n = inpolygon(lon_open_n,lat_open_n,x_canada,y_canada) ;
 can_lon_n = lon_open_n(canada_n) ;
 can_lat_n = lat_open_n(canada_n) ;
-lat_open_n = lat_a(~canada_n) ;
-lon_open_n = lon_a(~canada_n) ;
-%sal/anom/temp/anom
-can_sal = copy(canada_n) ; % copy so we can rerun this section as needed
-can_sal_anom = copy_anom(canada) ;
-%can_temp
-%can_temp_anom =
+lat_open_n = lat_open_n(~canada_n) ;
+lon_open_n = lon_open_n(~canada_n) ;
+can_lon = lon_open(canada) ;
+can_lat = lat_open(canada) ;
+lon_open = lon_open(~canada) ;
+lat_open = lat_open(~canada) ;
+% sal/anom/temp/anom
+run = 1 ;
+if run == 1
+    run = 2 ;
+    if size(canada,1) == 1
+    can_invert = canada' ;
+    can_n_invert = canada_n' ;
+    end
+    can_sal = open_sal(can_n_invert,:) ; % copy so we can rerun this section as needed
+    can_sal_anom = open_sal_anom(can_invert,:) ;
+    open_sal_anom = open_sal_anom(~can_invert,:) ;
+    open_sal = open_sal(~can_n_invert,:) ;
+end
 clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
-clear month_open_n_test
+clear month_open_n_test canada canada_n can_invert can_n_invert
 %% Subsections and removals (maybe get rid of this?)
 % Index casts that have NO nan's through 300 m
 %sal_anom_combined = copy ;
@@ -1174,9 +1182,8 @@ explained_anom = 100 * latent / sum(latent);
 %% corresponding raw salinity data (includes all salinity profiles)
 sal = open_sal(yeamon_n_open,:) ; % change this to open/coast
 mean_sal = nanmean(sal, 1); % mean ignoring NaNs
-std_sal = nanstd(sal, 0, 1); % standard deviation ignoring NaNs
-sal_std = (sal - mean_sal) ./ std_sal;
-[coeff_n, score_n, latent_n , ~] = eof225(sal_std,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+sal_minus = (sal - mean_sal) ;
+[coeff_n, score_n, latent_n , ~] = eof225(sal_minus,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC_n = score_n(:,1) ; % first principal component
 first_coeff_n = coeff_n(:,1); % first pc coeff
 second_PC_n = score_n(:,2) ; % second
