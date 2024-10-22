@@ -1167,11 +1167,12 @@ clear month_open_n_test canada canada_n can_invert can_n_invert
 %clear columnSums NaN_idx NoNaN
 %% PCA change month/index as desired
 sal_anom = open_sal_anom(year_mon_open, :); % should just be able to change this
-% Find the first column where all values are NaN
-first_nan_col = find(all(isnan(sal_anom), 1), 1);
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal_anom), 1) < 3, 1);
 if ~isempty(first_nan_col)
     % Cut off the columns from the first NaN column onwards
-    sal_anom = sal_anom(:, 1:first_nan_col-1);
+    sal_anom = sal_anom(:, 1:last_nan_col-1);
 end
 [coeff, score, latent , tsquared] = eof225(sal_anom,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC_anom = score(:,1) ; % first principal component
@@ -1179,16 +1180,25 @@ first_coeff_anom = coeff(:,1); % first pc coeff
 second_PC_anom = score(:,2) ; % second
 third_PC_anom = score(:,3) ;
 explained_anom = 100 * latent / sum(latent);
+clear last_nan_col
 %% corresponding raw salinity data (includes all salinity profiles)
 sal = open_sal(yeamon_n_open,:) ; % change this to open/coast
 mean_sal = nanmean(sal, 1); % mean ignoring NaNs
 sal_minus = (sal - mean_sal) ;
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal_minus), 1) < 3, 1);
+if ~isempty(first_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal_minus = sal_minus(:, 1:last_nan_col-1);
+end
 [coeff_n, score_n, latent_n , ~] = eof225(sal_minus,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC_n = score_n(:,1) ; % first principal component
 first_coeff_n = coeff_n(:,1); % first pc coeff
 second_PC_n = score_n(:,2) ; % second
 third_PC_n = score_n(:,3) ;
 explained_n = 100 * latent_n / sum(latent_n);
+clear last_nan_col
 %%
 % Potential Temp = [] ;
 press_reff = 10 ; % not sure what a good refference would be

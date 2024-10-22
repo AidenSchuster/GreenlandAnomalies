@@ -493,6 +493,34 @@ xlim([0,5])
 ylim([0,300]) 
 hold off
 clear step reduced xline_half xline_two
+%% Plot Eliminated Profiles due to derivative threshold (line 669 stop)
+figure
+step = 10 ;
+col = any(remove, 1);
+reduced = interp_sal_mat(:,col) ;
+reduced_mat = interp_sal_mat(:,1:step:end) ;
+plot(reduced_mat,DepInterval) ;
+xlim([0,40])
+ylim([0,50])
+axis ij
+xlabel('Salinity');
+ylabel('Depth');
+title('Salinity profiles with points eliminated');
+clear reduced step col
+%% Plot profiles with eliminated points in top 50 m's geogrpahic location
+top_50 = remove(1:50,:) ;
+col = any(top_50, 1);
+figure
+hold on 
+daspect([1 aspect_ratio 1])
+scatter(lon_a(col),lat_a(col),'r')
+plot(cx,cy,'k') ;
+xlim([-80,-30])
+ylim([55,80])
+xlabel('Longitude');
+ylabel('Latitude');
+title('Location of profiles with points removed in top 50m')
+hold off
 %% Find and plot salinites with 0-1 m measurements >15 (should only be very near coast measurements) (eventually add back in if it produces good results
 sal_combined = sal_combined(1:2,:) ;
 [~,col] = find(sal_combined <= 15) ;
