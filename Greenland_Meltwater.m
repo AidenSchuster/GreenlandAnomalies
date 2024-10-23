@@ -571,6 +571,8 @@ load('interp_sal.mat')
 %% Test Section
 % remove fjord casts and create variables to use
 in_idx = inpolygon(lon,lat,polygon_x,polygon_y) ; % need this for the interp section
+lon_fj = lon(in_idx) ;
+lat_fj = lat(in_idx) ;
 lon_a = lon(~in_idx) ;
 lat_a = lat(~in_idx) ;
 temp_a = interp_temp(~in_idx) ;
@@ -579,9 +581,10 @@ sal_a = interp_sal(~in_idx) ;
 mon_a = mon(~in_idx) ;
 day_a = day(~in_idx) ;
 yea_a = yea(~in_idx) ;
-
-% format into matrices (hopefully can get rid of this subsection)
-interp_temp_a = interp_temp(~in_idx) ; % gets rid of fjord casts
+mon_fj = mon(in_idx) ;
+day_fj = day(in_idx) ;
+yea_fj = yea(in_idx) ;
+% format into matrices (hopefully can get rid of this subsection)interp_temp_a = interp_temp(~in_idx) ; % gets rid of fjord casts
 interp_sal_a = interp_sal(~in_idx) ;
 numCells = length(interp_temp_a) ;
 rows = length(DepInterval) ;

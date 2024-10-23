@@ -101,17 +101,6 @@ scatter(reff_x,reff_y,'k')
 plot(vert{1}(1,:),vert{1}(2,:),'r')
 scatter(coastal_lon(test),coastal_lat(test),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
 hold off
-%%
-cast = 700 ;
-clf
-hold on
-plot(cx,cy,'k')
-daspect([1 aspect_ratio 1])
-xlim([-80,-35])
-ylim([55,80])
-scatter(lon_a(coast_find{cast}),lat_a(coast_find{cast}),3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
-scatter(coastal_lon(cast),coastal_lat(cast),10,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
-hold off
 %% Open Ocean Casts
 cast = 74806 ;
 clf
@@ -123,67 +112,6 @@ ylim([55,80])
 scatter(lon_a(open_find{cast}),lat_a(open_find{cast}),10,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
 scatter(lon_open(cast),lat_open(cast),10,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
 hold off
-%% Plot Anomaly example w/ std dev
-number = 1006 ;
-clf
-hold on
-daspect([1 aspect_ratio 1])
-xlim([-80,-35])
-ylim([55,80])
-plot(cx,cy,'k')
-scatter(lon_a(cast_idx_coast{number}),lat_a(cast_idx_coast{number}),10,'MarkerFaceColor','b','MarkerEdgeAlpha','0.5')
-scatter(coastal_lon(number),coastal_lat(number),10,'MarkerFaceColor','r','MarkerEdgeAlpha','0.5')
-hold off
-%% continued (Temp anom)
-clf
-hold on
-plot(coast_temp_anom(:,number),DepInterval,'k')
-axis ij
-xlabel('Temperature Anomaly')
-ylabel('Depth (M)')
-title('Temperature Anomaly vs Depth')
-hold off
-%% contin (sal anom)
-clf
-hold on
-plot(coast_sal_anom(:,number),DepInterval,'k')
-axis ij
-xlabel('Salinity Anomaly')
-ylabel('Depth (M)')
-title('Salinity Anomaly vs Depth')
-hold off
-%% contin (std dev sal)
-clf
-hold on
-plot(coastal_sal_std{:,number},DepInterval,'k')
-axis ij
-xlabel('Salinity Std')
-ylabel('Depth (M)')
-title('Salinity Std vs Depth')
-hold off
-%% contin (std dev temp)
-clf
-hold on
-plot(coastal_temp_std{:,number},DepInterval,'k')
-axis ij
-xlabel('Temperature Std')
-ylabel('Depth (M)')
-title('Temperature Std vs Depth')
-hold off
-%% Meshgrid for count (too large I think)
-clf 
-hold on
-daspect([1 aspect_ratio 1])
-xlim([-80,-35])
-ylim([55,80])
-imagesc(X_grid,Y_grid,count_grid) ;
-colormap('hsv')
-colorbar
-plot(cx,cy)
-hold off
-%% Histogram 
-histogram(numElements, 'BinMethod', 'integers');
-xlim([0,10])
 %% TS Diagram (need to select a subsect or something)
 clf
 hold on
@@ -211,6 +139,14 @@ ylabel(c,'Avg # of profiles')
 title('October') % check value of month
 plot(cx,cy,'k','MarkerSize',200)
 hold off
+%% Plot Fjord Casts
+clf
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-35])
+ylim([55,80])
+plot(cx,cy,'k')
+scatter(lon_fj,lat_fj,'r') ;
 %% PCA correct (includes coeff and sal_anom/salinity)
 folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:length(sal_anom)) ;
