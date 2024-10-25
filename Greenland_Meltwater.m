@@ -584,7 +584,8 @@ yea_a = yea(~in_idx) ;
 mon_fj = mon(in_idx) ;
 day_fj = day(in_idx) ;
 yea_fj = yea(in_idx) ;
-% format into matrices (hopefully can get rid of this subsection)interp_temp_a = interp_temp(~in_idx) ; % gets rid of fjord casts
+% format into matrices (hopefully can get rid of this subsection)
+interp_temp_a = interp_temp(~in_idx) ; % gets rid of fjord casts
 interp_sal_a = interp_sal(~in_idx) ;
 numCells = length(interp_temp_a) ;
 rows = length(DepInterval) ;
@@ -607,7 +608,44 @@ load("interp_temp_mat.mat")
 %create coastal variables to clean vert along with everything else
 in_temp = inpolygon(lon_a,lat_a,combined_x,combined_y) ;
 coast_sal_temporary = interp_sal_mat(:,in_temp) ;
-
+%% Selecting Fjord coordinates/area % defining areas of individual fjords
+run = 2 ;
+if run == 1
+    hold on
+    plot(cx,cy,'k')
+    scatter(lon_fj,lat_fj,0.7,'r')
+    daspect([1 aspect_ratio 1])
+        xlim([-80,-35])
+        ylim([55,80])
+        fjord_vert = {} ;
+        while true
+            zoom on;
+            pan on;
+            disp('Adjust view as needed, then press Enter to start drawing a polygon.');
+            pause;
+            zoom off;
+            pan off;
+            h = drawpolygon('Color', 'yellow'); % Create an interactive polygon
+            wait(h); % Wait until the polygon is finished
+            vertices = h.Position;
+            fjord_vert{end + 1} = vertices;
+            delete(h); % Remove the polygon object from the figure
+            plot(vertices(:,1), vertices(:,2), '-o', 'Color', 'blue');
+                    choice = questdlg('Do you want to draw another polygon?', ...
+                          'Continue Drawing', 'Y', 'N','Y');
+        % Check for exit condition
+        if strcmp(choice, 'No') % Exit if 'No' is selected
+            break; % Exit the loop
+        end
+        end
+        % Replot all previously stored vertices
+        for i = 1:length(fjord_vert)
+            plot(fjord_vert{i}(:, 1), fjord_vert{i}(:, 2), 'o', 'Color', 'yellow', 'MarkerFaceColor', 'yellow');
+        end
+    hold off
+    save('fjord_vert.mat', 'fjord_vert');
+end
+load fjord_vert.mat fjord_vert
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
@@ -1144,6 +1182,7 @@ can_lon = lon_open(canada) ;
 can_lat = lat_open(canada) ;
 lon_open = lon_open(~canada) ;
 lat_open = lat_open(~canada) ;
+yeamon_n_open = yeamon_n_open(~canada_n) ;
 % sal/anom/temp/anom
 run = 1 ;
 if run == 1
@@ -1169,11 +1208,11 @@ clear month_open_n_test canada canada_n can_invert can_n_invert
 %sal_anom_combined = sal_anom_combined(NoNaN,:) ;
 %clear columnSums NaN_idx NoNaN
 %% PCA change month/index as desired
-sal_anom = open_sal_anom(year_mon_open, :); % should just be able to change this
+sal_anom = coast_sal_anom(year_mon_coast, :); % should just be able to change this
 % Find the first column where there are less then 3 non-nan values and
 % truncate
 last_nan_col = find(sum(~isnan(sal_anom), 1) < 3, 1);
-if ~isempty(first_nan_col)
+if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal_anom = sal_anom(:, 1:last_nan_col-1);
 end
@@ -1185,13 +1224,13 @@ third_PC_anom = score(:,3) ;
 explained_anom = 100 * latent / sum(latent);
 clear last_nan_col
 %% corresponding raw salinity data (includes all salinity profiles)
-sal = open_sal(yeamon_n_open,:) ; % change this to open/coast
+sal = coastal_sal(yeamon_n_coast,:) ; % change this to open/coast
 mean_sal = nanmean(sal, 1); % mean ignoring NaNs
 sal_minus = (sal - mean_sal) ;
 % Find the first column where there are less then 3 non-nan values and
 % truncate
 last_nan_col = find(sum(~isnan(sal_minus), 1) < 3, 1);
-if ~isempty(first_nan_col)
+if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal_minus = sal_minus(:, 1:last_nan_col-1);
 end

@@ -147,8 +147,8 @@ xlim([-80,-35])
 ylim([55,80])
 plot(cx,cy,'k')
 scatter(lon_fj,lat_fj,'r') ;
-%% PCA correct (includes coeff and sal_anom/salinity)
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
+%% PCA correct (includes coeff and sal_anom/salinity) Coastal!
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-24-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:length(sal_anom)) ;
 hold on
 daspect([1 aspect_ratio 1])
@@ -202,7 +202,7 @@ filename = sprintf('coast_anom_scree_%s_%d.jpg',month_string{month_selected},yea
 print(fullfile(folderPath, filename), '-djpeg') ;
 clear filename
 %% Sal Anom Open PCAS
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-24-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:length(sal_anom)) ;
 hold on
 daspect([1 aspect_ratio 1])
@@ -256,7 +256,7 @@ filename = sprintf('open_anom_scree_%s_%d.jpg',month_string{month_selected},year
 print(fullfile(folderPath, filename), '-djpeg') ;
 clear filename
 %% Salinity PCA's (coastal only!)
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-24-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:300) ;
 hold on
 daspect([1 aspect_ratio 1])
@@ -311,13 +311,13 @@ ylabel('Depth')
 hold off
 filename = sprintf('sal_coast_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
-clear step sal_combined_reduced
+clear step_s sal_combined_reduced
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
 open_sal = open_sal' ;
 end
 %% Salinity PCA's (open only!)
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-17-24' ; % change depending on folderlocation
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-24-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:300) ;
 hold on
 daspect([1 aspect_ratio 1])
@@ -371,7 +371,7 @@ ylabel('Depth')
 hold off
 filename = sprintf('sal_open_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
-clear step sal_combined_reduced
+clear step_s sal_combined_reduced
 if size(open_sal,2) > 301
 open_sal = open_sal' ;
 end
@@ -400,8 +400,8 @@ hold off
 clear number_profile number z_reconstructed z_reconstructed_2 x_reconstructed x_reconstructed_2 x_3 z_3
 %% Plot 1/10 salinities
 DepInterval_custom = DepInterval(1:300) ;
-step = 10 ;
-reduced = sal_combined(:,1:step:end) ;
+step_s = 10 ;
+reduced = sal_combined(:,1:step_s:end) ;
 figure
 plot(reduced,DepInterval_custom) ;
 xlim([0,40])
@@ -411,11 +411,11 @@ ylabel('Depth');
 title('Salinity profiles with new cleaning changes');
 %% Plot abs derivatives (line 622)
 hold on
-step = 5 ;
+step_s = 5 ;
 xline_half = 0.5 * ones(1,length(DepInterval)) ;
 xline_half_2 = 0.3 * ones(1,length(DepInterval)) ;
 xline_two = 2 * ones(1,length(DepInterval)) ;
-reduced = diff_result(:,1:step:end) ;
+reduced = diff_result(:,1:step_s:end) ;
 plot(reduced,DepInterval) ;
 plot(xline_half,DepInterval,'--r')
 plot(xline_half_2,DepInterval,'--g')
@@ -428,21 +428,29 @@ title('Salinity Derivatives vs Depth');
 xlim([0,5])
 ylim([0,300]) 
 hold off
-clear step reduced xline_half xline_two
-%% Plot Eliminated Profiles due to derivative threshold (line 669 stop)
+clear step_s reduced xline_half xline_two
+%% Plot Eliminated Profiles due to derivative threshold (line 669 stop) (with dots at the point on the line that will get elimed
 figure
-step = 10 ;
+hold on
+step_s = 10 ;
 col = any(remove, 1);
 reduced = interp_sal_mat(:,col) ;
-reduced_mat = interp_sal_mat(:,1:step:end) ;
+remove_reduced = remove(:,col) ;
+remove_reduced = remove(:, 1:step_s:end);  
+[row_idx, col_idx] = find(remove_reduced == 1) ;
+reduced_mat = interp_sal_mat(:,1:step_s:end) ;
 plot(reduced_mat,DepInterval) ;
+for i = 1:length(row_idx)
+    scatter(reduced_mat(row_idx(i), col_idx(i)), DepInterval(row_idx(i)), 'g', 'filled');
+end
 xlim([0,40])
 ylim([0,50])
 axis ij
 xlabel('Salinity');
 ylabel('Depth');
 title('Salinity profiles with points eliminated');
-clear reduced step col
+hold off
+%clear reduced step_s col row_idx col_idx col valid_idx
 %% Plot profiles with eliminated points in top 50 m's geogrpahic location
 top_50 = remove(1:50,:) ;
 col = any(top_50, 1);
