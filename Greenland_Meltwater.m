@@ -328,7 +328,7 @@ clear exten_plus_x exten_plus_y exten_plus2_x exten_plus2_y  exten_minus_x exten
 clear in_minus2 in_minus in_plus in_plus2 
 clear exten_minus exten_minus2 exten_plus exten_plus2 exten_plus_ exten_plus2_ exten_minus_ dist_plus dist_minus dist_minus2 dist_plus2 exten_minus2 index i index_minus index_plus index_plus2
 clear  j inverse intercept min_plus2 min_plus min_minus2 min_minus ref_minus2x ref_minusx ref_minus2y ref_plus2x ref_plusx run slope x_perp_minus x_perp_minus2 x_perp_plus
-clear x_perp_plus2 y_reff y_perp_minus y_perp_minus2 y_perp_plus y_perp_plus2 x_reff differences_plus2 differences_plus differences_minus differences_minus2 exten_minus2_ index_minus2 length_2 
+clear x_perp_plus2 y_perp_minus y_perp_minus2 y_perp_plus y_perp_plus2 differences_plus2 differences_plus differences_minus differences_minus2 exten_minus2_ index_minus2 length_2 
 clear ref_minusy ref_plusy ref_plus2y dist lengthdeg_coast off_x off_y nan_idx2 nan_idx num_points reff_cords 
 % Find Casts within defined area (concatenate off coast and coast to make one polygon
 %hand removing verticies that cause self-intersection
@@ -646,6 +646,85 @@ if run == 1
     save('fjord_vert.mat', 'fjord_vert');
 end
 load fjord_vert.mat fjord_vert
+fjord_vert = fjord_vert(1:39) ; % cutoff empty cell
+% Selecting fjord boxes for anomaly calculations
+%select center points
+run = 2 ;
+if run == 1
+    hold on
+    plot(cx,cy,'k')
+    scatter(lon_fj,lat_fj,0.7,'r')
+    scatter(lon_a,lat_a,0.7,'r')
+    daspect([1 aspect_ratio 1])
+    xlim([-80,-30])
+    ylim([55,80])
+    center_points = [];
+        for i = 1:length(fjord_vert)
+            fill(fjord_vert{i}(:,1),fjord_vert{i}(:,2),'b') ;
+        end
+    % zoom and pan until ready, then hit enter to plot point
+    disp('Click on the map to select points. Press Enter when done.');
+    while true
+            zoom on;
+            pan on;
+            disp('Adjust view as needed, then press Enter to select a point.');
+            pause;
+            zoom off;
+            pan off;
+        [lon_cen, lat_cen, button] = ginput(1); % Select a point
+        scatter(lon_cen,lat_cen,2,'g')
+        if isempty(button) % Stop if Enter is pressed
+        break;
+        end
+    center_points = [center_points; lon_cen, lat_cen]; % Store selected point
+    end
+    hold off
+save('center_points.mat', "center_points")
+end
+load center_points.mat
+%% make rectangles 20x10 km using reckon
+run = 1 ;
+if run == 1
+    width_nm = km2nm(target_width) ;
+    width_deg = nm2deg(width_nm) ;
+    length_nm = km2nm(target_length) ;
+    length_deg = nm2deg(length_nm) ;
+    hold on
+    plot(cx,cy,'k')
+    scatter(lon_fj,lat_fj,0.7,'r')
+    scatter(lon_a,lat_a,0.7,'r') % could prolly just do coastal for speed 
+        for i = 1:length(fjord_vert)
+        fill(fjord_vert{i}(:,1),fjord_vert{i}(:,2),'b') ;
+        end
+    daspect([1 aspect_ratio 1])
+    xlim([-80,-30])
+    ylim([55,80])
+    % Loop through each initial point
+for i = 1:size(center_points, 1)
+    lon_cen = center_points(i, 1);
+    lat_cen = center_points(i, 2);
+    angle_deg = 0; % Initial angle for each rectangle
+    scatter(center_points(:,1),center_points(:,2),15,'g','filled')
+        % Calculate corner points of the rectangle using reckon
+        [lat1, lon1] = reckon(lat_cen(i), lon_cen(i), width_deg, angle_deg);
+        [lat2, lon2] = reckon(lat_cen(i), lon_cen(i), length_deg, angle_deg + 90);
+        [lat3, lon3] = reckon(lat1, lon1, length_deg, angle_deg + 90);
+        [lat4, lon4] = reckon(lat2, lon2, width_deg, angle_deg);
+        rectangle_lat{i} = [lat_cen(i), lat1, lat3, lat2, lat_cen(i)];
+        rectangle_lon{i} = [lon_cen(i), lon1, lon3, lon2, lon_cen(i)];
+        plot(rectangle_lon{i}, rectangle_lat{i}, 'g-', 'LineWidth', 2, 'Tag', 'rectangle');
+        drawnow;
+        angle_input = input('Enter new angle (or press Enter to confirm): ', 's');
+        if isempty(angle_input)
+            disp('Angle confirmed.');
+            break;
+        else
+            angle_deg = str2double(angle_input);
+        end
+end
+end
+%% 
+% clear center_points
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
