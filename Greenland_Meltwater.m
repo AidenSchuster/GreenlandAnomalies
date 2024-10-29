@@ -646,8 +646,8 @@ if run == 1
     save('fjord_vert.mat', 'fjord_vert');
 end
 load fjord_vert.mat fjord_vert
-fjord_vert = fjord_vert(1:39) ; % cutoff empty cell
-% Selecting fjord boxes for anomaly calculations
+%fjord_vert = fjord_vert(1:39) ; % cutoff empty cell
+%% Selecting corner points for fjord boxes for anomaly calculations
 %select center points
 run = 2 ;
 if run == 1
@@ -682,49 +682,61 @@ if run == 1
 save('center_points.mat', "center_points")
 end
 load center_points.mat
-%% make rectangles 20x10 km using reckon
-run = 1 ;
+%% Make rectangles 20x10 km using reckon around a center point
+run = 1;
 if run == 1
-    width_nm = km2nm(target_width) ;
-    width_deg = nm2deg(width_nm) ;
-    length_nm = km2nm(target_length) ;
-    length_deg = nm2deg(length_nm) ;
+    % Convert width and length from km to degrees
+    width_nm = km2nm(target_width*2);
+    width_deg = nm2deg(width_nm);
+    length_nm = km2nm(target_length*2);
+    length_deg = nm2deg(length_nm);
     hold on
-    plot(cx,cy,'k')
-    scatter(lon_fj,lat_fj,0.7,'r')
-    scatter(lon_a,lat_a,0.7,'r') % could prolly just do coastal for speed 
-        for i = 1:length(fjord_vert)
-        fill(fjord_vert{i}(:,1),fjord_vert{i}(:,2),'b') ;
+    plot(cx, cy, 'k')
+    scatter(lon_fj, lat_fj, 0.7, 'r')
+    scatter(lon_a, lat_a, 0.7, 'r')
+    for i = 1:length(fjord_vert)
+        fill(fjord_vert{i}(:, 1), fjord_vert{i}(:, 2), 'b');
+    end
+    daspect([1, aspect_ratio, 1])
+    xlim([-80, -30])
+    ylim([55, 80])
+    for i = 1:size(center_points, 1)
+        lon_cen = center_points(i, 1);
+        lat_cen = center_points(i, 2);
+        angle_deg = 0;  % Start angle for each rectangle
+        scatter(center_points(:, 1), center_points(:, 2), 15, 'g', 'filled')
+        while true
+            h = findobj(gca, 'Tag', sprintf('rectangle%d', i));
+            delete(h);
+            [lat1, lon1] = reckon(lat_cen, lon_cen, width_deg / 2, angle_deg);
+            [lat2, lon2] = reckon(lat_cen, lon_cen, width_deg / 2, angle_deg + 180);
+            [lat3, lon3] = reckon(lat1, lon1, length_deg / 2, angle_deg + 90);
+            [lat4, lon4] = reckon(lat1, lon1, length_deg / 2, angle_deg - 90);
+            [lat5, lon5] = reckon(lat2, lon2, length_deg / 2, angle_deg + 90);
+            [lat6, lon6] = reckon(lat2, lon2, length_deg / 2, angle_deg - 90);
+            rectangle_lat{i} = [lat3, lat4, lat6, lat5, lat3];
+            rectangle_lon{i} = [lon3, lon4, lon6, lon5, lon3];
+            plot(rectangle_lon{i}, rectangle_lat{i}, 'g-', 'LineWidth', 2, 'Tag', sprintf('rectangle%d', i));
+            drawnow;
+            angle_input = input('Enter new angle (or press Enter to confirm): ', 's');
+            if isempty(angle_input)
+                disp(['Angle confirmed for rectangle ', num2str(i)]);
+                break;  % Exit the loop for this rectangle
+            else
+                % Update the angle for next iteration
+                angle_deg = str2double(angle_input);
+                if isnan(angle_deg)
+                    warning('Invalid angle. Try again.');
+                    angle_deg = 0;
+                end
+            end
         end
-    daspect([1 aspect_ratio 1])
-    xlim([-80,-30])
-    ylim([55,80])
-    % Loop through each initial point
-for i = 1:size(center_points, 1)
-    lon_cen = center_points(i, 1);
-    lat_cen = center_points(i, 2);
-    angle_deg = 0; % Initial angle for each rectangle
-    scatter(center_points(:,1),center_points(:,2),15,'g','filled')
-        % Calculate corner points of the rectangle using reckon
-        [lat1, lon1] = reckon(lat_cen(i), lon_cen(i), width_deg, angle_deg);
-        [lat2, lon2] = reckon(lat_cen(i), lon_cen(i), length_deg, angle_deg + 90);
-        [lat3, lon3] = reckon(lat1, lon1, length_deg, angle_deg + 90);
-        [lat4, lon4] = reckon(lat2, lon2, width_deg, angle_deg);
-        rectangle_lat{i} = [lat_cen(i), lat1, lat3, lat2, lat_cen(i)];
-        rectangle_lon{i} = [lon_cen(i), lon1, lon3, lon2, lon_cen(i)];
-        plot(rectangle_lon{i}, rectangle_lat{i}, 'g-', 'LineWidth', 2, 'Tag', 'rectangle');
-        drawnow;
-        angle_input = input('Enter new angle (or press Enter to confirm): ', 's');
-        if isempty(angle_input)
-            disp('Angle confirmed.');
-            break;
-        else
-            angle_deg = str2double(angle_input);
-        end
-end
+    end
+    save rectangle_lat.mat rectangle_lat
+    save rectangle_lon.mat rectangle_lon
 end
 %% 
-% clear center_points
+% clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
