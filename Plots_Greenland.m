@@ -147,6 +147,18 @@ xlim([-80,-35])
 ylim([55,80])
 plot(cx,cy,'k')
 scatter(lon_fj,lat_fj,'r') ;
+%% Plot Fjord Salinites colored by groupings
+colors = lines(40);
+clf
+hold on
+for i = 1:length(in_fj)
+    salinityData = fjord_sal(in_fj{i});
+    for j = 1:length(salinityData)
+plot(salinityData{j}, DepInterval, 'Color', colors(i, :))
+    end
+end
+axis ij
+hold off
 %% PCA correct (includes coeff and sal_anom/salinity) Coastal!
 folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-24-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:length(sal_anom)) ;

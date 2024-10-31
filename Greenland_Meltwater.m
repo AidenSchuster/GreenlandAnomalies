@@ -647,7 +647,7 @@ if run == 1
 end
 load fjord_vert.mat fjord_vert
 %fjord_vert = fjord_vert(1:39) ; % cutoff empty cell
-%% Selecting corner points for fjord boxes for anomaly calculations
+%% Selecting center points for fjord boxes for anomaly calculations
 %select center points
 run = 2 ;
 if run == 1
@@ -683,7 +683,7 @@ save('center_points.mat', "center_points")
 end
 load center_points.mat
 %% Make rectangles 20x10 km using reckon around a center point
-run = 1;
+run = 2;
 if run == 1
     % Convert width and length from km to degrees
     width_nm = km2nm(target_width*2);
@@ -735,8 +735,14 @@ if run == 1
     save rectangle_lat.mat rectangle_lat
     save rectangle_lon.mat rectangle_lon
 end
-%% 
-% clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4
+load rectangle_lon.mat
+load rectangle_lat.mat
+% group fjord data by individual fjords (move until after cleaning
+% eventually)
+for i = 1:length(fjord_vert)
+in_fj{i} = inpolygon(lon_fj,lat_fj,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ;
+end
+clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
