@@ -57,7 +57,7 @@ save 'cx-cy.mat' cx cy
     end
 end
 load 'cx-cy.mat' cx cy
-clear rowGrid colGrid cols R te rows depth_min depth_max C Z_eto XX_eto YY_eto Z_masked coast_range h indices zeroidx
+clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx
 %
 % Defining Coastline
 run = 2 ;
@@ -653,6 +653,7 @@ run = 2 ;
 if run == 1
     hold on
     plot(cx,cy,'k')
+    plot
     scatter(lon_fj,lat_fj,0.7,'r')
     scatter(lon_a,lat_a,0.7,'r')
     daspect([1 aspect_ratio 1])
@@ -737,7 +738,7 @@ if run == 1
 end
 load rectangle_lon.mat
 load rectangle_lat.mat
-% group fjord data by individual fjords (move until after cleaning
+%% group fjord data by individual fjords (move until after cleaning
 % eventually)
 for i = 1:length(fjord_vert)
 in_fj{i} = inpolygon(lon_fj,lat_fj,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ;

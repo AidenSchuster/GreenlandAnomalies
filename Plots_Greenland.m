@@ -8,6 +8,18 @@ xlim([-75,-30])
 ylim([55,80])
 daspect([1 aspect_ratio 1])
 hold off
+%% bathmetry setup
+hold on
+isobath_interval = -200:-100:-3000;  % Define isobath intervals down to the minimum depth
+iso_interval = 200:100:3000 ;
+[~, ContourMatrix] = contour(XX_eto, YY_eto, Z_eto, isobath_interval);
+[~,CountourM] = contour(XX,YY,ZZ, iso_interval) ;
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+plot(cx,cy,'k')
+hold off
+clear isobath_interval iso_interval
 %%
 %Plot Angled Rectangles
 clf
