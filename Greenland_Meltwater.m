@@ -646,16 +646,18 @@ if run == 1
     save('fjord_vert.mat', 'fjord_vert');
 end
 load fjord_vert.mat fjord_vert
-%fjord_vert = fjord_vert(1:39) ; % cutoff empty cell
+fjord_vert = fjord_vert(1:29) ; % cutoff empty cell
 %% Selecting center points for fjord boxes for anomaly calculations
 %select center points
 run = 2 ;
 if run == 1
     hold on
-    plot(cx,cy,'k')
-    plot
     scatter(lon_fj,lat_fj,0.7,'r')
     scatter(lon_a,lat_a,0.7,'r')
+    isobath_interval = -200:-100:-3000;  % Define isobath intervals down to the minimum depth
+    iso_interval = 200:100:3000 ;
+    [~, ContourMatrix] = contour(XX_eto, YY_eto, Z_eto, isobath_interval);
+    [~,CountourM] = contour(XX,YY,ZZ, iso_interval) ;
     daspect([1 aspect_ratio 1])
     xlim([-80,-30])
     ylim([55,80])
@@ -663,6 +665,7 @@ if run == 1
         for i = 1:length(fjord_vert)
             fill(fjord_vert{i}(:,1),fjord_vert{i}(:,2),'b') ;
         end
+    plot(cx,cy,'k') % plotting coast on top for better visibility
     % zoom and pan until ready, then hit enter to plot point
     disp('Click on the map to select points. Press Enter when done.');
     while true
@@ -682,8 +685,9 @@ if run == 1
     hold off
 save('center_points.mat', "center_points")
 end
-load center_points.mat
-%% Make rectangles 20x10 km using reckon around a center point
+load center_points.mat 
+clear isobath_interval iso_interval
+%% Make rectangles 20x10 km using reckon around a center point, can adjust length in special cases
 run = 2;
 if run == 1
     % Convert width and length from km to degrees
@@ -692,12 +696,16 @@ if run == 1
     length_nm = km2nm(target_length*2);
     length_deg = nm2deg(length_nm);
     hold on
-    plot(cx, cy, 'k')
     scatter(lon_fj, lat_fj, 0.7, 'r')
     scatter(lon_a, lat_a, 0.7, 'r')
+    isobath_interval = -200:-100:-3000;  % Define isobath intervals down to the minimum depth
+    iso_interval = 200:100:3000 ;
+    [~, ContourMatrix] = contour(XX_eto, YY_eto, Z_eto, isobath_interval);
+    [~,CountourM] = contour(XX,YY,ZZ, iso_interval) ;
     for i = 1:length(fjord_vert)
         fill(fjord_vert{i}(:, 1), fjord_vert{i}(:, 2), 'b');
     end
+    plot(cx,cy,'k') % plotting coast on top for better visibility
     daspect([1, aspect_ratio, 1])
     xlim([-80, -30])
     ylim([55, 80])
@@ -732,12 +740,51 @@ if run == 1
                 end
             end
         end
+        % Ask if it's a special case
+        special_case = questdlg('Is this a special box case?', 'Special Case', 'Yes', 'No', 'No');
+
+        if strcmp(special_case, 'Yes')
+            while true
+                % Prompt to enter new length for the special case
+                new_length_input = input('Enter new length (or press Enter to confirm): ', 's');
+                if isempty(new_length_input)
+                    disp(['Length confirmed for special box ', num2str(i)]);
+                    break;  % Exit the loop for this special case
+                else
+                    % Update length if valid
+                    new_length_km = str2double(new_length_input);
+                    if isnan(new_length_km)
+                        warning('Invalid length. Try again.');
+                    else
+                        % Convert new length from km to degrees
+                        length_deg = nm2deg(km2nm(new_length_km));
+                        
+                        % rectangle with the new length
+                        [lat3, lon3] = reckon(lat1, lon1, length_deg / 2, angle_deg + 90);
+                        [lat4, lon4] = reckon(lat1, lon1, length_deg / 2, angle_deg - 90);
+                        [lat5, lon5] = reckon(lat2, lon2, length_deg / 2, angle_deg + 90);
+                        [lat6, lon6] = reckon(lat2, lon2, length_deg / 2, angle_deg - 90);
+                        rectangle_lat{i} = [lat3, lat4, lat6, lat5, lat3];
+                        rectangle_lon{i} = [lon3, lon4, lon6, lon5, lon3];
+                        
+                        % Update the plot
+                        h = findobj(gca, 'Tag', sprintf('rectangle%d', i));
+                        delete(h);
+                        plot(rectangle_lon{i}, rectangle_lat{i}, 'g-', 'LineWidth', 2, 'Tag', sprintf('rectangle%d', i));
+                        drawnow;
+                    end
+                end
+            end
+        end
     end
     save rectangle_lat.mat rectangle_lat
     save rectangle_lon.mat rectangle_lon
 end
 load rectangle_lon.mat
 load rectangle_lat.mat
+clear isobath_interval iso_interval
+%% Extend fjord area to meet anomaly box (if special case i.e. close enough to justify it)
+
 %% group fjord data by individual fjords (move until after cleaning
 % eventually)
 for i = 1:length(fjord_vert)
