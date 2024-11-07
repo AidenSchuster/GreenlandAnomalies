@@ -646,7 +646,7 @@ if run == 1
     save('fjord_vert.mat', 'fjord_vert');
 end
 load fjord_vert.mat fjord_vert
-fjord_vert = fjord_vert(1:29) ; % cutoff empty cell
+%fjord_vert = fjord_vert(1:29) ; % cutoff empty cell
 %% Selecting center points for fjord boxes for anomaly calculations
 %select center points
 run = 2 ;
@@ -782,15 +782,66 @@ if run == 1
 end
 load rectangle_lon.mat
 load rectangle_lat.mat
-clear isobath_interval iso_interval
-%% Extend fjord area to meet anomaly box (if special case i.e. close enough to justify it)
-
+for i = 1:length(rectangle_lon)
+fjord_box_cords{i} = [rectangle_lon{i}',rectangle_lat{i}'] ;
+end
+clear isobath_interval iso_interval rectangle_lon rectangle_lat
+%% Extend fjord area to meet anomaly box (if special case i.e. close enough to justify it) manually done since small #
+run = 2;
+if run == 1 
+    hold on
+    scatter(lon_fj, lat_fj, 0.7, 'r')
+    scatter(lon_a, lat_a, 0.7, 'r')
+    for i = 1:length(fjord_vert)
+        fill(fjord_vert{i}(:, 1), fjord_vert{i}(:, 2), 'b');
+        plot(fjord_box_cords{i}(:, 1), fjord_box_cords{i}(:, 2), 'g')
+        scatter(fjord_vert{i}(1,1),fjord_vert{i}(1,2),'k','filled') % lets me know which point i need to add first
+    end
+    plot(cx, cy, 'k')
+    daspect([1, aspect_ratio, 1])
+    xlim([-80, -30])
+    ylim([55, 80])
+    selected_points = {};
+    continue_selecting = true;
+    while continue_selecting
+        zoom on
+        pan on
+        %msgbox('Use zoom and pan to adjust the view, then close this box to select points.');
+        pause
+        waitfor(gcf, 'CurrentCharacter', char(13)); % Wait for Enter key
+        zoom off
+        pan off
+        disp('Click on the points you want to add. Press Enter when done with each set.');
+        [lon_new, lat_new] = ginput;
+        selected_points{end+1} = [lon_new, lat_new];
+        plot(lon_new, lat_new, 'ro-', 'LineWidth', 1.5, 'MarkerSize', 6);
+        more_points = questdlg('Would you like to adjust the view and add another set of points?', 'Continue', 'Yes', 'No', 'No');
+        if strcmp(more_points, 'No')
+            continue_selecting = false;
+        end
+    end
+    save selected_points.mat selected_points
+end
+load selected_points.mat
+hold off
+%% edit fjord_vert points based on the points selected
+run = 2; % only run if you've reselected boxes or # of fjords
+if run == 1
+fjord_affected = [1,2,3,4,5,6,7,9,10,11,12,13,15,17,18,19,20,21,22,23,24,26,27,28,30] ; % idx of fjords that will have points altered.(manual)
+for i = 1:length(fjord_affected) 
+fjord_vert{fjord_affected(i)} = [selected_points{i}(1,:);fjord_vert{fjord_affected(i)}] ; % adds first selected point in front of fjord vert
+fjord_vert{fjord_affected(i)} = [fjord_vert{fjord_affected(i)};selected_points{i}(2,:)] ; % adds second selected point to end of fjord vert
+end
+save fjord_vert.mat fjord_vert
+end
+load fjord_vert.mat fjord_vert
+clear fjord_affected selected_points
 %% group fjord data by individual fjords (move until after cleaning
 % eventually)
 for i = 1:length(fjord_vert)
 in_fj{i} = inpolygon(lon_fj,lat_fj,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ;
 end
-clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points
+clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points special_case iso_interval isobath_interval
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
@@ -880,7 +931,7 @@ coastal_lon(:,vert_idx) = [] ;
 interp_sal_mat(:, unique_col) = [];
 interp_temp_mat(:,unique_col) = [];
 clear salinity_diff threshold abs_diff anomalous_profiles too_many_nans nan_count top_100 bad_profiles remove_profiles abs_diff_expanded in_temp coast_abs_diff coast_sal_temporary
-clear interp_temp interp_sal insidearray1 insidearray2 rows numCells sal_a temp_a col coast_diff coast_abs_diff_expanded bad_coast_profiles %(need interp_sal_a/temp for open casts)
+clear insidearray1 insidearray2 rows numCells sal_a temp_a col coast_diff coast_abs_diff_expanded bad_coast_profiles %(need interp_sal_a/temp for open casts)
 clear coast_temp_sal remove_coast_profiles coast_many_nans coast_nan_count vert_idx
 % edit the variables in preperation for indexing
 lon_temp = lon_a ; % for use in coastal indexing section
@@ -933,7 +984,7 @@ range_open = zeros(2,length(lat_open)) ;
 range_open(:,earlyjan_idx) = Jan_range_open ;
 range_open(:,middle_idx) = Middle_range_open ;
 range_open(:,latedec_idx) = Dec_range_open ;
-clear polygon_x polygon_y datenum lat lon
+clear polygon_x polygon_y
 clear middle_idx latedec_idx earlyjan_idx day_a
 %%
 % Get rid of garbage casts
@@ -1138,6 +1189,26 @@ clear col unique_col
 %load("open_temp_std.mat")
 %load("open_sal_std.mat")
 clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
+%% Fjord Anomaly Calculations (include profiles + or - 15 days)
+for i = 1:length(fjord_box_cords)
+fj_box_profiles{i} = inpolygon(lon,lat,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ; % gives index of all profiles within the fjord anomaly boxes.
+fj_profiles{i} = inpolygon(lon,lat,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ; % idx of profiles inside defined fjords
+end
+fj_combined = [] ;
+fj_box_combined = [] ;
+for i = 1:length(fj_profiles)
+fj_box_idx = find(fj_box_profiles{i} == 1) ; % create index instead of logical index
+fj_box_combined = [fj_box_combined,fj_box_idx] ;
+fj_profile_idx = find(fj_profiles{i} == 1) ;
+fj_combined = [fj_combined,fj_profile_idx] ;
+end
+% get box dates
+
+box_datenum = datenum(fj_box_combined) ; 
+
+for i = 1:length(fj_combined)
+fj_date_idx{i} = find(datenum )
+end
 %%
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 %numpoints = length(DepInterval) ;

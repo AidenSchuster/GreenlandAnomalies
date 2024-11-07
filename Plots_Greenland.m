@@ -20,6 +20,24 @@ ylim([55,80])
 plot(cx,cy,'k')
 hold off
 clear isobath_interval iso_interval
+%% plot fjords and anomaly boxes 
+hold on
+    scatter(lon_fj, lat_fj, 0.7, 'r')
+    scatter(lon_a, lat_a, 0.7, 'r')
+    isobath_interval = -200:-100:-3000;  % Define isobath intervals down to the minimum depth
+    iso_interval = 200:100:3000 ;
+    [~, ContourMatrix] = contour(XX_eto, YY_eto, Z_eto, isobath_interval);
+    [~,CountourM] = contour(XX,YY,ZZ, iso_interval) ;
+for i = 1:length(fjord_vert)
+        fill(fjord_vert{i}(:, 1), fjord_vert{i}(:, 2), 'b');
+        plot(fjord_box_cords{i}(:, 1), fjord_box_cords{i}(:, 2), 'k')
+end
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+hold off
+clear CountourM ContourMatrix
 %%
 %Plot Angled Rectangles
 clf
