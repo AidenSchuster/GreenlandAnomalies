@@ -820,10 +820,10 @@ if run == 1
             continue_selecting = false;
         end
     end
+   hold off
     save selected_points.mat selected_points
 end
 load selected_points.mat
-hold off
 %% edit fjord_vert points based on the points selected
 run = 2; % only run if you've reselected boxes or # of fjords
 if run == 1
@@ -1199,16 +1199,27 @@ fj_box_combined = [] ;
 for i = 1:length(fj_profiles)
 fj_box_idx = find(fj_box_profiles{i} == 1) ; % create index instead of logical index
 fj_box_combined = [fj_box_combined,fj_box_idx] ;
-fj_profile_idx = find(fj_profiles{i} == 1) ;
-fj_combined = [fj_combined,fj_profile_idx] ;
+fj_profile_back{i} = find(fj_profiles{i} == 1) ;
 end
+clear fj_box_idx fj_profile_idx
 % get box dates
-
 box_datenum = datenum(fj_box_combined) ; 
-
-for i = 1:length(fj_combined)
-fj_date_idx{i} = find(datenum )
+for i = 1:length(fj_profile_back)
+fj_datenum{i} = datenum(fj_profile_back{i}) ;
 end
+for i = 1:length(fj_datenum)
+    for j= 1:length(fj_datenum{i})
+    if fj_datenum{i}(j) > 15 && fj_datenum{i}(j) < 351  % normal cases
+        date_idx{i}{j} = abs(fj_datenum{i}(j) - box_datenum) <= 15;  % within ±15 days
+    elseif fj_datenum{i}(j) <= 15  % start in January, wrap to December
+        date_idx{i}{j} = abs(fj_datenum{i}(j) - box_datenum) <= 15 | abs((fj_datenum{i}(j) + 365) - box_datenum) <= 15;
+    elseif fj_datenum{i}(j) >= 351  % start in December, wrap to January
+        date_idx{i}{j} = abs(fj_datenum{i}(j) - box_datenum) <= 15 | abs((fj_datenum{i}(j) - 365) - box_datenum) <= 15;
+    end
+    end
+end
+% now you can compare the two indices, since you know it has to be in the corresponding box
+
 %%
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 %numpoints = length(DepInterval) ;
