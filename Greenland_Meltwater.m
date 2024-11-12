@@ -24,7 +24,7 @@ sal = [sal,OMG_sal] ;
 temp = [temp,OMG_temp] ;
 day = [day,OMG_day] ;
 clear OMG_temp OMG_sal OMG_day OMG_mon OMG_yea OMG_lat OMG_lon OMG_depth
-% extend coastline to -30 using ETOPO depth data and 0-5 countour
+% extend coastline to -30 using ETOPO depth data and 0-5 countour (ice surface 15 arcseconds)
 [Z_eto,R] = readgeoraster('extendedcoast.tiff') ;
 [rows,cols] = size(Z_eto) ;
 [rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
@@ -58,6 +58,41 @@ save 'cx-cy.mat' cx cy
 end
 load 'cx-cy.mat' cx cy
 clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx
+% Extend it further north using same ETOPO dataset and 0-5 contour
+[Z_eto,R] = readgeoraster('extendedNcoast.tiff') ;
+[rows,cols] = size(Z_eto) ;
+[rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
+[YY_eto, XX_eto] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto = double(Z_eto) ;
+coast_range = (Z_eto>=0) & (Z_eto<=5) ; % 0-5 m coastline
+Z_masked = Z_eto ;
+depth_min = 0 ;
+depth_max = 5 ;
+run = 2 ;
+for i = 1:1:1
+    if run == 1
+figure;
+[C,h] = contour(XX_eto, YY_eto, Z_masked,[depth_min,depth_max]) ;
+xlabel('Longitude');
+ylabel('Latitude');
+%C(wholeNumberIndex) = NaN ;
+zeroidx = (C == 0) ;
+for i = 1:1:length(C)
+    if C(1,i) == 0
+C(:,i) = NaN ;
+    end
+end
+indices = find(C > 0 & C < 10,1);
+[row, col] = ind2sub(size(C), indices);
+C = C(:,1:col-1) ;
+cx = [cx;C(1,:)'] ;
+cy = [cy;C(2,:)'] ;
+save 'cx-cy.mat' cx cy
+    end
+end
+load 'cx-cy.mat' cx cy
+clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx
+
 %
 % Defining Coastline
 run = 2 ;
@@ -1177,19 +1212,14 @@ for i = 1:1
 end
 load("open_temp_anom.mat") 
 load("open_sal_anom.mat")
-%open_sal_anom(:, unique_col) = [] ; (should be taken care of by the
-%open_find index length)
-%combined index of cutoff and sal outliers
-
-%combined_idx_open = open_idx | unique_col_idx_open ;
-%lat_open(:, combined_idx_open) = [] ;
-%lon_open(:, combined_idx_open) = [] ;
 
 clear col unique_col
 %load("open_temp_std.mat")
 %load("open_sal_std.mat")
 clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
 %% Fjord Anomaly Calculations (include profiles + or - 15 days)
+run = 2 ;
+if run == 1
 for i = 1:length(fjord_box_cords)
 fj_box_profiles{i} = inpolygon(lon,lat,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ; % gives index of all profiles within the fjord anomaly boxes.
 fj_profiles{i} = inpolygon(lon,lat,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ; % idx of profiles inside defined fjords
@@ -1199,13 +1229,15 @@ fj_box_combined = [] ;
 for i = 1:length(fj_profiles)
 fj_box_idx = find(fj_box_profiles{i} == 1) ; % create index instead of logical index
 fj_box_combined = [fj_box_combined,fj_box_idx] ;
+fj_box_idx_back{i} = fj_box_idx ;
 fj_profile_back{i} = find(fj_profiles{i} == 1) ;
 end
-clear fj_box_idx fj_profile_idx
+clear fj_box_idx 
 % get box dates
 box_datenum = datenum(fj_box_combined) ; 
 for i = 1:length(fj_profile_back)
 fj_datenum{i} = datenum(fj_profile_back{i}) ;
+fj_coords{i} = [lon(fj_profile_back{i});lat(fj_profile_back{i})] ; % matching coordinates for anomalies
 end
 for i = 1:length(fj_datenum)
     for j= 1:length(fj_datenum{i})
@@ -1218,8 +1250,33 @@ for i = 1:length(fj_datenum)
     end
     end
 end
-% now you can compare the two indices, since you know it has to be in the corresponding box
-
+% replace logical index in date_idx cells with index from fj_box_combined
+for i = 1:length(date_idx)
+    for j = 1:length(date_idx{i})
+        fj_anom_date_idx = fj_box_combined(date_idx{i}{j}) ;
+        fj_anom_idx{i}{j} = intersect(fj_anom_date_idx,fj_box_idx_back{i}) ;
+    end
+end
+% compare date casts and box casts, only keep if a value is present in both (fj_profile_back contains idx for fj profiles, fj_anom_idx for box profiles that fit the correct box and date)_
+clear date_idx fj_anom_date_idx fj_datenum box_datenum fj_box_idx_back fj_box_combined fj_combined fj_profiles fj_box_profiles
+% calculate means, and subtract fjord values for anomaly
+interp_sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ;
+interp_sal_mat_fj = [interp_sal_mat_fj{:}] ;
+for i = 1:length(fj_anom_idx) 
+    for j = 1:length(fj_anom_idx{i})
+        if length(fj_anom_idx{i}{j}) >= 2 % reduced limit to calculate anomalies
+            fj_anoms{i}(:,j) = interp_sal_mat_fj(:,fj_profile_back{i}(j)) - mean(interp_sal_mat_fj(:,fj_anom_idx{i}{j}),2,'omitnan') ;
+        else
+            fj_anoms{i}(:,j) = NaN(size(interp_sal_mat_fj, 1), 1); 
+        end
+    end
+end
+save fj_anoms.mat fj_anoms
+save fj_coords.mat fj_coords
+end
+load fj_anoms.mat 
+load fj_coords.mat
+clear interp_sal interp_temp 
 %%
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 %numpoints = length(DepInterval) ;

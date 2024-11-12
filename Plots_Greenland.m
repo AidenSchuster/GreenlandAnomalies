@@ -2,9 +2,9 @@
 clf
 hold on
 plot(cx,cy,'k')
-scatter(lon,lat,3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
-scatter(OMG_lon,OMG_lat,7,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
-xlim([-75,-30])
+%scatter(lon,lat,3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
+%scatter(OMG_lon,OMG_lat,7,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
+xlim([-84,-30])
 ylim([55,80])
 daspect([1 aspect_ratio 1])
 hold off
