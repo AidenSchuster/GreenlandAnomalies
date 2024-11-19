@@ -30,7 +30,9 @@ hold on
     [~,CountourM] = contour(XX,YY,ZZ, iso_interval) ;
 for i = 1:length(fjord_vert)
         fill(fjord_vert{i}(:, 1), fjord_vert{i}(:, 2), 'b');
-        plot(fjord_box_cords{i}(:, 1), fjord_box_cords{i}(:, 2), 'k')
+end
+for i = 1:length(fjord_box_cords)
+    plot(fjord_box_cords{i}(:, 1), fjord_box_cords{i}(:, 2), 'k')
 end
 plot(cx,cy,'k')
 daspect([1 aspect_ratio 1])
@@ -38,6 +40,20 @@ xlim([-80,-30])
 ylim([55,80])
 hold off
 clear CountourM ContourMatrix
+%% Plot Fjord Anomalies
+clf
+hold on
+for i = 1:length(fj_anoms)
+    for j = 1:size(fj_anoms{i},2)
+    plot(fj_anoms{i}(:,j),DepInterval)
+    end
+end
+axis ij
+ylim([0,300]) 
+xlabel('Salinity')
+ylabel('Depth M')
+title('Salinity Anomalies for Fjord Profiles')
+hold off
 %%
 %Plot Angled Rectangles
 clf
@@ -74,7 +90,7 @@ xlim([-80,-35])
 ylim([55,80])
 plot(off_coast(:,1),off_coast(:,2),'r')
 scatter(reff_x,reff_y,'g')
-hold off
+%hold off
 %% Plot restricted Coastal Casts
 clf
 hold on

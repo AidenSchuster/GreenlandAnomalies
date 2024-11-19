@@ -316,8 +316,8 @@ index = index_plus2(i) ;
 end
 % Test inpolygon to remove stuff inside coastline (need to keep 1/2
 % seperate for avging later
-polygon_x = [-67;x_coast;-40] ; % needs to change if we redo coastline
-polygon_y = [95;y_coast;95] ;
+polygon_x = [-45;x_coast;-30] ; % needs to change if we redo coastline
+polygon_y = [78.1036;y_coast;78.1036] ;
 in_plus = inpolygon(exten_plus(:,1),exten_plus(:,2),polygon_x,polygon_y) ;
 in_plus2 = inpolygon(exten_plus2(:,1),exten_plus2(:,2),polygon_x,polygon_y) ;
 in_minus = inpolygon(exten_minus(:,1),exten_minus(:,2),polygon_x,polygon_y) ;
@@ -859,7 +859,7 @@ if run == 1
     save selected_points.mat selected_points
 end
 load selected_points.mat
-%% edit fjord_vert points based on the points selected
+%% edit fjord_vert points based on the points selected (don't really need this, faster to edit by hand)
 run = 2; % only run if you've reselected boxes or # of fjords
 if run == 1
 fjord_affected = [1,2,3,4,5,6,7,9,10,11,12,13,15,17,18,19,20,21,22,23,24,26,27,28,30] ; % idx of fjords that will have points altered.(manual)
@@ -874,9 +874,47 @@ clear fjord_affected selected_points
 %% group fjord data by individual fjords (move until after cleaning
 % eventually)
 for i = 1:length(fjord_vert)
-in_fj{i} = inpolygon(lon_fj,lat_fj,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ;
+in_fj{i} = inpolygon(lon,lat,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ;
 end
 clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points special_case iso_interval isobath_interval
+%% clean fjord data loop through collumns and calculate derivatives (delta y /delta x)
+run = 2 ;
+fjord_sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ; % fjord data 
+fjord_sal_mat_fj = [fjord_sal_mat_fj{:}] ; % all data, but cleaned specifically for fjord standards
+if run == 1
+    diff_result = NaN(size(interp_sal_mat)) ;
+    for i  = 1:length(interp_sal_mat)
+    non_nan = find(~isnan(interp_sal_mat(:,i))) ;
+    non_nan_store{i} = non_nan ;
+    temporary = interp_sal_mat(:,i) ;
+    diff_sal = diff(temporary(non_nan),1,1) ;
+    diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
+    end
+   threshold_15 = 2 ; % 0-50 m
+   threshold = 0.3 ; % 50-end m
+     top_15 = diff_result(1:50,:) ;
+     bottom = diff_result(51:end,:) ;
+     top_15_remove = top_15 >= threshold_15 ; % idx of bottom that has derivatives greater than threshold
+     bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
+     remove = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     for i = 1:length(remove) 
+     idx = find(remove(:,i) == 1) ;
+        for j = 1:length(idx)
+            if size(idx) >= 1
+        value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
+        value_below = non_nan_store{i}(value_below_idx) ;
+        remove(value_below, i) = 1; % Mark the value from non_nan_store for removal
+            end
+        end
+     end
+save 'remove.mat' 'remove'
+clear top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_15_remove
+
+end
+
+
+
+
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
@@ -1218,7 +1256,7 @@ clear col unique_col
 %load("open_sal_std.mat")
 clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
 %% Fjord Anomaly Calculations (include profiles + or - 15 days)
-run = 2 ;
+run = 1 ;
 if run == 1
 for i = 1:length(fjord_box_cords)
 fj_box_profiles{i} = inpolygon(lon,lat,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ; % gives index of all profiles within the fjord anomaly boxes.
@@ -1260,8 +1298,8 @@ end
 % compare date casts and box casts, only keep if a value is present in both (fj_profile_back contains idx for fj profiles, fj_anom_idx for box profiles that fit the correct box and date)_
 clear date_idx fj_anom_date_idx fj_datenum box_datenum fj_box_idx_back fj_box_combined fj_combined fj_profiles fj_box_profiles
 % calculate means, and subtract fjord values for anomaly
-interp_sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ;
-interp_sal_mat_fj = [interp_sal_mat_fj{:}] ;
+%interp_sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ;
+%interp_sal_mat_fj = [interp_sal_mat_fj{:}] ;
 for i = 1:length(fj_anom_idx) 
     for j = 1:length(fj_anom_idx{i})
         if length(fj_anom_idx{i}{j}) >= 2 % reduced limit to calculate anomalies
@@ -1276,7 +1314,7 @@ save fj_coords.mat fj_coords
 end
 load fj_anoms.mat 
 load fj_coords.mat
-clear interp_sal interp_temp 
+clear interp_sal interp_temp fj_profile_back %fj_anom_idx
 %%
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 %numpoints = length(DepInterval) ;
