@@ -15,6 +15,7 @@ min_count = 4 ; % the minimum # of data points needed in order to plot the stati
 aspect_ratio = cosd(65) ; % Aspect Ratio at 65 N
 target  = 100 ; % km from coast
 %combine OMG_data into NODC data
+length_NODC = length(lat) ;
 lat = [lat,OMG_lat] ;
 lon = [lon,OMG_lon] ;
 dep = [dep,OMG_depth] ;
@@ -871,22 +872,33 @@ save fjord_vert.mat fjord_vert
 end
 load fjord_vert.mat fjord_vert
 clear fjord_affected selected_points
-%% group fjord data by individual fjords (move until after cleaning
-% eventually)
+% group fjord data by individual fjords
+fj_find_combined = [];
 for i = 1:length(fjord_vert)
-in_fj{i} = inpolygon(lon,lat,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ;
+    in_fj{i} = inpolygon(lon, lat, fjord_vert{i}(:,1), fjord_vert{i}(:,2));
+    fjord_find = find(in_fj{i});
+    fj_find_combined = [fj_find_combined, fjord_find]; % Fj profile indices
 end
-clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points special_case iso_interval isobath_interval
+OMG_fj_profiles = fj_find_combined >= length_NODC ; % OMG profiles, (should be any profile after NODC length)
+clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points special_case iso_interval isobath_interval fjord_find in_fj length_NODC
 %% clean fjord data loop through collumns and calculate derivatives (delta y /delta x)
-run = 2 ;
-fjord_sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ; % fjord data 
-fjord_sal_mat_fj = [fjord_sal_mat_fj{:}] ; % all data, but cleaned specifically for fjord standards
+
+run = 1 ;
 if run == 1
-    diff_result = NaN(size(interp_sal_mat)) ;
-    for i  = 1:length(interp_sal_mat)
-    non_nan = find(~isnan(interp_sal_mat(:,i))) ;
-    non_nan_store{i} = non_nan ;
-    temporary = interp_sal_mat(:,i) ;
+    sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ; % fjord data 
+    sal_mat_fj = [sal_mat_fj{:}] ; % all data, idx fjord profiles, clean and replace with nan for removed profiles
+    fjord_sal_mat_fj = sal_mat_fj(:,fj_find_combined) ; % fjord data
+    diff_result = NaN(size(fjord_sal_mat_fj)) ;
+    % remove profiles with certain % of NaN in top 100 meters
+    top_50 = fjord_sal_mat_fj(1:100,:) ;
+    nan_count = sum(isnan(top_50), 1);  % Count NaNs along rows for each column
+    threshold = 30 ; % max number of NaN values permitted in top 50 m
+    too_many_nans = nan_count > threshold ;
+    fjord_sal_mat_fj = fjord_sal_mat_fj(:,~too_many_nans) ;
+    for i  = 1:length(fjord_sal_mat_fj)
+    non_nan = find(~isnan(fjord_sal_mat_fj(:,i))) ;
+    non_nan_store{i} = non_nan ; 
+    temporary = fjord_sal_mat_fj(:,i) ;
     diff_sal = diff(temporary(non_nan),1,1) ;
     diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
     end
@@ -896,25 +908,30 @@ if run == 1
      bottom = diff_result(51:end,:) ;
      top_15_remove = top_15 >= threshold_15 ; % idx of bottom that has derivatives greater than threshold
      bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
-     remove = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
-     for i = 1:length(remove) 
-     idx = find(remove(:,i) == 1) ;
+     remove_fj = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     for i = 1:length(remove_fj) 
+     idx = find(remove_fj(:,i) == 1) ;
         for j = 1:length(idx)
             if size(idx) >= 1
         value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
         value_below = non_nan_store{i}(value_below_idx) ;
-        remove(value_below, i) = 1; % Mark the value from non_nan_store for removal
+        remove_fj(value_below, i) = 1; % Mark the value from non_nan_store for removal
             end
         end
      end
-save 'remove.mat' 'remove'
-clear top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_15_remove
-
+save 'remove_fj.mat' 'remove_fj'
+clear top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store top_15_remove top_50
+% compare removed points to OMG list, ideally you are removing little to no OMG data since they've been cleaned already 
+remove_fj_any = any(remove_fj, 1);
+num_total = sum(remove_fj_any) ;
+compare_OMG = remove_fj_any & OMG_fj_profiles ;
+num_OMG = sum(compare_OMG);
+disp(['Number of total Fjord profiles impacted: ', num2str(num_total)]) ;
+disp(['Number of OMG profiles impacted by derivative cleaning: ', num2str(num_OMG)]);
+disp(['Number of OMG profiles impacted by NaN cleaning: ', num2str(66 -num_OMG)]) ; % if you change derivative cleaning the 66 # needs to change too, run without removing any nans and set that value
 end
-
-
-
-
+load remove_fj.mat remove_fj
+% clear compare_OMG remove_fj_any num_total num_OMG
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1

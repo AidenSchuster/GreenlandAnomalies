@@ -487,6 +487,21 @@ xlim([0,5])
 ylim([0,300]) 
 hold off
 clear step_s reduced xline_half xline_two
+%% Plot profiles w removed data from Fjord profiles (924)
+hold on
+h1 = plot(fjord_sal_mat_fj(:,remove_fj_any), DepInterval, 'b'); % Plot NODC Profiles
+h2 = plot(fjord_sal_mat_fj(:,compare_OMG), DepInterval, 'r');   % Plot OMG Profiles
+xlim([0,40])
+axis ij
+xlabel('Salinity');
+ylabel('Depth');
+title('Profiles with Data Points Cleaned vs Depth');
+legend([h1(1), h2(1)], 'NODC Profiles', 'OMG Profiles'); % Explicit legend assignment
+%xlim([0,5])
+%ylim([0,300]) 
+hold off
+clear h1 h2
+
 %% Plot Eliminated Profiles due to derivative threshold (line 669 stop) (with dots at the point on the line that will get elimed
 figure
 hold on
