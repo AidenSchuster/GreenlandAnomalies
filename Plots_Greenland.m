@@ -487,7 +487,36 @@ xlim([0,5])
 ylim([0,300]) 
 hold off
 clear step_s reduced xline_half xline_two
-%% Plot profiles w removed data from Fjord profiles (924)
+%% Plot fjord derivatives (line 935)
+figure
+set(gcf, 'Units', 'normalized', 'OuterPosition', [0 0 1 1]); % Full-screen
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\11-21-24' ; % change depending on folderlocation
+hold on
+xline_25 = threshold_25 * ones(1,25) ;
+xline_half_2 = 0.3 * ones(1,length(DepInterval)-50) ;
+xline_two = 2 * ones(1, numel(DepInterval(26:50)));
+h1 = plot(diff_result,DepInterval,'b') ;
+h2= plot(diff_result(:,OMG_fj_profiles),DepInterval,'r') ;
+plot(xline_half_2,DepInterval(51:end),'--k')
+plot(xline_two,DepInterval(26:50),'--k')
+plot(xline_25,DepInterval(1:25),'--k')
+xlim([0,40])
+axis ij
+xlabel('Salinity Derivatives');
+ylabel('Depth');
+title('Salinity Derivatives vs Depth');
+legend([h1(1), h2(1)], 'NODC Profiles', 'OMG Profiles'); % Explicit legend assignment
+xlim([0,12])
+ylim([0,300]) 
+hold off
+filename = sprintf('deriv t25 %d 25-50 %f b50 %c', threshold_25,threshold_50, threshold);
+filename = strcat(filename, '.jpeg');
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear xline_half xline_two h1 h2 filename folderpath
+% Plot profiles w removed data from Fjord profiles (935)
+figure
+set(gcf, 'Units', 'normalized', 'OuterPosition', [0 0 1 1]); % Full-screen
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\11-21-24' ; % change depending on folderlocation
 hold on
 h1 = plot(fjord_sal_mat_fj(:,remove_fj_any), DepInterval, 'b'); % Plot NODC Profiles
 h2 = plot(fjord_sal_mat_fj(:,compare_OMG), DepInterval, 'r');   % Plot OMG Profiles
@@ -500,7 +529,10 @@ legend([h1(1), h2(1)], 'NODC Profiles', 'OMG Profiles'); % Explicit legend assig
 %xlim([0,5])
 %ylim([0,300]) 
 hold off
-clear h1 h2
+filename = sprintf('salinity t25 %d 25-50 %f b50 %c',threshold_25, threshold_50, threshold);
+filename = strcat(filename, '.jpeg');
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear h1 h2 filename folderPath
 
 %% Plot Eliminated Profiles due to derivative threshold (line 669 stop) (with dots at the point on the line that will get elimed
 figure

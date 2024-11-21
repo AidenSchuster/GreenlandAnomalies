@@ -882,18 +882,17 @@ end
 OMG_fj_profiles = fj_find_combined >= length_NODC ; % OMG profiles, (should be any profile after NODC length)
 clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points special_case iso_interval isobath_interval fjord_find in_fj length_NODC
 %% clean fjord data loop through collumns and calculate derivatives (delta y /delta x)
-
-run = 1 ;
-if run == 1
     sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ; % fjord data 
     sal_mat_fj = [sal_mat_fj{:}] ; % all data, idx fjord profiles, clean and replace with nan for removed profiles
     fjord_sal_mat_fj = sal_mat_fj(:,fj_find_combined) ; % fjord data
+run = 2 ;
+if run == 1
     diff_result = NaN(size(fjord_sal_mat_fj)) ;
     % remove profiles with certain % of NaN in top 100 meters
-    top_50 = fjord_sal_mat_fj(1:100,:) ;
+    top_50 = fjord_sal_mat_fj(1:50,:) ;
     nan_count = sum(isnan(top_50), 1);  % Count NaNs along rows for each column
-    threshold = 30 ; % max number of NaN values permitted in top 50 m
-    too_many_nans = nan_count > threshold ;
+    threshold = 25 ; % max number of NaN values permitted in top 50 m
+    too_many_nans = nan_count >= threshold ;
     fjord_sal_mat_fj = fjord_sal_mat_fj(:,~too_many_nans) ;
     for i  = 1:length(fjord_sal_mat_fj)
     non_nan = find(~isnan(fjord_sal_mat_fj(:,i))) ;
@@ -902,13 +901,16 @@ if run == 1
     diff_sal = diff(temporary(non_nan),1,1) ;
     diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
     end
-   threshold_15 = 2 ; % 0-50 m
-   threshold = 0.3 ; % 50-end m
-     top_15 = diff_result(1:50,:) ;
+   threshold_25 = 12 ; % 0-25 m
+   threshold_50 = 2 ; % 26-50 m
+   threshold = 0.3 ; % 51-end m
+     top_25 = diff_result(1:25,:) ;
+     top_50 = diff_result(26:50,:) ;
      bottom = diff_result(51:end,:) ;
-     top_15_remove = top_15 >= threshold_15 ; % idx of bottom that has derivatives greater than threshold
+     top_25_remove = top_25 >= threshold_25 ; % index of top 25 m that has derivatives greater than threshold
+     top_50_remove = top_50 >= threshold_50 ; % idx of 26-50m that has derivatives greater than threshold
      bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
-     remove_fj = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     remove_fj = [top_25_remove;top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
      for i = 1:length(remove_fj) 
      idx = find(remove_fj(:,i) == 1) ;
         for j = 1:length(idx)
@@ -920,18 +922,24 @@ if run == 1
         end
      end
 save 'remove_fj.mat' 'remove_fj'
-clear top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store top_15_remove top_50
+clear top_50 bottom bottom_remove diff_sal temporary non_nan value_below value_below_idx non_nan_store top_50_remove top_25_remove top_25 
 % compare removed points to OMG list, ideally you are removing little to no OMG data since they've been cleaned already 
 remove_fj_any = any(remove_fj, 1);
 num_total = sum(remove_fj_any) ;
 compare_OMG = remove_fj_any & OMG_fj_profiles ;
+compare_OMG_nan = OMG_fj_profiles & too_many_nans ;
+num_OMG_nan = sum(compare_OMG_nan) ;
 num_OMG = sum(compare_OMG);
 disp(['Number of total Fjord profiles impacted: ', num2str(num_total)]) ;
 disp(['Number of OMG profiles impacted by derivative cleaning: ', num2str(num_OMG)]);
-disp(['Number of OMG profiles impacted by NaN cleaning: ', num2str(66 -num_OMG)]) ; % if you change derivative cleaning the 66 # needs to change too, run without removing any nans and set that value
+disp(['Number of OMG profiles impacted by NaN cleaning: ', num2str(num_OMG_nan)]) ; % if you change derivative cleaning the 66 # needs to change too, run without removing any nans and set that value
 end
 load remove_fj.mat remove_fj
-% clear compare_OMG remove_fj_any num_total num_OMG
+clear compare_OMG remove_fj_any num_total num_OMG too_many_nans num_OMG_nan compare_OMG_nan diff_result threshold_50 threshold threshold_25
+% remove these points
+fjord_sal_mat_fj(remove_fj) = NaN ;
+%interp_temp_mat_fj(remove_fj) = NaN ; (not a thing yet)
+clear sal_mat_fj fj_find_combined
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
@@ -943,13 +951,13 @@ if run == 1
     diff_sal = diff(temporary(non_nan),1,1) ;
     diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
     end
-   threshold_15 = 2 ; % 0-50 m
+   threshold_50 = 2 ; % 0-50 m
    threshold = 0.3 ; % 50-end m
-     top_15 = diff_result(1:50,:) ;
+     top_50 = diff_result(1:50,:) ;
      bottom = diff_result(51:end,:) ;
-     top_15_remove = top_15 >= threshold_15 ; % idx of bottom that has derivatives greater than threshold
+     top_50_remove = top_50 >= threshold_50 ; % idx of bottom that has derivatives greater than threshold
      bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
-     remove = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     remove = [top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
      for i = 1:length(remove) 
      idx = find(remove(:,i) == 1) ;
         for j = 1:length(idx)
@@ -961,7 +969,7 @@ if run == 1
         end
      end
 save 'remove.mat' 'remove'
-clear top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_15_remove
+clear top_50 bottom threshold bottom_remove top_50 threshold_50 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_50_remove
 %same thing but for coast (for vert idx)
     diff_result = NaN(size(coast_sal_temporary)) ;
     for i  = 1:length(coast_sal_temporary)
@@ -971,13 +979,13 @@ clear top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal tempora
     diff_sal = diff(coast_sal_temporary(non_nan),1,1) ;
     diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
     end
-   threshold_15 = 2 ; % 0-50 m
+   threshold_50 = 2 ; % 0-50 m
    threshold = 0.3 ; % 50-end m
-     top_15 = diff_result(1:50,:) ;
+     top_50 = diff_result(1:50,:) ;
      bottom = diff_result(51:end,:) ;
-     top_15_remove = top_15 >= threshold_15 ; % idx of bottom that has derivatives greater than threshold
+     top_50_remove = top_50 >= threshold_50 ; % idx of bottom that has derivatives greater than threshold
      bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
-     remove_coast = [top_15_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     remove_coast = [top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
      for i = 1:length(remove_coast) 
      idx = find(remove_coast(:,i) == 1) ;
         for j = 1:length(idx)
@@ -989,7 +997,7 @@ clear top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal tempora
         end
      end
 save 'remove_coast.mat' 'remove_coast'
-clear remove_coast top_15 bottom threshold bottom_remove top_15 threshold_15 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store top_15_remove
+clear remove_coast top_50 bottom threshold bottom_remove top_50 threshold_50 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store top_50_remove
 end
 load 'remove.mat'
 load 'remove_coast.mat'
