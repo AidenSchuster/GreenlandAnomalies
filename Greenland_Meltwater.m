@@ -5,6 +5,8 @@ load("02cleanNODC_updated.mat")
 load('OMG_data.mat')
 load("x_coast.mat")
 load("y_coast.mat")
+s = settings;
+s.matlab.appearance.figure.GraphicsTheme.TemporaryValue = "light";
 % Commonly Changed Variables for box size and day interval (set run to one
 % below if changing rectangle size)
 recwidth = 10*2 ; % km doubled as it is 10 "radius" Change value for different sized cast boxes
@@ -378,10 +380,22 @@ for i = 1:length(intersect_y)
     idx_remove = [idx_remove;idx] ;
 end
 off_coast(idx_remove,:) = [] ;
+run = 2 ;
+if run == 1
 %combine into polygon
 poly_off = [-66.6413,75.7] ;
 combined_x = [off_coast(:,1);flip(x_coast)] ;
 combined_y = [off_coast(:,2);flip(y_coast)] ;
+% manually fix combined_x/y
+added_x = combined_x(2) ; % manually adding a point
+added_y = combined_y(end) ;
+combined_x = [added_x;combined_x(2:end)] ;
+combined_y = [added_y;combined_y(2:end)] ;
+   save combined_x.mat combined_x
+   save combined_y.mat combined_y
+end
+load combined_x.mat
+load combined_y.mat
 in = inpolygon(lon,lat,combined_x,combined_y) ; % All coasts within coastal section 
 % Determine which refference point to base slope of rectangle boxes
 reff_x = x_reff_new' ;
@@ -605,7 +619,7 @@ for i = 1:1
 end
 load('interp_sal.mat')
 %% Test Section
-% remove fjord casts and create variables to use
+% remove fjord casts and create variables to use 
 in_idx = inpolygon(lon,lat,polygon_x,polygon_y) ; % need this for the interp section
 lon_fj = lon(in_idx) ;
 lat_fj = lat(in_idx) ;
@@ -880,7 +894,7 @@ for i = 1:length(fjord_vert)
     fj_find_combined = [fj_find_combined, fjord_find]; % Fj profile indices
 end
 OMG_fj_profiles = fj_find_combined >= length_NODC ; % OMG profiles, (should be any profile after NODC length)
-clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points special_case iso_interval isobath_interval fjord_find in_fj length_NODC
+clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points special_case iso_interval isobath_interval fjord_find in_fj selected_points
 %% clean fjord data loop through collumns and calculate derivatives (delta y /delta x)
     sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ; % fjord data 
     sal_mat_fj = [sal_mat_fj{:}] ; % all data, idx fjord profiles, clean and replace with nan for removed profiles
@@ -939,7 +953,64 @@ clear compare_OMG remove_fj_any num_total num_OMG too_many_nans num_OMG_nan comp
 % remove these points
 fjord_sal_mat_fj(remove_fj) = NaN ;
 %interp_temp_mat_fj(remove_fj) = NaN ; (not a thing yet)
-clear sal_mat_fj fj_find_combined
+clear fj_find_combined
+%% Clean fjord anomaly profiles (by same standards as open/coastal) (needs to be light/conservative)
+run = 1 ;
+if run == 1
+    box_find_combined = [] ;
+    for i = 1:length(fjord_box_cords)
+    temp_idx{i} = inpolygon(lon,lat,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ;
+    box_find = find(temp_idx{i});
+    box_find_combined = [box_find_combined, box_find]; % Fj profile indices
+    end
+   OMG_box_profiles = box_find_combined >= length_NODC ; %idx of all box profiles that are also OMG
+    box_idx = any(cell2mat(temp_idx'), 1);
+    box_sal_mat = sal_mat_fj(:,box_idx) ; % only box anomalies
+% derivatives 
+diff_result = NaN(size(box_sal_mat)) ;
+for i  = 1:size(box_sal_mat,2)
+    non_nan = find(~isnan(box_sal_mat(:,i))) ;
+    non_nan_store{i} = non_nan ;
+    temporary = box_sal_mat(:,i) ;
+    diff_sal = diff(temporary(non_nan),1,1) ;
+    diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
+    end
+   threshold_50 = 2 ; % 0-50 m
+   threshold = 0.3 ; % 50-end m
+     top_50 = diff_result(1:50,:) ;
+     bottom = diff_result(51:end,:) ;
+     top_50_remove = top_50 >= threshold_50 ; % idx of bottom that has derivatives greater than threshold
+     bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
+     remove_box = [top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     for i = 1:size(remove_box,2) 
+     idx = find(remove_box(:,i) == 1) ;
+        for j = 1:length(idx)
+            if size(idx) >= 1
+        value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
+        value_below = non_nan_store{i}(value_below_idx) ;
+        remove_box(value_below, i) = 1; % Mark the value from non_nan_store for removal
+            end
+        end
+     end
+% NaN filter
+top_100 = box_sal_mat(1:100,:) ;
+nan_count = sum(isnan(top_100), 1);  % Count NaNs along rows for each column
+threshold = 50 ; % max number of NaN values permitted in top 100 m
+too_many_nans = nan_count > threshold ;
+% Test
+remove_box_any = zeros(length(OMG_box_profiles)) ;
+remove_box_any = any(remove_box, 1);
+num_total = sum(remove_box_any) ;
+compare_OMG = remove_box_any & OMG_box_profiles ;
+compare_OMG_nan = OMG_box_profiles & too_many_nans ;
+num_OMG_nan = sum(compare_OMG_nan) ;
+num_OMG = sum(compare_OMG);
+disp(['Number of total box profiles impacted: ', num2str(num_total)]) ;
+disp(['Number of box OMG profiles impacted by derivative cleaning: ', num2str(num_OMG)]);
+disp(['Number of box OMG profiles impacted by NaN cleaning: ', num2str(num_OMG_nan)]) ; % if you change derivative cleaning the 66 # needs to change too, run without removing any nans and set that value
+
+end
+clear temp_idx box_idx threshold_50 threshold top_50 bottom threshold bottom_remove top_50 threshold_50 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_50_remove length_NODC
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
