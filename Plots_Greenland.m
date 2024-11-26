@@ -533,7 +533,6 @@ filename = sprintf('salinity t25 %d 25-50 %f b50 %c',threshold_25, threshold_50,
 filename = strcat(filename, '.jpeg');
 print(fullfile(folderPath, filename), '-djpeg') ;
 clear h1 h2 filename folderPath
-
 %% Plot Eliminated Profiles due to derivative threshold (line 669 stop) (with dots at the point on the line that will get elimed
 figure
 hold on
@@ -556,6 +555,8 @@ ylabel('Depth');
 title('Salinity profiles with points eliminated');
 hold off
 %clear reduced step_s col row_idx col_idx col valid_idx
+%% Anomaly Derivatives
+
 %% Plot profiles with eliminated points in top 50 m's geogrpahic location
 top_50 = remove(1:50,:) ;
 col = any(top_50, 1);

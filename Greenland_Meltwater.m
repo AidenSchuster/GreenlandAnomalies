@@ -899,8 +899,6 @@ clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg l
     sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ; % fjord data 
     sal_mat_fj = [sal_mat_fj{:}] ; % all data, idx fjord profiles, clean and replace with nan for removed profiles
     fjord_sal_mat_fj = sal_mat_fj(:,fj_find_combined) ; % fjord data
-run = 2 ;
-if run == 1
     diff_result = NaN(size(fjord_sal_mat_fj)) ;
     % remove profiles with certain % of NaN in top 100 meters
     top_50 = fjord_sal_mat_fj(1:50,:) ;
@@ -908,6 +906,8 @@ if run == 1
     threshold = 25 ; % max number of NaN values permitted in top 50 m
     too_many_nans = nan_count >= threshold ;
     fjord_sal_mat_fj = fjord_sal_mat_fj(:,~too_many_nans) ;
+    run = 2 ;
+if run == 1
     for i  = 1:length(fjord_sal_mat_fj)
     non_nan = find(~isnan(fjord_sal_mat_fj(:,i))) ;
     non_nan_store{i} = non_nan ; 
@@ -954,18 +954,21 @@ clear compare_OMG remove_fj_any num_total num_OMG too_many_nans num_OMG_nan comp
 fjord_sal_mat_fj(remove_fj) = NaN ;
 %interp_temp_mat_fj(remove_fj) = NaN ; (not a thing yet)
 clear fj_find_combined
-%% Clean fjord anomaly profiles (by same standards as open/coastal) (needs to be light/conservative)
-run = 1 ;
-if run == 1
-    box_find_combined = [] ;
-    for i = 1:length(fjord_box_cords)
-    temp_idx{i} = inpolygon(lon,lat,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ;
-    box_find = find(temp_idx{i});
-    box_find_combined = [box_find_combined, box_find]; % Fj profile indices
-    end
+%% Clean fjord box anomaly profiles (by same standards as open/coastal) (needs to be light/conservative)
+ box_find_combined = [] ;
+ for i = 1:length(fjord_box_cords)
+ temp_idx{i} = inpolygon(lon,lat,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ;
+ box_find = find(temp_idx{i});
+ box_find_combined = [box_find_combined, box_find]; % Fj profile indices (contains duplicates)
+ end
+   box_find_combined = unique(box_find_combined) ; 
    OMG_box_profiles = box_find_combined >= length_NODC ; %idx of all box profiles that are also OMG
     box_idx = any(cell2mat(temp_idx'), 1);
     box_sal_mat = sal_mat_fj(:,box_idx) ; % only box anomalies
+top_100 = box_sal_mat(1:100,:) ;
+nan_count = sum(isnan(top_100), 1);  % Count NaNs along rows for each column
+run = 2 ;
+if run == 1
 % derivatives 
 diff_result = NaN(size(box_sal_mat)) ;
 for i  = 1:size(box_sal_mat,2)
@@ -992,25 +995,26 @@ for i  = 1:size(box_sal_mat,2)
             end
         end
      end
+% Test
+remove_box_any = any(remove_box, 1);
+%num_total = sum(remove_box_any) ;
+%compare_OMG = remove_box_any & OMG_box_profiles ;
+%compare_OMG_nan = OMG_box_profiles & too_many_nans ;
+%num_OMG_nan = sum(compare_OMG_nan) ;
+%num_OMG = sum(compare_OMG);
+%disp(['Number of total box profiles impacted: ', num2str(num_total)]) ;
+%disp(['Number of box OMG profiles impacted by derivative cleaning: ', num2str(num_OMG)]);
+%disp(['Number of box OMG profiles impacted by NaN cleaning: ', num2str(num_OMG_nan)]) ; % if you change derivative cleaning the 66 # needs to change too, run without removing any nans and set that value
+save remove_box.mat remove_box
+end
+load remove_box.mat remove_box
+box_sal_mat(remove_box) = NaN ; % eliminates points 
 % NaN filter
-top_100 = box_sal_mat(1:100,:) ;
-nan_count = sum(isnan(top_100), 1);  % Count NaNs along rows for each column
 threshold = 50 ; % max number of NaN values permitted in top 100 m
 too_many_nans = nan_count > threshold ;
-% Test
-remove_box_any = zeros(length(OMG_box_profiles)) ;
-remove_box_any = any(remove_box, 1);
-num_total = sum(remove_box_any) ;
-compare_OMG = remove_box_any & OMG_box_profiles ;
-compare_OMG_nan = OMG_box_profiles & too_many_nans ;
-num_OMG_nan = sum(compare_OMG_nan) ;
-num_OMG = sum(compare_OMG);
-disp(['Number of total box profiles impacted: ', num2str(num_total)]) ;
-disp(['Number of box OMG profiles impacted by derivative cleaning: ', num2str(num_OMG)]);
-disp(['Number of box OMG profiles impacted by NaN cleaning: ', num2str(num_OMG_nan)]) ; % if you change derivative cleaning the 66 # needs to change too, run without removing any nans and set that value
-
-end
-clear temp_idx box_idx threshold_50 threshold top_50 bottom threshold bottom_remove top_50 threshold_50 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_50_remove length_NODC
+box_sal_mat = box_sal_mat(:,~too_many_nans) ;
+clear temp_idx box_idx threshold_50 threshold top_50 bottom threshold bottom_remove top_50 threshold_50 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_50_remove length_NODC num_OMG
+clear num_OMG_nan
 %% loop through collumns and calculate derivatives (delta y /delta x)
 run = 2 ;
 if run == 1
