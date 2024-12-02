@@ -62,13 +62,13 @@ end
 load 'cx-cy.mat' cx cy
 clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx
 % Extend it further north using same ETOPO dataset and 0-5 contour
-[Z_eto,R] = readgeoraster('extendedNcoast.tiff') ;
-[rows,cols] = size(Z_eto) ;
+[Z_eto_N,R] = readgeoraster('extendedNcoast.tiff') ;
+[rows,cols] = size(Z_eto_N) ;
 [rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
-[YY_eto, XX_eto] = intrinsicToGeographic(R, colGrid, rowGrid);
-Z_eto = double(Z_eto) ;
-coast_range = (Z_eto>=0) & (Z_eto<=5) ; % 0-5 m coastline
-Z_masked = Z_eto ;
+[YY_eto_N, XX_eto_N] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto_N = double(Z_eto_N) ;
+coast_range = (Z_eto_N>=0) & (Z_eto_N<=5) ; % 0-5 m coastline
+Z_masked = Z_eto_N ;
 depth_min = 0 ;
 depth_max = 5 ;
 run = 2 ;
@@ -751,6 +751,7 @@ if run == 1
     isobath_interval = -200:-100:-3000;  % Define isobath intervals down to the minimum depth
     iso_interval = 200:100:3000 ;
     [~, ContourMatrix] = contour(XX_eto, YY_eto, Z_eto, isobath_interval);
+    [~, ContourMatrix_N] = contour(XX_eto_N, YY_eto_N, Z_eto_N, isobath_interval);
     [~,CountourM] = contour(XX,YY,ZZ, iso_interval) ;
     for i = 1:length(fjord_vert)
         fill(fjord_vert{i}(:, 1), fjord_vert{i}(:, 2), 'b');
@@ -1170,7 +1171,7 @@ clear middle_idx latedec_idx earlyjan_idx day_a
 %range(:,unique_col) = [] ;
 %clear temp_sal
 % Create indicies for coastal casts within box and date range 
-run = 2 ;
+run = 1 ;
 for i = 1:length(vert)
         if run == 1  
             poly_idx = inpolygon(lon_a,lat_a,vert{i}(1,:),vert{i}(2,:)) ; % each collumn corresponds to a different cast
@@ -1206,7 +1207,7 @@ dummy_lat = lat_a ;
 %refference lat and lon
 start_pattern = [true,false] ;
 pattern = [true,true,false] ;  %pattern for opendist/sw_dist data sorting
-num_repeat = ceil(129752/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
+num_repeat = ceil(129456/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
 pattern = repmat(pattern,1,num_repeat) ;
 pattern = [start_pattern,pattern,true] ; % concats start and end values
 clear num_repeat start_pattern lon_temp
