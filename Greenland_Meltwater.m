@@ -874,6 +874,7 @@ if run == 1
    hold off
     save selected_points.mat selected_points
 end
+clear lat_fj lon_fj
 load selected_points.mat
 %% edit fjord_vert points based on the points selected (don't really need this, faster to edit by hand)
 run = 2; % only run if you've reselected boxes or # of fjords
@@ -900,6 +901,8 @@ clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg l
     sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ; % fjord data 
     sal_mat_fj = [sal_mat_fj{:}] ; % all data, idx fjord profiles, clean and replace with nan for removed profiles
     fjord_sal_mat_fj = sal_mat_fj(:,fj_find_combined) ; % fjord data
+    lon_fj =  lon(fj_find_combined) ;
+    lat_fj = lat(fj_find_combined) ;
     diff_result = NaN(size(fjord_sal_mat_fj)) ;
     % remove profiles with certain % of NaN in top 100 meters
     top_50 = fjord_sal_mat_fj(1:50,:) ;
@@ -907,6 +910,8 @@ clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg l
     threshold = 25 ; % max number of NaN values permitted in top 50 m
     too_many_nans = nan_count >= threshold ;
     fjord_sal_mat_fj = fjord_sal_mat_fj(:,~too_many_nans) ;
+    lon_fj = lon_fj(:,~too_many_nans) ; % for tracking
+    lat_fj = lat_fj(:,~too_many_nans) ;
     run = 2 ;
 if run == 1
     for i  = 1:length(fjord_sal_mat_fj)
@@ -968,6 +973,8 @@ clear fj_find_combined
     box_sal_mat = sal_mat_fj(:,box_idx) ; % only box anomalies
 top_100 = box_sal_mat(1:100,:) ;
 nan_count = sum(isnan(top_100), 1);  % Count NaNs along rows for each column
+    lon_box =  lon(box_find_combined) ;
+    lat_box = lat(box_find_combined) ;
 run = 2 ;
 if run == 1
 % derivatives 
@@ -1014,6 +1021,8 @@ box_sal_mat(remove_box) = NaN ; % eliminates points
 threshold = 50 ; % max number of NaN values permitted in top 100 m
 too_many_nans = nan_count > threshold ;
 box_sal_mat = box_sal_mat(:,~too_many_nans) ;
+    lon_box = lon_box(:,~too_many_nans) ; % for tracking
+    lat_box = lat_box(:,~too_many_nans) ;
 clear temp_idx box_idx threshold_50 threshold top_50 bottom threshold bottom_remove top_50 threshold_50 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_50_remove length_NODC num_OMG
 clear num_OMG_nan
 %% loop through collumns and calculate derivatives (delta y /delta x)
@@ -1171,7 +1180,7 @@ clear middle_idx latedec_idx earlyjan_idx day_a
 %range(:,unique_col) = [] ;
 %clear temp_sal
 % Create indicies for coastal casts within box and date range 
-run = 1 ;
+run = 2 ;
 for i = 1:length(vert)
         if run == 1  
             poly_idx = inpolygon(lon_a,lat_a,vert{i}(1,:),vert{i}(2,:)) ; % each collumn corresponds to a different cast
@@ -1360,8 +1369,8 @@ clear coast_find open_find open_temp_mat open_sal_mat % will need these back eve
 run = 1 ;
 if run == 1
 for i = 1:length(fjord_box_cords)
-fj_box_profiles{i} = inpolygon(lon,lat,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ; % gives index of all profiles within the fjord anomaly boxes.
-fj_profiles{i} = inpolygon(lon,lat,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ; % idx of profiles inside defined fjords
+fj_box_profiles{i} = inpolygon(lon_box,lat_box,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ; % gives index of all profiles within the fjord anomaly boxes.
+fj_profiles{i} = inpolygon(lon_fj,lat_fj,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ; % idx of profiles inside defined fjords
 end
 fj_combined = [] ;
 fj_box_combined = [] ;
@@ -1404,9 +1413,9 @@ clear date_idx fj_anom_date_idx fj_datenum box_datenum fj_box_idx_back fj_box_co
 for i = 1:length(fj_anom_idx) 
     for j = 1:length(fj_anom_idx{i})
         if length(fj_anom_idx{i}{j}) >= 2 % reduced limit to calculate anomalies
-            fj_anoms{i}(:,j) = interp_sal_mat_fj(:,fj_profile_back{i}(j)) - mean(interp_sal_mat_fj(:,fj_anom_idx{i}{j}),2,'omitnan') ;
+            fj_anoms{i}(:,j) = fjord_sal_mat_fj(:,fj_profile_back{i}(j)) - mean(box_sal_mat(:,fj_anom_idx{i}{j}),2,'omitnan') ;
         else
-            fj_anoms{i}(:,j) = NaN(size(interp_sal_mat_fj, 1), 1); 
+            fj_anoms{i}(:,j) = NaN(size(fjord_sal_mat_fj, 1), 1); 
         end
     end
 end
