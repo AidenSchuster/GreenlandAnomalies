@@ -433,6 +433,65 @@ clear step_s sal_combined_reduced
 if size(open_sal,2) > 301
 open_sal = open_sal' ;
 end
+%% Salinity PCA (fjords)
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\12-5-24' ; % change depending on folderlocation
+DepInterval_custom = DepInterval(1:300) ;
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+scatter(lon_fj(:,year_mon_fj), lat_fj(:,year_mon_fj), 50, first_PC_fj, 'filled');
+colorbar;
+% caxis([-3 3]);
+colormap('cool')
+plot(cx,cy,'k') ;
+xlabel('Longitude');
+ylabel('Latitude');
+title(sprintf('First Principal Component of Fjord Salinity for %s %d', month_string{month_selected}, year_selected));
+hold off
+filename = sprintf('sal_open_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Plot Coeff
+figure
+hold on
+plot(first_coeff_n,DepInterval_custom)
+title('1st Coefficients vs Depth ')
+axis ij
+hold off
+filename = sprintf('sal_open_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Create Scree Plot
+figure
+hold on
+plot(1:length(explained_n), explained_n, 'o-', 'LineWidth', 2);
+xlabel('Principal Component');
+xlim([0,5])
+xticks(1:5); 
+ylabel('Variance Explained (%)');
+title('Scree Plot');
+grid on;
+hold off
+filename = sprintf('sal_open_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear filename
+% Plot Salinity
+if size(open_sal,2) < 301
+open_sal = open_sal' ;
+end
+figure
+hold on
+plot(open_sal(:,yeamon_n_open),DepInterval_custom) ;
+title(sprintf('Salinity vs Depth for open ocean %s %d', month_string{month_selected}, year_selected))
+axis ij
+xlabel('Salinity')
+ylabel('Depth')
+hold off
+filename = sprintf('sal_open_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear step_s sal_combined_reduced
+if size(open_sal,2) > 301
+open_sal = open_sal' ;
+end
 %% Reconstruct a salinity profile using the 1st principal component
 DepInterval_custom = DepInterval(1:300) ;
 number = 1 ; % which profile

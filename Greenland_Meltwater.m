@@ -1467,18 +1467,20 @@ coastal_sal = coastal_sal(1:300,:) ;
 open_sal = open_sal(1:300,:) ;
 length_open = length(open_sal) ;
 sal_combined = sal_combined(1:300,:) ;
-May_a = mon_a == 5 ;
-May_fj = mon_fj == 5 ;
-Jun_a = mon_a == 6 ;
-Jun_fj = mon_fj == 6 ;
-Jul_a = mon_a == 7 ;
-Jul_fj = mon_fj == 7 ;
-Aug_a = mon_a == 8 ;
-Aug_fj = mon_fj == 8 ;
-Sep_a = mon_a == 9 ;
-Sep_fj = mon_fj == 9 ;
-Oct_a = mon_a == 10 ;
-Oct_fj = mon_fj == 10 ;
+fj_anom_combined = fj_anoms_mat(1:300,:) ;  
+fj_combined = fjord_sal_mat_fj(1:300,:) ;
+%May_a = mon_a == 5 ;
+%May_fj = mon_fj == 5 ;
+%Jun_a = mon_a == 6 ;
+%Jun_fj = mon_fj == 6 ;
+%Jul_a = mon_a == 7 ;
+%Jul_fj = mon_fj == 7 ;
+%Aug_a = mon_a == 8 ;
+%5Aug_fj = mon_fj == 8 ;
+%Sep_a = mon_a == 9 ;
+%Sep_fj = mon_fj == 9 ;
+%Oct_a = mon_a == 10 ;
+%Oct_fj = mon_fj == 10 ;
 
 sal_anom_combined = [open_sal_anom,coast_sal_anom] ;
 sal_anom_combined = sal_anom_combined(1:300, :);
@@ -1500,8 +1502,8 @@ for i = 1:size(sal_anom_combined, 2)
     end
 end
 % same for fj anomalies
-for i = 1:size(sal_anom_combined, 2)
-    top10 = sal_anom_combined(1:10, i);  % Extract the top 10 rows of the column
+for i = 1:size(fj_anom_combined, 2)
+    top10 = fj_anom_combined(1:10, i);  % Extract the top 10 rows of the column
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
     %if length(nonNaN_values) >= 3
         % Average the top three non-NaN values
@@ -1510,7 +1512,7 @@ for i = 1:size(sal_anom_combined, 2)
     if length(nonNaN_values) >= 1
         % If fewer than 3 non-NaN values, use the top-most non-NaN value
         top_most_value = nonNaN_values(1);
-        sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
+        fj_anom_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
     end
 end
 % same for open salinity 
@@ -1542,17 +1544,17 @@ for i = 1:size(coastal_sal, 2)
     end
 end
 % Same for fjord salinity
-for i = 1:size(fjord_sal_mat_fj, 2)
-    top10 = fjord_sal_mat_fj(1:10, i);  % Extract the top 10 rows of the column
+for i = 1:size(fj_combined, 2)
+    top10 = fj_combined(1:10, i);  % Extract the top 10 rows of the column
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
     if length(nonNaN_values) >= 1
         % If fewer than 3 non-NaN values, use the top-most non-NaN value
         top_most_value = nonNaN_values(1);
-        fjord_sal_mat_fj(1:10, i) = fillmissing(top10, 'constant', top_most_value);
+        fj_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
     end
 end
-clear top_most_value top10 nonNaN_values avg_value Sep_a Aug_a Oct_a Jul_a Jun_a May_a open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
-%% Canadian area selection
+clear top_most_value top10 nonNaN_values avg_value open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
+%% Canadian area selection (not based off anything? maybe countour bathy to verfiy)
 % Defining Coastline
 run = 2 ;
 for i = 1:1:1
@@ -1590,6 +1592,7 @@ copy = open_sal ;
 %% Invert
 month_selected = 7 ; % for sprintf
 year_selected = 2012 ; % for sprintf, replace with desired year
+% Invert for PCA
 if size(sal_anom_combined,2) > 301
 sal_anom_combined = sal_anom_combined' ;
 can_invert = canada' ;
@@ -1597,6 +1600,10 @@ end
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
 open_sal = open_sal' ;
+end
+if size(fj_combined,2) > 301
+fj_combined = fj_combined' ;
+fj_anom_combined = fj_anom_combined';
 end
 % create variables for non-anomaly use
 lat_coast_n = lat_a(in_a) ;
@@ -1620,6 +1627,7 @@ open_yea = open_yea(~canada) ;
 month_string = {'January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'} ;
 mon_comb = [open_mon,coastal_mon] ;
 month_s = mon_comb == month_selected ; % # of desired month;
+month_s_fj = mon_fj == month_selected ; % don't need seperate one for anomaly since i didn't remove them, just set to NAN
 month_open = open_mon == month_selected ;
 month_coast = coastal_mon == month_selected ;
 % Salinity Month
@@ -1632,6 +1640,7 @@ yea_combined = [open_yea, coastal_yea] ;
 year = yea_combined == year_selected ;
 year_open = open_yea == year_selected ;
 year_coast = coastal_yea == year_selected ;
+yea_s_fj = yea_fj == year_selected ; % don't need seperate
 % Salinity Year
 year_coast_n_test = yea_a(in_a) ;
 year_open_n_test = yea_a(~in_a) ;
@@ -1641,6 +1650,7 @@ year_open_n = year_open_n_test == year_selected ;
 year_mon = year & month_s ;
 year_mon_open = year_open & month_open ;
 year_mon_coast = year_coast & month_coast ;
+year_mon_fj = yea_s_fj & month_s_fj ;
 % Salinity combine
 yeamon_n_coast = year_coast_n & month_coast_n ;
 yeamon_n_open = year_open_n & month_open_n ;
@@ -1665,9 +1675,6 @@ lon_open = lon_open(~canada) ;
 lat_open = lat_open(~canada) ;
 yeamon_n_open = yeamon_n_open(~canada_n) ;
 % sal/anom/temp/anom
-run = 1 ;
-if run == 1
-    run = 2 ;
     if size(canada,1) == 1
     can_invert = canada' ;
     can_n_invert = canada_n' ;
@@ -1676,9 +1683,8 @@ if run == 1
     can_sal_anom = open_sal_anom(can_invert,:) ;
     open_sal_anom = open_sal_anom(~can_invert,:) ;
     open_sal = open_sal(~can_n_invert,:) ;
-end
 clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
-clear month_open_n_test canada canada_n can_invert can_n_invert
+clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s_fj
 %% Subsections and removals (maybe get rid of this?)
 % Index casts that have NO nan's through 300 m
 %sal_anom_combined = copy ;
@@ -1721,6 +1727,24 @@ first_coeff_n = coeff_n(:,1); % first pc coeff
 second_PC_n = score_n(:,2) ; % second
 third_PC_n = score_n(:,3) ;
 explained_n = 100 * latent_n / sum(latent_n);
+clear last_nan_col
+%% Fjord salinity PCA
+sal = fj_combined(year_mon_fj,:) ; % change this to open/coast
+mean_sal = nanmean(sal, 1); % mean ignoring NaNs
+sal_minus = (sal - mean_sal) ;
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal_minus), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal_minus = sal_minus(:, 1:last_nan_col-1);
+end
+[coeff_fj, score_fj, latent_fj , ~] = eof225(sal_minus,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC_fj = score_fj(:,1) ; % first principal component
+first_coeff_fj = coeff_fj(:,1); % first pc coeff
+second_PC_fj = score_fj(:,2) ; % second
+third_PC_fjk = score_fj(:,3) ;
+explained_fj = 100 * latent_n / sum(latent_n);
 clear last_nan_col
 %%
 % Potential Temp = [] ;
