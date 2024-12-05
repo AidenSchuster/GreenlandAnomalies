@@ -434,6 +434,7 @@ if size(open_sal,2) > 301
 open_sal = open_sal' ;
 end
 %% Salinity PCA (fjords)
+clf
 folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\12-5-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:300) ;
 hold on
@@ -443,27 +444,27 @@ ylim([55,80])
 scatter(lon_fj(:,year_mon_fj), lat_fj(:,year_mon_fj), 50, first_PC_fj, 'filled');
 colorbar;
 % caxis([-3 3]);
-colormap('cool')
+colormap('hot')
 plot(cx,cy,'k') ;
 xlabel('Longitude');
 ylabel('Latitude');
-title(sprintf('First Principal Component of Fjord Salinity for %s %d', month_string{month_selected}, year_selected));
+title(sprintf('First Principal Component of Fjord Salinity for %s %d - %d', month_string{month_selected}, five_year_range(1),five_year_range(2)));
 hold off
-filename = sprintf('sal_open_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('sal_fjord_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot Coeff
 figure
 hold on
-plot(first_coeff_n,DepInterval_custom)
+plot(first_coeff_fj,DepInterval_custom)
 title('1st Coefficients vs Depth ')
 axis ij
 hold off
-filename = sprintf('sal_open_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('sal_fj_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 % Create Scree Plot
 figure
 hold on
-plot(1:length(explained_n), explained_n, 'o-', 'LineWidth', 2);
+plot(1:length(explained_fj), explained_fj, 'o-', 'LineWidth', 2);
 xlabel('Principal Component');
 xlim([0,5])
 xticks(1:5); 
@@ -471,17 +472,17 @@ ylabel('Variance Explained (%)');
 title('Scree Plot');
 grid on;
 hold off
-filename = sprintf('sal_open_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
+filename = sprintf('sal_fj_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 clear filename
 % Plot Salinity
-if size(open_sal,2) < 301
-open_sal = open_sal' ;
+if size(fj_combined,2) < 301
+fj_combined = fj_combined' ;
 end
 figure
 hold on
-plot(open_sal(:,yeamon_n_open),DepInterval_custom) ;
-title(sprintf('Salinity vs Depth for open ocean %s %d', month_string{month_selected}, year_selected))
+plot(fj_combined(:,year_mon_fj),DepInterval_custom) ;
+title(sprintf('Salinity vs Depth for open ocean %s %d - %d', month_string{month_selected}, five_year_range(1),five_year_range(2))) ;
 axis ij
 xlabel('Salinity')
 ylabel('Depth')
@@ -489,8 +490,8 @@ hold off
 filename = sprintf('sal_open_%s_%d.jpg',month_string{month_selected},year_selected) ;
 print(fullfile(folderPath, filename), '-djpeg') ;
 clear step_s sal_combined_reduced
-if size(open_sal,2) > 301
-open_sal = open_sal' ;
+if size(fj_combined,2) > 301
+fj_combined = fj_combined' ;
 end
 %% Reconstruct a salinity profile using the 1st principal component
 DepInterval_custom = DepInterval(1:300) ;
@@ -526,6 +527,45 @@ axis ij
 xlabel('Salinity');
 ylabel('Depth');
 title('Salinity profiles with new cleaning changes');
+%% PLot individual fjords salinity and salinity anomaly
+fjord = 32 ;
+DepInterval_custom = DepInterval(1:300) ;
+temp_idx = inpolygon(lon_fj,lat_fj,fjord_vert{fjord}(:,1),fjord_vert{fjord}(:,2)) ;
+temp_box_idx = inpolygon(lon,lat,fjord_box_cords{fjord}(:,1),fjord_box_cords{fjord}(:,2)) ;
+temp_lon = lon_fj(temp_idx) ;
+temp_lat = lat_fj(temp_idx) ;
+if size(fj_combined,2) < 301
+fj_combined = fj_combined' ;
+end
+temp_fj = fj_combined(:,temp_idx) ;
+hold on
+plot(temp_fj,DepInterval_custom)
+axis ij
+title('Helheim Fjord Salinities')
+if size(fj_combined,2) > 301
+fj_combined = fj_combined' ;
+end
+hold off
+%anomalies
+figure
+if size(fj_anom_combined,2) < 301
+fj_anom_combined = fj_anom_combined' ;
+end
+temp_anom = fj_anom_combined(:,temp_idx) ;
+hold on
+plot(temp_anom,DepInterval_custom)
+axis ij
+title('Helheim Fjord Salinity Anomalies')
+%map
+figure
+hold on
+daspect([1 aspect_ratio 1])
+fill(fjord_vert{fjord}(:,1),fjord_vert{fjord}(:,2),'b')
+plot(fjord_box_cords{fjord}(:,1),fjord_box_cords{fjord}(:,2))
+plot(cx,cy,'k')
+scatter(temp_lon,temp_lat,10,'red','filled')
+scatter(lon(temp_box_idx),lat(temp_box_idx),5,'b','filled')
+clear temp_idx temp_lon temp_lat
 %% Plot abs derivatives (line 622)
 hold on
 step_s = 5 ;

@@ -1417,21 +1417,29 @@ end
 % replace logical index in date_idx cells with index from fj_box_combined
 for i = 1:length(date_idx)
     for j = 1:length(date_idx{i})
-        fj_anom_date_idx = fj_box_combined(date_idx{i}{j}) ;
+        fj_anom_date_idx = find(date_idx{i}{j} == 1) ;
         fj_anom_idx{i}{j} = intersect(fj_anom_date_idx,fj_box_idx_back{i}) ;
     end
 end
 % compare date casts and box casts, only keep if a value is present in both (fj_profile_back contains idx for fj profiles, fj_anom_idx for box profiles that fit the correct box and date)_
-clear date_idx fj_anom_date_idx fj_datenum box_datenum fj_box_idx_back fj_box_combined fj_combined fj_profiles fj_box_profiles
+clear date_idx fj_anom_date_idx box_datenum fj_box_idx_back fj_box_combined fj_combined fj_profiles fj_box_profiles
 % calculate means, and subtract fjord values for anomaly
 %interp_sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ;
 %interp_sal_mat_fj = [interp_sal_mat_fj{:}] ;
 for i = 1:length(fj_anom_idx) 
     for j = 1:length(fj_anom_idx{i})
-        if length(fj_anom_idx{i}{j}) >= 2 % reduced limit to calculate anomalies
-            fj_anoms{i}(:,j) = fjord_sal_mat_fj(:,fj_profile_back{i}(j)) - mean(box_sal_mat(:,fj_anom_idx{i}{j}),2,'omitnan') ;
-        else
-            fj_anoms{i}(:,j) = NaN(size(fjord_sal_mat_fj, 1), 1); 
+    % Extract relevant data for the current fj_anom_idx
+    relevant_data = box_sal_mat(:, fj_anom_idx{i}{j});
+    % Check each depth (row) for at least two non-NaN values
+    valid_rows = sum(~isnan(relevant_data), 2) >= 2;
+    % Initialize the anomaly column with NaN
+    fj_anoms{i}(:, j) = NaN(size(fjord_sal_mat_fj, 1), 1);    
+    % Calculate anomalies only for valid depths
+        if any(valid_rows)
+    % Mean of valid depths (row-wise), ignoring NaNs
+    mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');        
+    % Subtract the mean from fjord_sal_mat_fj for valid depths
+    fj_anoms{i}(valid_rows, j) = fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values;
         end
     end
 end
@@ -1591,7 +1599,8 @@ canada = inpolygon(lon_open,lat_open,x_canada,y_canada) ;
 copy = open_sal ;
 %% Invert
 month_selected = 7 ; % for sprintf
-year_selected = 2012 ; % for sprintf, replace with desired year
+year_selected = 2018 ; % for sprintf, replace with desired year
+five_year_range = [year_selected - 2, year_selected + 2] ; % for scarcer fjord data
 % Invert for PCA
 if size(sal_anom_combined,2) > 301
 sal_anom_combined = sal_anom_combined' ;
@@ -1640,7 +1649,7 @@ yea_combined = [open_yea, coastal_yea] ;
 year = yea_combined == year_selected ;
 year_open = open_yea == year_selected ;
 year_coast = coastal_yea == year_selected ;
-yea_s_fj = yea_fj == year_selected ; % don't need seperate
+five_yea_s_fj = yea_fj >= five_year_range(1,1) & yea_fj <= five_year_range(1,2) ; % don't need seperate
 % Salinity Year
 year_coast_n_test = yea_a(in_a) ;
 year_open_n_test = yea_a(~in_a) ;
@@ -1650,7 +1659,7 @@ year_open_n = year_open_n_test == year_selected ;
 year_mon = year & month_s ;
 year_mon_open = year_open & month_open ;
 year_mon_coast = year_coast & month_coast ;
-year_mon_fj = yea_s_fj & month_s_fj ;
+year_mon_fj = five_yea_s_fj & month_s_fj ;
 % Salinity combine
 yeamon_n_coast = year_coast_n & month_coast_n ;
 yeamon_n_open = year_open_n & month_open_n ;
@@ -1729,22 +1738,21 @@ third_PC_n = score_n(:,3) ;
 explained_n = 100 * latent_n / sum(latent_n);
 clear last_nan_col
 %% Fjord salinity PCA
-sal = fj_combined(year_mon_fj,:) ; % change this to open/coast
+sal = fj_combined(year_mon_fj,:) ; % five year span centered around year_selected
 mean_sal = nanmean(sal, 1); % mean ignoring NaNs
 sal_minus = (sal - mean_sal) ;
-% Find the first column where there are less then 3 non-nan values and
-% truncate
+% Find the first column where there are less then 3 non-nan values and truncate
 last_nan_col = find(sum(~isnan(sal_minus), 1) < 3, 1);
 if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal_minus = sal_minus(:, 1:last_nan_col-1);
 end
-[coeff_fj, score_fj, latent_fj , ~] = eof225(sal_minus,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff_fj, score_fj, latent_fj , ~] = eof225(sal_minus,NaN,50); % Renato's Function
 first_PC_fj = score_fj(:,1) ; % first principal component
 first_coeff_fj = coeff_fj(:,1); % first pc coeff
-second_PC_fj = score_fj(:,2) ; % second
+second_PC_fj = score_fj(:,2) ;
 third_PC_fjk = score_fj(:,3) ;
-explained_fj = 100 * latent_n / sum(latent_n);
+explained_fj = 100 * latent_fj / sum(latent_fj);
 clear last_nan_col
 %%
 % Potential Temp = [] ;
