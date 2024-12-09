@@ -1378,7 +1378,7 @@ clear col unique_col
 %load("open_sal_std.mat")
 clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
 %% Fjord Anomaly Calculations (include profiles + or - 15 days)
-run = 2 ;
+run = 1 ;
 if run == 1
 for i = 1:length(fjord_box_cords)
 fj_box_profiles{i} = inpolygon(lon_box,lat_box,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ; % gives index of all profiles within the fjord anomaly boxes.
@@ -1428,29 +1428,68 @@ clear date_idx fj_anom_date_idx box_datenum fj_box_idx_back fj_box_combined fj_c
 %interp_sal_mat_fj = [interp_sal_mat_fj{:}] ;
 for i = 1:length(fj_anom_idx) 
     for j = 1:length(fj_anom_idx{i})
-    % Extract relevant data for the current fj_anom_idx
-    relevant_data = box_sal_mat(:, fj_anom_idx{i}{j});
-    % Check each depth (row) for at least two non-NaN values
-    valid_rows = sum(~isnan(relevant_data), 2) >= 2;
-    % Initialize the anomaly column with NaN
-    fj_anoms{i}(:, j) = NaN(size(fjord_sal_mat_fj, 1), 1);    
-    % Calculate anomalies only for valid depths
+        % Extract relevant data for the current fj_anom_idx
+        relevant_data = box_sal_mat(:, fj_anom_idx{i}{j});
+        % Initialize the anomaly column with NaN
+        fj_anoms{i}(:, j) = NaN(size(fjord_sal_mat_fj, 1), 1);
+        % Check validity of rows 1:99 (at least 2 non-NaN values)
+        valid_rows_1_149 = (sum(~isnan(relevant_data(1:149, :)), 2) >= 2);      
+        % Check validity of rows 100:end (at least 3 non-NaN values)
+        valid_rows_150_end = (sum(~isnan(relevant_data(150:end, :)), 2) >= 3);       
+        % Combine row validity
+        valid_rows = [valid_rows_1_149; valid_rows_150_end];       
+        % Calculate anomalies only for valid depths
         if any(valid_rows)
-    % Mean of valid depths (row-wise), ignoring NaNs
-    mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');        
-    % Subtract the mean from fjord_sal_mat_fj for valid depths
-    fj_anoms{i}(valid_rows, j) = fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values;
+            % Mean of valid depths (row-wise), ignoring NaNs
+            mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');            
+            % Subtract the mean from fjord_sal_mat_fj for valid depths
+            fj_anoms{i}(valid_rows, j) = fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values;
         end
     end
 end
-save fj_anoms.mat fj_anoms
-save fj_coords.mat fj_coords
-end
-load fj_anoms.mat 
-load fj_coords.mat
+%make into a mat
 valid_anoms = fj_anoms(~cellfun('isempty', fj_anoms));
 fj_anoms_mat = horzcat(valid_anoms{:});
-clear interp_sal interp_temp fj_profile_back %fj_anom_idx
+% derivative cleaning for anomalies (only replace failed points with NaN)
+diff_result = NaN(size(fj_anoms_mat)) ;
+    for i  = 1:length(fj_anoms_mat)
+    non_nan = find(~isnan(fj_anoms_mat(:,i))) ;
+    non_nan_store{i} = non_nan ;
+    temporary = fj_anoms_mat(:,i) ;
+    diff_sal = diff(temporary(non_nan),1,1) ;
+    diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
+    end
+   threshold_25 = 12 ; % 0-25 m
+   threshold_50 = 2 ; % 0-50 m
+   threshold = 0.1 ; % 50-end m
+     top_25 = diff_result(1:25,:) ;
+     top_50 = diff_result(26:50,:) ;
+     bottom = diff_result(51:end,:) ;
+     top_25_remove = top_25 >= threshold_25 ; % index of top 25 m that has derivatives greater than threshold
+     top_50_remove = top_50 >= threshold_50 ; % idx of bottom that has derivatives greater than threshold
+     bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
+     remove_anom = [top_25;top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     for i = 1:length(remove_anom) 
+     idx = find(remove_anom(:,i) == 1) ;
+        for j = 1:length(idx)
+            if size(idx) >= 1
+        value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
+        value_below = non_nan_store{i}(value_below_idx) ;
+        remove(value_below, i) = 1; % Mark the value from non_nan_store for removal
+            end
+        end
+     end
+%remove those anomaly points that fail the threshold
+
+save fj_anoms_mat.mat fj_anoms
+save fj_coords.mat fj_coords
+end
+load fj_anoms_mat.mat 
+load fj_coords.mat
+%valid_anoms = fj_anoms(~cellfun('isempty', fj_anoms));
+%fj_anoms_mat = horzcat(valid_anoms{:});
+clear interp_sal interp_temp fj_profile_back  valid_rows valid_rows_1_149 valid_rows_150_end mean_values non_nan diff_result threshold_50 bottom top_50_remove %fj_anom_idx
+clear bottom_remove remove_anom idx value_below_idx value_below top_25 top_25_remove
 %%
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 %numpoints = length(DepInterval) ;
@@ -1600,7 +1639,7 @@ copy = open_sal ;
 %% Invert
 month_selected = 7 ; % for sprintf
 year_selected = 2018 ; % for sprintf, replace with desired year
-five_year_range = [year_selected - 2, year_selected + 2] ; % for scarcer fjord data
+five_year_range = [year_selected - 0, year_selected + 0] ; % for scarcer fjord data
 % Invert for PCA
 if size(sal_anom_combined,2) > 301
 sal_anom_combined = sal_anom_combined' ;
@@ -1610,10 +1649,15 @@ if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
 open_sal = open_sal' ;
 end
+% remove all nan columns for fj_combined
+valid_cols_idx = any(~isnan(fj_combined), 1); % use this to create lon/lat for anomalies
+fj_combined = fj_combined(:, valid_cols_idx);
 if size(fj_combined,2) > 301
 fj_combined = fj_combined' ;
 fj_anom_combined = fj_anom_combined';
 end
+% Fj_combined single to double
+fj_combined = double(fj_combined) ;
 % create variables for non-anomaly use
 lat_coast_n = lat_a(in_a) ;
 lon_coast_n = lon_a(in_a) ;
@@ -1730,7 +1774,7 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal_minus = sal_minus(:, 1:last_nan_col-1);
 end
-[coeff_n, score_n, latent_n , ~] = eof225(sal_minus,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff_n, score_n, latent_n , ~] = eof225(sal_minus,NaN,50); % Renato's Function 
 first_PC_n = score_n(:,1) ; % first principal component
 first_coeff_n = coeff_n(:,1); % first pc coeff
 second_PC_n = score_n(:,2) ; % second

@@ -435,7 +435,8 @@ open_sal = open_sal' ;
 end
 %% Salinity PCA (fjords)
 clf
-folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\12-5-24' ; % change depending on folderlocation
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\12-12-24' ; % change depending on folderlocation
+DepInterval_custom_change = DepInterval(1:length(first_coeff_fj)) ;
 DepInterval_custom = DepInterval(1:300) ;
 hold on
 daspect([1 aspect_ratio 1])
@@ -455,7 +456,7 @@ print(fullfile(folderPath, filename), '-djpeg') ;
 % Plot Coeff
 figure
 hold on
-plot(first_coeff_fj,DepInterval_custom)
+plot(first_coeff_fj,DepInterval_custom_change)
 title('1st Coefficients vs Depth ')
 axis ij
 hold off
@@ -654,8 +655,27 @@ ylabel('Depth');
 title('Salinity profiles with points eliminated');
 hold off
 %clear reduced step_s col row_idx col_idx col valid_idx
-%% Anomaly Derivatives
-
+%% Fjord Anomaly Derivatives
+fjord = 32 ;
+DepInterval_custom = DepInterval(1:300) ;
+temp_idx = inpolygon(lon_fj,lat_fj,fjord_vert{fjord}(:,1),fjord_vert{fjord}(:,2)) ;
+%result = diff_result(:,temp_idx) ;
+threshold_point25 = repmat(threshold_25,length(DepInterval)) ;
+threshold_point = repmat(threshold_50,length(DepInterval)) ;
+threshold_point2 = repmat(threshold,length(DepInterval)) ;
+figure
+hold on
+plot(diff_result,DepInterval)
+plot(threshold_point25,DepInterval,'--k')
+plot(threshold_point,DepInterval,'--k')
+plot(threshold_point2,DepInterval,'--k')
+axis ij
+ylim([0,300])
+xlabel('Salinity Anomaly');
+ylabel('Depth');
+title('Helheim Sal Anom');
+hold off
+clear temp_idx sal fjord threshold_point2 threshold_point
 %% Plot profiles with eliminated points in top 50 m's geogrpahic location
 top_50 = remove(1:50,:) ;
 col = any(top_50, 1);
