@@ -656,9 +656,7 @@ title('Salinity profiles with points eliminated');
 hold off
 %clear reduced step_s col row_idx col_idx col valid_idx
 %% Fjord Anomaly Derivatives
-fjord = 32 ;
 DepInterval_custom = DepInterval(1:300) ;
-temp_idx = inpolygon(lon_fj,lat_fj,fjord_vert{fjord}(:,1),fjord_vert{fjord}(:,2)) ;
 %result = diff_result(:,temp_idx) ;
 threshold_point25 = repmat(threshold_25,length(DepInterval)) ;
 threshold_point = repmat(threshold_50,length(DepInterval)) ;
@@ -673,7 +671,7 @@ axis ij
 ylim([0,300])
 xlabel('Salinity Anomaly');
 ylabel('Depth');
-title('Helheim Sal Anom');
+title('Cleaned Fjord Sal Anom Derivatives');
 hold off
 clear temp_idx sal fjord threshold_point2 threshold_point
 %% Plot profiles with eliminated points in top 50 m's geogrpahic location

@@ -1378,7 +1378,7 @@ clear col unique_col
 %load("open_sal_std.mat")
 clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
 %% Fjord Anomaly Calculations (include profiles + or - 15 days)
-run = 1 ;
+run = 2 ;
 if run == 1
 for i = 1:length(fjord_box_cords)
 fj_box_profiles{i} = inpolygon(lon_box,lat_box,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ; % gives index of all profiles within the fjord anomaly boxes.
@@ -1463,24 +1463,25 @@ diff_result = NaN(size(fj_anoms_mat)) ;
    threshold_50 = 2 ; % 0-50 m
    threshold = 0.1 ; % 50-end m
      top_25 = diff_result(1:25,:) ;
-     top_50 = diff_result(26:50,:) ;
-     bottom = diff_result(51:end,:) ;
+     top_50 = diff_result(26:90,:) ;
+     bottom = diff_result(91:end,:) ;
      top_25_remove = top_25 >= threshold_25 ; % index of top 25 m that has derivatives greater than threshold
      top_50_remove = top_50 >= threshold_50 ; % idx of bottom that has derivatives greater than threshold
      bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
-     remove_anom = [top_25;top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     remove_anom = [top_25_remove;top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
      for i = 1:length(remove_anom) 
      idx = find(remove_anom(:,i) == 1) ;
         for j = 1:length(idx)
             if size(idx) >= 1
         value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
         value_below = non_nan_store{i}(value_below_idx) ;
-        remove(value_below, i) = 1; % Mark the value from non_nan_store for removal
+        remove_anom(value_below, i) = 1; % Mark the value from non_nan_store for removal
             end
         end
      end
 %remove those anomaly points that fail the threshold
-
+%remove_anom = logical(remove_anom) ;
+fj_anoms_mat(remove_anom) = NaN ;
 save fj_anoms_mat.mat fj_anoms
 save fj_coords.mat fj_coords
 end
