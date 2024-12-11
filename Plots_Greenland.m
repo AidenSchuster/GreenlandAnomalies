@@ -494,6 +494,67 @@ clear step_s sal_combined_reduced
 if size(fj_combined,2) > 301
 fj_combined = fj_combined' ;
 end
+%% Temperature PCA (fjords)
+clf
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\12-12-24' ; % change depending on folderlocation
+DepInterval_custom_change = DepInterval(1:length(first_coeff_fj_t)) ;
+DepInterval_custom = DepInterval(1:300) ;
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-80,-30])
+ylim([55,80])
+scatter(lon_fj(:,year_mon_fj), lat_fj(:,year_mon_fj), 50, first_PC_fj_t, 'filled');
+colorbar;
+% caxis([-3 3]);
+colormap('hot')
+plot(cx,cy,'k') ;
+xlabel('Longitude');
+ylabel('Latitude');
+title(sprintf('First Principal Component of Fjord Temperature for %s %d - %d', month_string{month_selected}, five_year_range(1),five_year_range(2)));
+hold off
+filename = sprintf('temp_fjord_PC_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Plot Coeff
+figure
+hold on
+plot(first_coeff_fj_t,DepInterval_custom_change)
+title('1st Coefficients vs Depth ')
+axis ij
+hold off
+filename = sprintf('temp_fj_coeff_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Create Scree Plot
+figure
+hold on
+plot(1:length(explained_fj_t), explained_fj_t, 'o-', 'LineWidth', 2);
+xlabel('Principal Component');
+xlim([0,5])
+xticks(1:5); 
+ylabel('Variance Explained (%)');
+title('Scree Plot');
+grid on;
+hold off
+filename = sprintf('temp_fj_scree_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear filename
+% Plot Temperature
+if size(fj_temp_combined,2) < 301
+fj_temp_combined = fj_temp_combined' ;
+end
+figure
+hold on
+plot(fj_temp_combined(:,year_mon_fj),DepInterval_custom) ;
+title(sprintf('Temperature vs Depth for fjord %s %d - %d', month_string{month_selected}, five_year_range(1),five_year_range(2))) ;
+axis ij
+xlabel('Temperature (C)')
+ylabel('Depth')
+hold off
+filename = sprintf('temp_fj_%s_%d.jpg',month_string{month_selected},year_selected) ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear step_s sal_combined_reduced
+if size(fj_temp_combined,2) > 301
+fj_temp_combined = fj_combined' ;
+end
 %% Reconstruct a salinity profile using the 1st principal component
 DepInterval_custom = DepInterval(1:300) ;
 number = 1 ; % which profile

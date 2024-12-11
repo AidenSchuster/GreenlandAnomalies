@@ -898,9 +898,14 @@ end
 OMG_fj_profiles = fj_find_combined >= length_NODC ; % OMG profiles, (should be any profile after NODC length)
 clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg length_nm length_deg clear center_points special_case iso_interval isobath_interval fjord_find in_fj selected_points
 %% clean fjord data loop through collumns and calculate derivatives (delta y /delta x)
+% fjord sal
     sal_mat_fj = cellfun(@(c) c(:), interp_sal, 'UniformOutput', false) ; % fjord data 
     sal_mat_fj = [sal_mat_fj{:}] ; % all data, idx fjord profiles, clean and replace with nan for removed profiles
     fjord_sal_mat_fj = sal_mat_fj(:,fj_find_combined) ; % fjord data
+%fjord temp
+    temp_mat_fj = cellfun(@(c) c(:), interp_temp, 'UniformOutput', false) ; % fjord temp data 
+    temp_mat_fj = [temp_mat_fj{:}] ; % all data, idx fjord profiles, clean and replace with nan for removed profiles
+    fjord_temp_mat_fj = temp_mat_fj(:,fj_find_combined) ; % fjord data
     lon_fj =  lon(fj_find_combined) ;
     lat_fj = lat(fj_find_combined) ;
     mon_fj = mon(fj_find_combined) ;
@@ -913,6 +918,7 @@ clear center_points lat1 lon1 lat2 lon2 lat3 lon3 lat4 lon4 width_nm width_deg l
     threshold = 25 ; % max number of NaN values permitted in top 50 m
     too_many_nans_fj = nan_count >= threshold ;
     fjord_sal_mat_fj = fjord_sal_mat_fj(:,~too_many_nans_fj) ;
+    fjord_temp_mat_fj = fjord_temp_mat_fj(:,~too_many_nans_fj) ;
     lon_fj = lon_fj(:,~too_many_nans_fj) ; % for tracking
     lat_fj = lat_fj(:,~too_many_nans_fj) ;
     mon_fj = mon_fj(:,~too_many_nans_fj) ;
@@ -964,6 +970,7 @@ load remove_fj.mat remove_fj
 clear compare_OMG remove_fj_any num_total num_OMG too_many_nans num_OMG_nan compare_OMG_nan diff_result threshold_50 threshold threshold_25
 % remove these points
 fjord_sal_mat_fj(remove_fj) = NaN ;
+fjord_temp_mat_fj(remove_fj) = NaN ;
 %interp_temp_mat_fj(remove_fj) = NaN ; (not a thing yet)
 clear fj_find_combined
 %% Clean fjord box anomaly profiles (by same standards as open/coastal) (needs to be light/conservative)
@@ -976,7 +983,8 @@ clear fj_find_combined
    box_find_combined = unique(box_find_combined) ; 
    OMG_box_profiles = box_find_combined >= length_NODC ; %idx of all box profiles that are also OMG
     box_idx = any(cell2mat(temp_idx'), 1);
-    box_sal_mat = sal_mat_fj(:,box_idx) ; % only box anomalies
+    box_sal_mat = sal_mat_fj(:,box_idx) ; % only box salinities 
+    box_temp_mat = temp_mat_fj(:,box_idx) ; % only box temps
 top_100 = box_sal_mat(1:100,:) ;
 nan_count = sum(isnan(top_100), 1);  % Count NaNs along rows for each column
     lon_box =  lon(box_find_combined) ;
@@ -1026,10 +1034,12 @@ save remove_box.mat remove_box
 end
 load remove_box.mat remove_box
 box_sal_mat(remove_box) = NaN ; % eliminates points 
+box_temp_mat(remove_box) = NaN ;
 % NaN filter
 threshold = 50 ; % max number of NaN values permitted in top 100 m
 too_many_nans_box = nan_count > threshold ;
 box_sal_mat = box_sal_mat(:,~too_many_nans_box) ;
+box_temp_mat = box_temp_mat(:,~too_many_nans_box) ;
     lon_box = lon_box(:,~too_many_nans_box) ; % for tracking
     lat_box = lat_box(:,~too_many_nans_box) ;
     mon_box = mon_box(:,~too_many_nans_box) ;
@@ -1430,26 +1440,40 @@ for i = 1:length(fj_anom_idx)
     for j = 1:length(fj_anom_idx{i})
         % Extract relevant data for the current fj_anom_idx
         relevant_data = box_sal_mat(:, fj_anom_idx{i}{j});
+        relevant_temp_data = box_temp_mat(:, fj_anom_idx{i}{j});
         % Initialize the anomaly column with NaN
         fj_anoms{i}(:, j) = NaN(size(fjord_sal_mat_fj, 1), 1);
+        fj_temp_anoms{i}(:, j) = NaN(size(fjord_temp_mat_fj, 1), 1);
         % Check validity of rows 1:99 (at least 2 non-NaN values)
-        valid_rows_1_149 = (sum(~isnan(relevant_data(1:149, :)), 2) >= 2);      
+        valid_rows_1_149 = (sum(~isnan(relevant_data(1:149, :)), 2) >= 2);
+        valid_rows_1_149_temp = (sum(~isnan(relevant_temp_data(1:149, :)), 2) >= 2);
         % Check validity of rows 100:end (at least 3 non-NaN values)
-        valid_rows_150_end = (sum(~isnan(relevant_data(150:end, :)), 2) >= 3);       
+        valid_rows_150_end = (sum(~isnan(relevant_data(150:end, :)), 2) >= 3);
+        valid_rows_150_end_temp = (sum(~isnan(relevant_temp_data(150:end, :)), 2) >= 3);
         % Combine row validity
         valid_rows = [valid_rows_1_149; valid_rows_150_end];       
-        % Calculate anomalies only for valid depths
+        valid_temp_rows = [valid_rows_1_149_temp; valid_rows_150_end_temp];     
+        % Calculate salinity anomalies only for valid depths
         if any(valid_rows)
             % Mean of valid depths (row-wise), ignoring NaNs
             mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');            
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_anoms{i}(valid_rows, j) = fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values;
         end
+        % same for temp anoms
+        if any(valid_rows)
+            % Mean of valid depths (row-wise), ignoring NaNs
+            mean_temp_values = mean(relevant_temp_data(valid_temp_rows, :), 2, 'omitnan');            
+            % Subtract the mean from fjord_sal_mat_fj for valid depths
+            fj_temp_anoms{i}(valid_temp_rows, j) = fjord_temp_mat_fj(valid_temp_rows, fj_profile_back{i}(j)) - mean_temp_values;
+        end
     end
 end
 %make into a mat
 valid_anoms = fj_anoms(~cellfun('isempty', fj_anoms));
 fj_anoms_mat = horzcat(valid_anoms{:});
+valid_temp_anoms = fj_temp_anoms(~cellfun('isempty', fj_temp_anoms));
+fj_temp_anoms_mat = horzcat(valid_temp_anoms{:});
 % derivative cleaning for anomalies (only replace failed points with NaN)
 diff_result = NaN(size(fj_anoms_mat)) ;
     for i  = 1:length(fj_anoms_mat)
@@ -1482,15 +1506,19 @@ diff_result = NaN(size(fj_anoms_mat)) ;
 %remove those anomaly points that fail the threshold
 %remove_anom = logical(remove_anom) ;
 fj_anoms_mat(remove_anom) = NaN ;
-save fj_anoms_mat.mat fj_anoms
+fj_temp_anoms_mat(remove_anom) = NaN ;
+save fj_anoms_mat.mat fj_anoms_mat
+save fj_temp_anoms_mat.mat fj_temp_anoms_mat
 save fj_coords.mat fj_coords
 end
 load fj_anoms_mat.mat 
 load fj_coords.mat
+load fj_temp_anoms_mat.mat
 %valid_anoms = fj_anoms(~cellfun('isempty', fj_anoms));
 %fj_anoms_mat = horzcat(valid_anoms{:});
 clear interp_sal interp_temp fj_profile_back  valid_rows valid_rows_1_149 valid_rows_150_end mean_values non_nan diff_result threshold_50 bottom top_50_remove %fj_anom_idx
-clear bottom_remove remove_anom idx value_below_idx value_below top_25 top_25_remove
+clear bottom_remove remove_anom idx value_below_idx value_below top_25 top_25_remove valid_temp_anoms valid_rows_150_end_temp valid_rows_1_149_temp
+clear mean_temp_values threshold threshold_25 too_many_nans_box too_many_nans_fj top_100_coast top_50
 %%
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 %numpoints = length(DepInterval) ;
@@ -1515,8 +1543,10 @@ coastal_sal = coastal_sal(1:300,:) ;
 open_sal = open_sal(1:300,:) ;
 length_open = length(open_sal) ;
 sal_combined = sal_combined(1:300,:) ;
-fj_anom_combined = fj_anoms_mat(1:300,:) ;  
+fj_anom_combined = fj_anoms_mat(1:300,:) ;
+fj_temp_anom_combined = fj_temp_anoms_mat(1:300,:) ;
 fj_combined = fjord_sal_mat_fj(1:300,:) ;
+fj_temp_combined = fjord_temp_mat_fj(1:300,:) ;
 %May_a = mon_a == 5 ;
 %May_fj = mon_fj == 5 ;
 %Jun_a = mon_a == 6 ;
@@ -1552,15 +1582,21 @@ end
 % same for fj anomalies
 for i = 1:size(fj_anom_combined, 2)
     top10 = fj_anom_combined(1:10, i);  % Extract the top 10 rows of the column
+    top10_temp = fj_temp_anom_combined(1:10, i);
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
+    nonNaN_temp_values = top10_temp(~isnan(top10_temp)) ;
     %if length(nonNaN_values) >= 3
         % Average the top three non-NaN values
         %avg_value = mean(nonNaN_values(1:3));
         %sal_anom_combined(1:10, i) = fillmissing(top10, 'constant', avg_value);
     if length(nonNaN_values) >= 1
-        % If fewer than 3 non-NaN values, use the top-most non-NaN value
+        % use the top-most non-NaN value
         top_most_value = nonNaN_values(1);
         fj_anom_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
+    end
+    if length(nonNaN_temp_values) >=1
+    top_most_value_temp = nonNaN_temp_values(1) ;
+    fj_temp_anom_combined(1:10,i) = fillmissing(top10_temp, 'constant', top_most_value_temp);
     end
 end
 % same for open salinity 
@@ -1594,14 +1630,21 @@ end
 % Same for fjord salinity
 for i = 1:size(fj_combined, 2)
     top10 = fj_combined(1:10, i);  % Extract the top 10 rows of the column
+    top10_temp = fj_temp_combined(1:10,i) ;
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
+    nonNaN_temp_values = top10_temp(~isnan(top10_temp)) ;
     if length(nonNaN_values) >= 1
         % If fewer than 3 non-NaN values, use the top-most non-NaN value
         top_most_value = nonNaN_values(1);
         fj_combined(1:10, i) = fillmissing(top10, 'constant', top_most_value);
     end
+    if length(nonNaN_temp_values) >=1
+    top_most_value_temp = nonNaN_temp_values(1);
+    fj_temp_combined(1:10, i) = fillmissing(top10_temp, 'constant', top_most_value_temp);
+    end
 end
 clear top_most_value top10 nonNaN_values avg_value open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
+clear top_most_value_temp top10_temp nonNaN_temp_values
 %% Canadian area selection (not based off anything? maybe countour bathy to verfiy)
 % Defining Coastline
 run = 2 ;
@@ -1650,15 +1693,21 @@ if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
 open_sal = open_sal' ;
 end
+
 % remove all nan columns for fj_combined
-valid_cols_idx = any(~isnan(fj_combined), 1); % use this to create lon/lat for anomalies
-fj_combined = fj_combined(:, valid_cols_idx);
+%valid_cols_idx = any(~isnan(fj_combined), 1); % use this to create lon/lat for anomalies
+%fj_combined = fj_combined(:, valid_cols_idx);
+
 if size(fj_combined,2) > 301
 fj_combined = fj_combined' ;
 fj_anom_combined = fj_anom_combined';
+fj_temp_combined = fj_temp_combined' ;
+fj_temp_anom_combined = fj_temp_anom_combined' ;
 end
 % Fj_combined single to double
 fj_combined = double(fj_combined) ;
+fj_temp_combined = double(fj_temp_combined) ;
+fj_temp_anom_combined = double(fj_temp_combined) ;
 % create variables for non-anomaly use
 lat_coast_n = lat_a(in_a) ;
 lon_coast_n = lon_a(in_a) ;
@@ -1799,6 +1848,23 @@ second_PC_fj = score_fj(:,2) ;
 third_PC_fjk = score_fj(:,3) ;
 explained_fj = 100 * latent_fj / sum(latent_fj);
 clear last_nan_col
+%% Fjord Tempeature PCA
+temp = fj_combined(year_mon_fj,:) ; % five year span centered around year_selected
+mean_temp = nanmean(temp, 1); % mean ignoring NaNs
+temp_minus = (temp - mean_temp) ;
+% Find the first column where there are less then 3 non-nan values and truncate
+last_nan_col = find(sum(~isnan(temp_minus), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    temp_minus = temp_minus(:, 1:last_nan_col-1);
+end
+[coeff_fj_t, score_fj_t, latent_fj_t , ~] = eof225(temp_minus,NaN,50); % Renato's Function
+first_PC_fj_t = score_fj_t(:,1) ; % first principal component
+first_coeff_fj_t = coeff_fj_t(:,1); % first pc coeff
+second_PC_fj_t = score_fj_t(:,2) ;
+third_PC_fj_t = score_fj_t(:,3) ;
+explained_fj_t = 100 * latent_fj_t/ sum(latent_fj_t);
+clear last_nan_col temp mean_temp temp_minus
 %%
 % Potential Temp = [] ;
 press_reff = 10 ; % not sure what a good refference would be
