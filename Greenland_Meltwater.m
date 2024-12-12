@@ -1519,23 +1519,19 @@ load fj_temp_anoms_mat.mat
 clear interp_sal interp_temp fj_profile_back  valid_rows valid_rows_1_149 valid_rows_150_end mean_values non_nan diff_result threshold_50 bottom top_50_remove %fj_anom_idx
 clear bottom_remove remove_anom idx value_below_idx value_below top_25 top_25_remove valid_temp_anoms valid_rows_150_end_temp valid_rows_1_149_temp
 clear mean_temp_values threshold threshold_25 too_many_nans_box too_many_nans_fj top_100_coast top_50
-%%
+%% Potential Density (just fjords for now but eventually everywhere)
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
-%numpoints = length(DepInterval) ;
-%for i = 1:length(lat_a)
-%k = sw_pres(DepInterval,repmat(lat_a(i),1,numpoints)) ;
-%press_a(:,i) = k ;
-%end
-%coastal_sal = interp_sal_mat(:,in_a) ; (don't think i need this any
-%longer)
-%coastal_temp = interp_temp_mat(:,in_a) ;
-%coast_press = press_a(:,in_a) ;
-%open_press = press_a(:,~in_a) ;
-%open_dens = sw_dens(open_sal,open_temp,open_press) ; % kg/m^3
-%coastal_dens = sw_dens(coastal_sal,coastal_temp,coast_press) ;
-clear press_a
+numpoints = length(DepInterval) ;
+for i = 1:length(lat_fj)
+k = sw_pres(DepInterval,repmat(lat_fj(i),1,numpoints)) ;
+press_fj(:,i) = k ;
+end
+fj_dens = sw_dens(fjord_sal_mat_fj,fjord_temp_mat_fj,press_fj) ; % kg/m^3
+clear k
 % Vectorize and combine
 clear  coastal_temp open_temp interp_temp_a interp_sal_a %interp_sal_mat interp_temp_mat
+% fjord spicity (get profiles of spicity for each fjord profile (using sw_pspi())
+fj_spice = sw_pspi(fjord_sal_mat_fj,fjord_temp_mat_fj,press_fj,0) ; % last # is pressure refference (kg/m^3)
 %%
 %top 300 m of both open and coastal
 sal_combined = [open_sal,coastal_sal] ;
