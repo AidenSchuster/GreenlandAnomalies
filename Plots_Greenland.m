@@ -735,6 +735,24 @@ ylabel('Depth');
 title('Cleaned Fjord Sal Anom Derivatives');
 hold off
 clear temp_idx sal fjord threshold_point2 threshold_point
+%% Fjord Spiciness Profiles
+fjord = 32 ; 
+temp_idx = inpolygon(lon_fj,lat_fj,fjord_vert{fjord}(:,1),fjord_vert{fjord}(:,2)) ;
+% seperate by month to see if we can see a noticeable difference
+clf
+hold on
+plot(spice_fj(:,temp_idx),DepInterval)
+axis ij
+xlabel('Spiciness (kg/m^3)')
+ylabel('Depth (m)')
+title('Helheim Spiciness')
+hold off
+clear temp_idx
+
+
+
+
+
 %% Plot profiles with eliminated points in top 50 m's geogrpahic location
 top_50 = remove(1:50,:) ;
 col = any(top_50, 1);

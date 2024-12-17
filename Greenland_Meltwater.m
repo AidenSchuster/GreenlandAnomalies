@@ -659,7 +659,7 @@ load("interp_temp_mat.mat")
 in_temp = inpolygon(lon_a,lat_a,combined_x,combined_y) ;
 coast_sal_temporary = interp_sal_mat(:,in_temp) ;
 %% Selecting Fjord coordinates/area % defining areas of individual fjords
-run = 2 ;
+run = 2 ;7 
 if run == 1
     hold on
     plot(cx,cy,'k')
@@ -1518,20 +1518,48 @@ load fj_temp_anoms_mat.mat
 %fj_anoms_mat = horzcat(valid_anoms{:});
 clear interp_sal interp_temp fj_profile_back  valid_rows valid_rows_1_149 valid_rows_150_end mean_values non_nan diff_result threshold_50 bottom top_50_remove %fj_anom_idx
 clear bottom_remove remove_anom idx value_below_idx value_below top_25 top_25_remove valid_temp_anoms valid_rows_150_end_temp valid_rows_1_149_temp
-clear mean_temp_values threshold threshold_25 too_many_nans_box too_many_nans_fj top_100_coast top_50
-%% Potential Density (just fjords for now but eventually everywhere)
+clear mean_temp_values threshold threshold_25 too_many_nans_box too_many_nans_fj top_100_coast top_50 OMG_fj_profiles OMG_box_profiles
+clear open_temp_anom box_find_combined box_sal_mat date datenum day_box fjord_box_cords in lat_box lon_box lat_temp remove remove_box remove_coast % may need these
+clear unique_col_idx_open yea_box yea box_temp_mat box_find exten2 sal_mat_fj
+%% Potential Density and Spicity
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 numpoints = length(DepInterval) ;
 for i = 1:length(lat_fj)
 k = sw_pres(DepInterval,repmat(lat_fj(i),1,numpoints)) ;
 press_fj(:,i) = k ;
 end
-fj_dens = sw_dens(fjord_sal_mat_fj,fjord_temp_mat_fj,press_fj) ; % kg/m^3
-clear k
+for i = 1:length(lat_a)
+k = sw_pres(DepInterval,repmat(lat_a(i),1,numpoints)) ;
+press_a(:,i) = k ;
+end    
+dens_fj = sw_dens(fjord_sal_mat_fj,fjord_temp_mat_fj,press_fj) ; % kg/m^3
+dens_a = sw_dens(interp_sal_mat,interp_temp_mat,press_a) ; % kg/m^3
 % Vectorize and combine
-clear  coastal_temp open_temp interp_temp_a interp_sal_a %interp_sal_mat interp_temp_mat
+clear  k coastal_temp open_temp interp_temp_a interp_sal_a dens_a dens_fj %interp_sal_mat interp_temp_mat
+% Split data_a into two chunks to proccess seperatly for more efficient memory usage
+half = round(size(interp_sal_mat,2)/2) ; % halfway point
+sal_1 = interp_sal_mat(:,1:half) ;
+temp_1 = interp_temp_mat(:,1:half) ;
+press_1 = press_a(:,1:half) ;
+sal_2 = interp_sal_mat(:,half+1:end) ;
+temp_2 = interp_temp_mat(:,half+1:end) ;
+press_2 = press_a(:,half+1:end) ;
+%temporarily clear the non-split variables for space, will recombined when combining spice
+clear interp_sal_mat interp_temp_mat press_a half
 % fjord spicity (get profiles of spicity for each fjord profile (using sw_pspi())
-fj_spice = sw_pspi(fjord_sal_mat_fj,fjord_temp_mat_fj,press_fj,0) ; % last # is pressure refference (kg/m^3)
+spice_fj = sw_pspi(fjord_sal_mat_fj,fjord_temp_mat_fj,press_fj,0) ; % last # is pressure refference (kg/m^3)
+spice_fj = double(spice_fj) ;
+run = 2 ;
+if run == 1
+spice_1 = sw_pspi(sal_1,temp_1,press_1,0) ; % last # is pressure refference (kg/m^3)
+spice_2 = sw_pspi(sal_2,temp_2,press_2,0) ; % last # is pressure refference (kg/m^3)
+spice_a = [spice_1,spice_2] ;
+save('spice_a.mat', 'spice_a', '-v7.3');
+end
+load spice_a.mat spice_a
+interp_sal_mat = [sal_1,sal_2] ;
+interp_temp_mat = [temp_1,temp_2] ;
+clear press_a press_fj spice_1 spice_2 sal_1 sal_2 press_1 press_1
 %%
 %top 300 m of both open and coastal
 sal_combined = [open_sal,coastal_sal] ;
@@ -1699,6 +1727,7 @@ fj_combined = fj_combined' ;
 fj_anom_combined = fj_anom_combined';
 fj_temp_combined = fj_temp_combined' ;
 fj_temp_anom_combined = fj_temp_anom_combined' ;
+spice_fj = spice_fj' ;
 end
 % Fj_combined single to double
 fj_combined = double(fj_combined) ;
@@ -1860,6 +1889,23 @@ first_coeff_fj_t = coeff_fj_t(:,1); % first pc coeff
 second_PC_fj_t = score_fj_t(:,2) ;
 third_PC_fj_t = score_fj_t(:,3) ;
 explained_fj_t = 100 * latent_fj_t/ sum(latent_fj_t);
+clear last_nan_col temp mean_temp temp_minus
+%% Fjord Spiciness PCA
+temp = spice_fj(year_mon_fj,:) ; % five year span centered around year_selected
+mean_temp = nanmean(temp, 1); % mean ignoring NaNs
+temp_minus = (temp - mean_temp) ;
+% Find the first column where there are less then 3 non-nan values and truncate
+last_nan_col = find(sum(~isnan(temp_minus), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    temp_minus = temp_minus(:, 1:last_nan_col-1);
+end
+[coeff_fj_s, score_fj_s, latent_fj_s , ~] = eof225(temp_minus,NaN,50); % Renato's Function
+first_PC_fj_s = score_fj_s(:,1) ; % first principal component
+first_coeff_fj_s = coeff_fj_s(:,1); % first pc coeff
+second_PC_fj_s = score_fj_s(:,2) ;
+third_PC_fj_s = score_fj_s(:,3) ;
+explained_fj_s = 100 * latent_fj_s/ sum(latent_fj_s);
 clear last_nan_col temp mean_temp temp_minus
 %%
 % Potential Temp = [] ;
