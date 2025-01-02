@@ -95,8 +95,7 @@ save 'cx-cy.mat' cx cy
 end
 load 'cx-cy.mat' cx cy
 clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx
-
-%
+%%
 % Defining Coastline
 run = 2 ;
 for i = 1:1:1
@@ -212,6 +211,7 @@ x_reff_new = reshape(x_reff_new,1,[]) ;
 y_reff_new = reshape(y_reff_new,1,[]) ;
 slope_new = reshape(slope_new,1,[]) ;
 clear('x','y','button')
+
 % Slope and inverse
 for i = 1:length(x_coast)-1
 W = (y_coast(i+1,1)-y_coast(i,1))/(x_coast(i+1,1)-x_coast(i,1)) ;
@@ -396,6 +396,8 @@ combined_y = [added_y;combined_y(2:end)] ;
 end
 load combined_x.mat
 load combined_y.mat
+
+% NOTHING CHANGED PAST HERE FOR REWORKING COAST
 in = inpolygon(lon,lat,combined_x,combined_y) ; % All coasts within coastal section 
 % Determine which refference point to base slope of rectangle boxes
 reff_x = x_reff_new' ;
