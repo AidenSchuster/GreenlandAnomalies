@@ -61,21 +61,21 @@ save 'cx-cy.mat' cx cy
 end
 load 'cx-cy.mat' cx cy
 clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx
-% Extend it further north using same ETOPO dataset and 0-5 contour
-[Z_eto_N,R] = readgeoraster('extendedNcoast.tiff') ;
-[rows,cols] = size(Z_eto_N) ;
+% Extend even furth east (0)
+[Z_eto_E,R] = readgeoraster('extendedEcoast.tiff') ;
+[rows,cols] = size(Z_eto_E) ;
 [rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
-[YY_eto_N, XX_eto_N] = intrinsicToGeographic(R, colGrid, rowGrid);
-Z_eto_N = double(Z_eto_N) ;
-coast_range = (Z_eto_N>=0) & (Z_eto_N<=5) ; % 0-5 m coastline
-Z_masked = Z_eto_N ;
+[YY_eto_E, XX_eto_E] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto_E = double(Z_eto_E) ;
+coast_range = (Z_eto_E>=0) & (Z_eto_E<=5) ; % 0-5 m coastline
+Z_masked = Z_eto_E ;
 depth_min = 0 ;
 depth_max = 5 ;
 run = 2 ;
 for i = 1:1:1
     if run == 1
 figure;
-[C,h] = contour(XX_eto, YY_eto, Z_masked,[depth_min,depth_max]) ;
+[C,h] = contour(XX_eto_E, YY_eto_E, Z_masked,[depth_min,depth_max]) ;
 xlabel('Longitude');
 ylabel('Latitude');
 %C(wholeNumberIndex) = NaN ;
@@ -94,7 +94,74 @@ save 'cx-cy.mat' cx cy
     end
 end
 load 'cx-cy.mat' cx cy
-clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx
+clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx XX_eto_E YY_eto_E Z_eto_E
+% Extend it further north using same ETOPO dataset and 0-5 contour
+[Z_eto_N,R] = readgeoraster('extendedNcoast.tiff') ;
+[rows,cols] = size(Z_eto_N) ;
+[rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
+[YY_eto_N, XX_eto_N] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto_N = double(Z_eto_N) ;
+coast_range = (Z_eto_N>=0) & (Z_eto_N<=5) ; % 0-5 m coastline
+Z_masked = Z_eto_N ;
+depth_min = 0 ;
+depth_max = 5 ;
+run = 2 ;
+for i = 1:1:1
+    if run == 1
+figure;
+[C,h] = contour(XX_eto_N, YY_eto_N, Z_masked,[depth_min,depth_max]) ;
+xlabel('Longitude');
+ylabel('Latitude');
+%C(wholeNumberIndex) = NaN ;
+zeroidx = (C == 0) ;
+for i = 1:1:length(C)
+    if C(1,i) == 0
+C(:,i) = NaN ;
+    end
+end
+indices = find(C > 0 & C < 10,1);
+[row, col] = ind2sub(size(C), indices);
+C = C(:,1:col-1) ;
+cx = [cx;C(1,:)'] ;
+cy = [cy;C(2,:)'] ;
+save 'cx-cy.mat' cx cy
+    end
+end
+load 'cx-cy.mat' cx cy
+%Extend even furth north
+[Z_eto_NN,R] = readgeoraster('extendedNNcoast.tiff') ;
+[rows,cols] = size(Z_eto_NN) ;
+[rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
+[YY_eto_NN, XX_eto_NN] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto_NN = double(Z_eto_NN) ;
+coast_range = (Z_eto_NN>=0) & (Z_eto_NN<=5) ; % 0-5 m coastline
+Z_masked = Z_eto_NN ;
+depth_min = 0 ;
+depth_max = 5 ;
+run = 2 ;
+for i = 1:1:1
+    if run == 1
+figure;
+[C,h] = contour(XX_eto_NN, YY_eto_NN, Z_masked,[depth_min,depth_max]) ;
+xlabel('Longitude');
+ylabel('Latitude');
+%C(wholeNumberIndex) = NaN ;
+zeroidx = (C == 0) ;
+for i = 1:1:length(C)
+    if C(1,i) == 0
+C(:,i) = NaN ;
+    end
+end
+indices = find(C > 0 & C < 10,1);
+[row, col] = ind2sub(size(C), indices);
+C = C(:,1:col-1) ;
+cx = [cx;C(1,:)'] ;
+cy = [cy;C(2,:)'] ;
+save 'cx-cy.mat' cx cy
+    end
+end
+load 'cx-cy.mat' cx cy
+clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx YY_eto_NN XX_eto_NN Z_eto_NN
 %%
 % Defining Coastline
 run = 2 ;
@@ -158,40 +225,40 @@ save("y_reff.mat","y_reff")
 load("x_reff.mat")
 load("y_reff.mat")    
 end
-% added coastline
-run = 2 ;
-for i = 1:1:1
-    if run == 1
-clf
-hold on
-plot(cx,cy,'k')
-plot(x_coast,y_coast,'r')
-xlim([-45,-30])
-ylim([59,77])
-daspect([1 aspect_ratio 1])
-extra_x = [] ;
-extra_y = [] ;
-run = true;
-while run
-    [x, y, button] = ginput(1);
-    if isempty(button) || button == 13
-        run = false;
-    else
-        plot(x, y, 'ro'); % Plot the point
-        xlim([x-3, x+3])
-        ylim([y-3, y+3])
-        extra_x = [extra_x; x];
-        extra_y = [extra_y; y];
-    end
-end
-save 'extra_coast.mat' extra_x extra_y
-    end
-end
-load 'extra_coast.mat' extra_x extra_y
-reff_cord = [] ;
+% added coastline (DON'T THINK THIS IS NEEDED?)
+%run = 2 ;
+%for i = 1:1:1
+%    if run == 1
+%clf
+%hold on
+%plot(cx,cy,'k')
+%plot(x_coast,y_coast,'r')
+%xlim([-45,-30])
+%ylim([59,77])
+%daspect([1 aspect_ratio 1])
+%extra_x = [] ;
+%extra_y = [] ;
+%run = true;
+%while run
+%    [x, y, button] = ginput(1);
+%    if isempty(button) || button == 13
+%        run = false;
+%    else
+%        plot(x, y, 'ro'); % Plot the point
+%        xlim([x-3, x+3])
+%        ylim([y-3, y+3])
+%        extra_x = [extra_x; x];
+%        extra_y = [extra_y; y];
+%    end
+%end
+%save 'extra_coast.mat' extra_x extra_y
+%    end
+%end
+%load 'extra_coast.mat' extra_x extra_y
+%reff_cord = [] ;
 %combine coasts
-x_coast = [x_coast;extra_x] ;
-y_coast = [y_coast;extra_y] ;
+%x_coast = [x_coast;extra_x] ;
+%y_coast = [y_coast;extra_y] ;
 for i = 1:1:length(x_reff)-1
     x = [(x_reff(i)+x_reff(i+1))/2,(y_reff(i)+y_reff(i+1))/2] ;   %middle point of refference lines
     reff_cord(i,:) = x ;
@@ -211,188 +278,95 @@ x_reff_new = reshape(x_reff_new,1,[]) ;
 y_reff_new = reshape(y_reff_new,1,[]) ;
 slope_new = reshape(slope_new,1,[]) ;
 clear('x','y','button')
-
-% Slope and inverse
-for i = 1:length(x_coast)-1
-W = (y_coast(i+1,1)-y_coast(i,1))/(x_coast(i+1,1)-x_coast(i,1)) ;
-slope(i,1) = W ;
-inverse(i,1) = -1/W ;
-W = y_coast(i,1)-slope(i)*x_coast(i,1) ; 
-intercept(i,1 ) = W ;
-end
-clear('W')
-width_2 = recwidth ; % for dynamic plot titles
-length_2 = reclength ; % for dynamic plot titles
-recwidth_coast = 10*2 ; % do not change, for defining larger polygon
-reclength_coast = 20*2 ; % do not change, for defining larger polygon
-lengthdeg = km2deg(reclength) ;
-widthdeg_lon = 111.120 .*cosd(lat) ;
-widthdeg_lon = recwidth./widthdeg_lon ;
-%widthdeg_coast = recwidth_coast./widthdeg_lon ; % Think I can get rid of
-%this
-%lengthdeg_coast = km2deg(reclength_coast) ;% For larger polygon
-% create points along lines
-dist = 3 ; 
-num_points = 5000 ; 
-% All Coastline + and - for 1/2
-for i = 1:length(x_coast)-1
-W = linspace(x_coast(i,1), x_coast(i,1) - dist, num_points); % minus longitude for western facing coasts
-x_perp_minus{i,1} = W' ;
-W =  inverse(i) * (x_perp_minus{i} - x_coast(i,1)) + y_coast(i,1);
-y_perp_minus{i,1} = W ;
-end
-for i = 1:length(x_coast)-1
-W = linspace(x_coast(i,1), x_coast(i,1) + dist, num_points); % minus longitude for western facing coasts
-x_perp_plus{i,1} = W' ;
-W =  inverse(i) * (x_perp_plus{i} - x_coast(i,1)) + y_coast(i,1);
-y_perp_plus{i,1} = W ;
-end
-for i = 1:length(x_coast)-1
-W = linspace(x_coast(i+1,1), x_coast(i+1,1) + dist, num_points); % minus longitude for western facing coasts
-x_perp_plus2{i,1} = W' ; 
-W =  inverse(i) * (x_perp_plus2{i} - x_coast(i+1,1)) + y_coast(i+1,1);
-y_perp_plus2{i,1} = W ;
-end
-for i = 1:length(x_coast)-1
-W = linspace(x_coast(i+1,1), x_coast(i+1,1) - dist, num_points); % minus longitude for western facing coasts
-x_perp_minus2{i,1} = W' ; 
-W =  inverse(i) * (x_perp_minus2{i} - x_coast(i+1,1)) + y_coast(i+1,1);
-y_perp_minus2{i,1} = W ;
-end
-clear W
-% setting up sw_dist
-for i = 1:length(x_perp_plus)
-%plus
-ref_plusx{i,1} = [x_perp_plus{i},repmat(x_coast(i,1),num_points,1)];
-ref_plusy{i,1} = [y_perp_plus{i},repmat(y_coast(i,1),num_points,1)];
-ref_plus2x{i,1} = [x_perp_plus2{i},repmat(x_coast(i+1,1),num_points,1)];
-ref_plus2y{i,1}= [y_perp_plus2{i},repmat(y_coast(i+1,1),num_points,1)];
-%minus
-ref_minusx{i,1} = [x_perp_minus{i},repmat(x_coast(i,1),num_points,1)];
-ref_minusy{i,1} = [y_perp_minus{i},repmat(y_coast(i,1),num_points,1)];
-ref_minus2x{i,1} = [x_perp_minus2{i},repmat(x_coast(i+1,1),num_points,1)];
-ref_minus2y{i,1}= [y_perp_minus2{i},repmat(y_coast(i+1,1),num_points,1)];
-end
-% sw_dist (only do for index plus minus when appropriate(not currently done))
-for i = 1:1:length(ref_plusy)
-    for j = 1:1:length(ref_plusy{1})
-    dist_plus{i,1}(j,1) = sw_dist(ref_plusy{i}(j,:),ref_plusx{i}(j,:),'km') ;
-    dist_plus2{i,1}(j,1) = sw_dist(ref_plus2y{i}(j,:),ref_plus2x{i}(j,:),'km') ;
-    dist_minus{i,1}(j,1) = sw_dist(ref_minusy{i}(j,:),ref_minusx{i}(j,:),'km') ;
-    dist_minus2{i,1}(j,1) = sw_dist(ref_minus2y{i}(j,:),ref_minus2x{i}(j,:),'km') ;
-    end
-    j = 1 ;
-end
-clear widthdeg_lon extra_x extra_y
-%%
-% Find point closest to x km within y km
-for i = 1:1:length(dist_minus)
-    for j =1:1:length(ref_minusy{1})
-differences_minus{i,1}(j,1) = abs(dist_minus{i,1}(j,1)-target)  ;
-differences_minus2{i,1}(j,1) = abs(dist_minus2{i,1}(j,1)-target) ;
-    end
-    j= 1 ;
-[min_minus(i,1),index_minus(i,1)] = min(differences_minus{i}) ;
-[min_minus2(i,1),index_minus2(i,1)] = min(differences_minus2{i}) ;
-end
-for i = 1:1:length(dist_plus)
-    for j =1:1:length(ref_plusy{1})
-differences_plus{i,1}(j,1) = abs(dist_plus{i,1}(j,1)-target)  ;
-differences_plus2{i,1}(j,1) = abs(dist_plus2{i,1}(j,1)-target) ;
-    end
-    j= 1 ;
-[min_plus(i,1),index_plus(i,1)] = min(differences_plus{i}) ;
-[min_plus2(i,1),index_plus2(i,1)] = min(differences_plus2{i}) ;
-end
-% Index back in to be left with cordinates for plus and minus 1/2
-for i = 1:1:length(dist_minus)
-index = index_minus(i) ;
-   exten_minus(i,:) = [x_perp_minus{i}(index),y_perp_minus{i}(index)] ;
-index = index_minus2(i) ;
-   exten_minus2(i,:) = [x_perp_minus2{i}(index),y_perp_minus2{i}(index)] ;
-end
-for i = 1:1:length(dist_plus)
-index = index_plus(i) ;
-   exten_plus(i,:) = [x_perp_plus{i}(index),y_perp_plus{i}(index)] ;
-index = index_plus2(i) ;
-   exten_plus2(i,:) = [x_perp_plus2{i}(index),y_perp_plus2{i}(index)] ;
-end
-% Test inpolygon to remove stuff inside coastline (need to keep 1/2
-% seperate for avging later
-polygon_x = [-45;x_coast;-30] ; % needs to change if we redo coastline
-polygon_y = [78.1036;y_coast;78.1036] ;
-in_plus = inpolygon(exten_plus(:,1),exten_plus(:,2),polygon_x,polygon_y) ;
-in_plus2 = inpolygon(exten_plus2(:,1),exten_plus2(:,2),polygon_x,polygon_y) ;
-in_minus = inpolygon(exten_minus(:,1),exten_minus(:,2),polygon_x,polygon_y) ;
-in_minus2 = inpolygon(exten_minus2(:,1),exten_minus2(:,2),polygon_x,polygon_y) ;
-% removing the inside coast points so I can stich together and average
-% valid points
-exten_plus_x = nan(size(exten_plus(:,1))) ;
-exten_plus_x(~in_plus) = exten_plus(~in_plus,1) ;
-exten_plus_y = nan(size(exten_plus(:,1))) ;
-exten_plus_y(~in_plus) = exten_plus(~in_plus,2) ;
-exten_plus_ = ([exten_plus_x,exten_plus_y]) ;
-exten_plus2_x = nan(size(exten_plus2(:,1))) ;
-exten_plus2_x(~in_plus2) = exten_plus2(~in_plus2,1) ;
-exten_plus2_y = nan(size(exten_plus2(:,1))) ;
-exten_plus2_y(~in_plus2) = exten_plus2(~in_plus2,2) ;
-exten_plus2_ = ([exten_plus2_x,exten_plus2_y]) ;
-exten_minus_x = nan(size(exten_minus(:,1))) ;
-exten_minus_x(~in_minus) = exten_minus(~in_minus,1) ;
-exten_minus_y = nan(size(exten_minus(:,1))) ;
-exten_minus_y(~in_minus) = exten_minus(~in_minus,2) ;
-exten_minus_ = ([exten_minus_x,exten_minus_y]) ;
-exten_minus2_x = nan(size(exten_minus2(:,1))) ;
-exten_minus2_x(~in_minus2) = exten_minus(~in_minus2,1) ;
-exten_minus2_y = nan(size(exten_minus2(:,1))) ;
-exten_minus2_y(~in_minus2) = exten_minus2(~in_minus2,2) ;
-exten_minus2_ = ([exten_minus2_x,exten_minus2_y]) ;
-% Stich plus and minus together 
-nan_idx = isnan(exten_plus_) ;
-exten_plus_(nan_idx) = exten_minus_(nan_idx) ;
-exten = exten_plus_ ;
-nan_idx2 = isnan(exten_plus2_) ;
-exten_plus2_(nan_idx2) = exten_minus2_(nan_idx2) ;
-exten2 = exten_plus2_  ;
-% concatenate lon,lat from both 1/2 for ordering STILL NEED TO ORDER
-offset = [NaN,NaN] ;
-exten = [exten;offset] ;
-exten2 = [offset;exten2] ;
-off_x = [exten(:,1),exten2(:,1)] ;
-off_y = [exten(:,2),exten2(:,2)] ;
-% average offset off coast points to result in one point per point
-off_coast = [mean(off_x,2,'omitnan'),mean(off_y,2,'omitnan')] ;
-clear exten_plus_x exten_plus_y exten_plus2_x exten_plus2_y  exten_minus_x exten_minus_y exten_minus2_x exten_minus2_y 
-clear in_minus2 in_minus in_plus in_plus2 
-clear exten_minus exten_minus2 exten_plus exten_plus2 exten_plus_ exten_plus2_ exten_minus_ dist_plus dist_minus dist_minus2 dist_plus2 exten_minus2 index i index_minus index_plus index_plus2
-clear  j inverse intercept min_plus2 min_plus min_minus2 min_minus ref_minus2x ref_minusx ref_minus2y ref_plus2x ref_plusx run slope x_perp_minus x_perp_minus2 x_perp_plus
-clear x_perp_plus2 y_perp_minus y_perp_minus2 y_perp_plus y_perp_plus2 differences_plus2 differences_plus differences_minus differences_minus2 exten_minus2_ index_minus2 length_2 
-clear ref_minusy ref_plusy ref_plus2y dist lengthdeg_coast off_x off_y nan_idx2 nan_idx num_points reff_cords 
-% Find Casts within defined area (concatenate off coast and coast to make one polygon
-%hand removing verticies that cause self-intersection
-intersect_x = [-55.2664; -55.1943; -51.6715; -51.2208; -50.9012; -40.8574;-39; -39.1132; -38.8448; -39.3609;-39.1381;-40.181;-39.1862;-38.2976]; % Hand picked for 100 km, needds to be edited if coastline or size changes
-intersect_y = [66.734; 66.1034; 61.8243; 61.7822; 61.3371;62.2753; 63.5719; 63.7534; 64.2143; 64.1142;64.2335;61.8788;64.23;64.7891] ; % Hand picked for 100 km, needds to be edited if coastline or size changes
-tolerance = 1e-4 ;
-idx_remove = [] ;
-for i = 1:length(intersect_y)
-   idx = find(abs(off_coast(:,1) - intersect_x(i)) < tolerance & abs(off_coast(:,2) - intersect_y(i)) < tolerance);
-    % Append the found indices to idx_remove
-    idx_remove = [idx_remove;idx] ;
-end
-off_coast(idx_remove,:) = [] ;
+%NOTHING CHANGED PAST HERE
 run = 2 ;
-if run == 1
-%combine into polygon
-poly_off = [-66.6413,75.7] ;
-combined_x = [off_coast(:,1);flip(x_coast)] ;
-combined_y = [off_coast(:,2);flip(y_coast)] ;
-% manually fix combined_x/y
-added_x = combined_x(2) ; % manually adding a point
-added_y = combined_y(end) ;
-combined_x = [added_x;combined_x(2:end)] ;
-combined_y = [added_y;combined_y(2:end)] ;
-   save combined_x.mat combined_x
-   save combined_y.mat combined_y
+if run == 1 
+% extended coastline code 
+combined_y = zeros(size(y_coast));
+combined_x = zeros(size(x_coast));
+% Initial plot to allow zooming and panning
+figure(1);
+daspect([1 aspect_ratio 1]);
+plot(x_coast, y_coast, '-b', 'LineWidth', 2); % Original coastline
+xlim([-80, -30]);
+ylim([55, 80]);
+title('Zoom and Pan to Your Desired View, Then Press Any Key to Start');
+xlabel('Longitude');
+ylabel('Latitude');
+grid on;
+hold on;
+% Pause to allow zoom and pan
+disp('Zoom and pan as needed, then press any key to start...');
+pause; % Wait for key press
+
+% Loop through each point on the coastline
+for i = 1:(length(y_coast)-1)
+    % Calculate the bearing (azimuth) from the current point to the next
+    [azm] = azimuth(y_coast(i), x_coast(i), y_coast(i+1), x_coast(i+1), 'degrees');
+    
+    % Calculate both +90 and -90 perpendicular bearings
+    bearing_perpendicular1 = mod(azm + 90, 360); % Clockwise perpendicular
+    bearing_perpendicular2 = mod(azm - 90, 360); % Counterclockwise perpendicular
+    
+    % Use the reckon function to compute the new points 100 km away
+    [lat_new1, lon_new1] = reckon(y_coast(i), x_coast(i), km2deg(100), bearing_perpendicular1, 'degrees');
+    [lat_new2, lon_new2] = reckon(y_coast(i), x_coast(i), km2deg(100), bearing_perpendicular2, 'degrees');
+    
+    % Display options on a plot for visual inspection
+    figure(1);
+    daspect([1 aspect_ratio 1])
+    plot(cx,cy,'k')
+    xlim([-80,-30])
+    ylim([55,80])
+    plot(x_coast, y_coast, '-b', 'LineWidth', 2); % Original coastline
+    hold on;
+    p1 = plot(lon_new1, lat_new1, 'or', 'MarkerSize', 8); % +90 option (Red)
+    p2 = plot(lon_new2, lat_new2, 'og', 'MarkerSize', 8); % -90 option (Green)
+    current_point = plot(x_coast(i), y_coast(i), 'ok', 'MarkerSize', 10, 'MarkerFaceColor', 'k'); % Current point (Black)
+    legend([p1, p2, current_point], {'+90 Option (Red)', '-90 Option (Green)', 'Current Point (Black)'}, 'Location', 'best');
+    title(sprintf('Point %d of %d: Select Option', i, length(y_coast)-1));
+    hold off;
+      choice = questdlg(sprintf('Which option is correct for point %d?', i), ...
+                      'Select Direction', ...
+                      '+90', '-90', 'Skip', '+90');
+      switch choice
+        case '+90'
+            combined_y(i) = lat_new1;
+            combined_x(i) = lon_new1;
+        case '-90'
+            combined_y(i) = lat_new2;
+            combined_y(i) = lon_new2;
+        case 'Skip'
+            % Do nothing (keep NaN for this point)
+            continue;
+       end
+end
+% Final plot of the selected coastal zone
+figure(2);
+geoplot(y_coast,x_coast, '-b', 'LineWidth', 2); % Original coastline
+hold on;
+geoplot(combined_y,combined_x, '--r', 'LineWidth', 2); % Selected coastal zone
+legend('Original Coastline', '100 km Coastal Line');
+title('Final Coastal Zone');
+% remove intersecting points by hand (needs to be run after you've run the previous portion
+combined_x(end) = [] ;
+combined_y(end) = [] ;
+%hand select points to delete (doesn't need to be run more than once)
+%cursorMode = datacursormode(gcf); % run first
+%dataTips = cursorMode.getCursorInfo;
+xValues = zeros(length(dataTips), 1);
+yValues = zeros(length(dataTips), 1);
+for i = 1:length(dataTips)
+    xValues(i) = dataTips(i).Position(1);
+    yValues(i) = dataTips(i).Position(2);
+end
+for i = 1:length(xValues)
+    delete_idx(i,1) = dataTips(i).DataIndex ; 
+end
+combined_x(delete_idx) = [] ;
+combined_y(delete_idx) = [] ;
+save combined_x.mat combined_x
+save combined_y.mat combined_y
 end
 load combined_x.mat
 load combined_y.mat
