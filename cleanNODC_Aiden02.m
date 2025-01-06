@@ -26,7 +26,6 @@ load topo_east_coast.mat
 
 load 01GREENLAND_temp_sal.mat
 whos yea mon day lon lat dep watdep temp sal
-
 watdep=double(watdep);
 lat =double(lat);
 lon =double(lon);
@@ -42,25 +41,26 @@ lon =double(lon);
 %in = inpolygon(lon,lat,x_coastline,y_coastline) ;
 
 load topo_east_coast.mat
-
+load 'cx-cy.mat' cx cy
 te=find(YY(1,:)<55);
 YY(:,te)=[];
 XX(:,te)=[];
 ZZ(:,te)=[];
 
-te=find(XX(:,1)<-84);
+te=find(XX(:,1)<-100); % -84 was prior
 YY(te,:)=[];
 XX(te,:)=[];
 ZZ(te,:)=[];
 
 % ETOPO-2 Data %can use this for coastline data(countour 0-5 m)
-[Z_eto,R] = readgeoraster('exportImage.tiff') ;
+[Z_eto,R] = readgeoraster('exportimage.tiff') ;
 [rows,cols] = size(Z_eto) ;
 [rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
 [YY_eto, XX_eto] = intrinsicToGeographic(R, colGrid, rowGrid);
 Z_eto = double(Z_eto) ;
 Z_eto = -Z_eto ; % flips depth values to become positive,
 clear rowGrid colGrid cols R te rows
+
 
 % Combine the bathmetry (not sure how to do this yet maybe use inpolygon?)
 bed_border_X = [XX_bed(1,:),XX_bed(:,690)',flip(XX_bed(638,:)),XX_bed(:,1)'] ;
@@ -397,7 +397,7 @@ twd=twd(ind);
 whos yea mon day lon lat dep watdep temp sal twd
 
 plot(lon,lat,'.c')
-save '02cleanNODC_updated.mat' yea mon day lon lat dep watdep temp sal twd cx cy XX YY ZZ
+save '02cleanNODC_updated.mat' yea mon day lon lat dep watdep temp sal twd c_lon c_lat XX YY ZZ
 
 %% Statistics of profiles,  this section not seemingly neccessary for cleaning 
 % Now compute statistics of profiles
