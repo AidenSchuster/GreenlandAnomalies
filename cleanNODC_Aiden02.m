@@ -42,6 +42,8 @@ lon =double(lon);
 
 load topo_east_coast.mat
 load 'cx-cy.mat' cx cy
+load x_coast.mat
+load y_coast.mat
 te=find(YY(1,:)<55);
 YY(:,te)=[];
 XX(:,te)=[];
@@ -61,6 +63,29 @@ Z_eto = double(Z_eto) ;
 Z_eto = -Z_eto ; % flips depth values to become positive,
 clear rowGrid colGrid cols R te rows
 
+% ETOPO-2 Data %can use this for coastline data(countour 0-5 m) NE
+[Z_eto_NE,R] = readgeoraster('exportimage_NE.tiff') ;
+[rows,cols] = size(Z_eto_NE) ;
+[rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
+[YY_eto_NE, XX_eto_NE] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto_NE = double(Z_eto_NE) ;
+Z_eto_NE = -Z_eto_NE ; % flips depth values to become positive,
+clear rowGrid colGrid cols R te rows
+
+% ETOPO-2 Data %can use this for coastline data(countour 0-5 m) NW
+[Z_eto_NW,R] = readgeoraster('exportimage_NW.tiff') ;
+[rows,cols] = size(Z_eto_NW) ;
+[rowGrid, colGrid] = ndgrid(1:rows, 1:cols);
+[YY_eto_NW, XX_eto_NW] = intrinsicToGeographic(R, colGrid, rowGrid);
+Z_eto_NW = double(Z_eto_NW) ;
+Z_eto_NW = -Z_eto_NW ; % flips depth values to become positive,
+clear rowGrid colGrid cols R te rows
+
+% combine northern bathymetry
+Z_eto_N = [Z_eto_NW,Z_eto_NE] ;
+XX_eto_N = [XX_eto_NW ,XX_eto_NE] ;
+YY_eto_N = [YY_eto_NW, YY_eto_NE] ;
+clear XX_eto_NE XX_eto_NW YY_eto_NE YY_eto_NW Z_eto_NE Z_eto_NW
 
 % Combine the bathmetry (not sure how to do this yet maybe use inpolygon?)
 bed_border_X = [XX_bed(1,:),XX_bed(:,690)',flip(XX_bed(638,:)),XX_bed(:,1)'] ;
@@ -81,12 +106,12 @@ run = 2 ;
 %not, if its >then x its ETOPO and <x its topo
 
 
-TUTU= 1 ;
+TUTU= 2 ;
 if TUTU== 1
 twd_topo =griddata(XX,YY,ZZ,lon,lat);
 twd_bed =griddata(XX_bed,YY_bed,Depth_bed,lon,lat);
 twd_eto =griddata(XX_eto,YY_eto,Z_eto,lon,lat);
-
+twd_eto_N = griddata(XX_eto_N,YY_eto_N,Z_eto_N,lon,lat);
 save 02cleanNODC_temporary.mat twd_topo twd_bed twd_eto ;
 end
 load 02cleanNODC_temporary.mat twd_topo twd_bed twd_eto ;
@@ -107,28 +132,30 @@ hold on
 % CRITERIUM INSIDE THE FJORDS, OR UPDATE THE TOPOGRAPHY WITH BEDMACHINE
 % WHEN FINDING twd (total water depth) INSIDE THE FJORDS
  
-%remove casts dependent on which bathymetry set they belong to (something
-%is wrong here)
+%remove casts dependent on which bathymetry set they belong to (something is wrong here)
+% need to make sure I am not eliminating profiles within fjords unless its based on bedmachine bathymatry
+in = inpolygon(lon,lat,x_coast,y_coast) ; % index of "fjord" profiles
+ind = true(length(lat),1) ;
+ind = ind' ;
 for i = 1:1:length(lat) 
     if inpolygon(lon(i),lat(i),bed_border_X,bed_border_Y) == 1
 dif(i) = watdep(i)-twd_bed(i) ;
-    if dif(i) < 10 % meters
-ind(i) = 1 ;
-    elseif dif(i) > 10
+    if dif(i) >= 10
 ind(i) = 0 ;
     end
     elseif lon(i)<= -40 
 dif(i) = watdep(i)-twd_topo(i) ;
-if dif(i) < 10
-ind(i) = 1 ;
-elseif dif(i) > 10
+    if dif(i) >= 10
 ind(i) = 0 ;
-end
-    elseif lon(i) > -40 
+    end
+    elseif lon(i) > -40 && in(i) == 0 % needs to be outside of fjords for this criteria to apply (should leave stuff inside as 1)
 dif(i) = watdep(i)-twd_eto(i) ;
-if dif(i) < 10
-ind(i) = 1 ;
-    elseif dif(i) > 10
+    if dif(i) >= 10
+    ind(i) = 0 ;
+    end
+    elseif lat(i) > 80 && lon(i) < -40 && in(i) == 0 % needs to be in northern eto box, and not in "fjord"
+dif(i) = watdep(i)-twd_eto_N(i) ;
+    if dif(i) >= 10
 ind(i) = 0 ;
     end
     end
@@ -141,10 +168,12 @@ whos yea mon day lon lat dep watdep temp sal
 for i = 1:1:length(lat) 
     if inpolygon(lon(i),lat(i),bed_border_X,bed_border_Y) == 1
         twd(i) = twd_bed(i) ;
-         elseif lon(i)<= -40
+        elseif lon(i)<= -40
              twd(i) = twd_topo(i) ;
-              elseif lon(i) > -40 
-                  twd(i) = twd_eto(i) ;
+        elseif lon(i) > -40 && lat(i) < 80
+             twd(i) = twd_eto(i) ;
+    elseif lon(i) < -40 && lat(i) > 80
+            twd(i) = twd_eto_N(i) ;
     end
 end
 
@@ -163,7 +192,7 @@ whos yea mon day lon lat dep watdep temp sal twd
 clf
 plot(lon,lat,'.r')
 hold on
-clear temp_lat temp_lon temp_day temp_mon temp_yea temp_temp temp_sal tremp_twd temp_dep temp_twd temp_watdep twd_eto twd_bed twd_topo
+clear temp_lat temp_lon temp_day temp_mon temp_yea temp_temp temp_sal tremp_twd temp_dep temp_twd temp_watdep twd_eto twd_bed twd_topo twd_eto_N
 % 2) 
 % Now, clear profiles with the following characteristics:
 % 0  and 25 isobath with 1 or less points
@@ -397,7 +426,7 @@ twd=twd(ind);
 whos yea mon day lon lat dep watdep temp sal twd
 
 plot(lon,lat,'.c')
-save '02cleanNODC_updated.mat' yea mon day lon lat dep watdep temp sal twd c_lon c_lat XX YY ZZ
+save '02cleanNODC_updated.mat' yea mon day lon lat dep watdep temp sal twd cx cy XX YY ZZ
 
 %% Statistics of profiles,  this section not seemingly neccessary for cleaning 
 % Now compute statistics of profiles
