@@ -1,7 +1,7 @@
 % Load Data
 cd('C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt') ;
 addpath('seawater','C:\Users\ajs82292\Desktop\Research\Matlab\Source\seawater') ;
-load("02cleanNODC_updated.mat")
+load("02cleanNODC_updated2.mat")
 load('OMG_data.mat')
 load("x_coast.mat")
 load("y_coast.mat")
@@ -161,7 +161,7 @@ save 'cx-cy.mat' cx cy
     end
 end
 load 'cx-cy.mat' cx cy
-clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx YY_eto_NN XX_eto_NN Z_eto_NN
+clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx YY_eto_NN XX_eto_NN Z_eto_NN c_lon c_lat
 %%
 % Defining Coastline
 run = 2 ;

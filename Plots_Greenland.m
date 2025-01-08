@@ -1,3 +1,24 @@
+%recreating FINESST OMG NODC plot
+% Set figure size
+figure('Units', 'inches', 'Position', [1, 1, 8, 6]); % Adjust size as needed
+
+% Existing plotting code
+omg_lat = lat(length_NODC+1:end);
+omg_lon = lon(length_NODC+1:end);
+nodc_lat = lat(1:length_NODC);
+nodc_lon = lon(1:length_NODC);
+clf
+hold on
+daspect([1 aspect_ratio 1])
+plot(cx, cy, 'k')
+scatter(nodc_lon, nodc_lat, 1.5, 'b','filled')
+scatter(omg_lon, omg_lat, 7, 'red','filled')
+xlim([-100, -10])
+ylim([55, 85])
+
+% Export the plot with high resolution
+exportgraphics(gcf, 'finesst_plot.png', 'Resolution', 300); % Save as PNG with 300 DPI
+%%
 % Plot coastline
 clf
 hold on
