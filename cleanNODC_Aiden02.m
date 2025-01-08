@@ -5,6 +5,9 @@ close all
 cd C:\Users\ajs82292\Desktop\Research\Matlab\Source\nodc_files_data
 
 load bedmachinev5_decimated.mat
+load 'cx-cy.mat' cx cy
+c_lon = cx ; % for purposes of maintaing structure in Greenland_Meltwater.m
+c_lat = cy ;
 XX_bed = lon ;
 YY_bed = lat ;
 Depth_bed = depth ;
@@ -41,7 +44,6 @@ lon =double(lon);
 %in = inpolygon(lon,lat,x_coastline,y_coastline) ;
 
 load topo_east_coast.mat
-load 'cx-cy.mat' cx cy
 load x_coast.mat
 load y_coast.mat
 te=find(YY(1,:)<55);
@@ -603,7 +605,7 @@ hold on
 plot(lon(shelf),lat(shelf),'.r')
 plot(lon(slope),lat(slope),'.k')
 io=axis;
-plot(cx,cy,'c')
+plot(c_lon,c_lat,'c')
 %contour(XX,YY,ZZ,[ 500 1000 3000],'g')
 axis(io)
 
@@ -626,7 +628,7 @@ print -djpeg -r300 02cleanNODC_histogram_year
 
 whos yea mon day lon lat dep watdep temp sal twd XX YY ZZ cx cy
 
-save 02cleanNODC yea mon day lon lat dep watdep temp sal twd XX YY ZZ cx cy
+save 02cleanNODC_updated.mat yea mon day lon lat dep watdep temp sal twd XX YY ZZ cx cy
 
 
 
@@ -668,7 +670,7 @@ subplot(2,3,1)
 scatter(lon(te1(te)),lat(te1(te)),5,s0(te1(te)),'filled')
 caxis(ii)
 hold on
-plot(cx,cy,'k')
+plot(c_lon,c_lat,'k')
 axis(io)
 
 te=find(mon(te1)>=7 & mon(te1)<=8 & yea(te1) >=1960 & yea(te1) <=1970);
@@ -676,7 +678,7 @@ subplot(2,3,2)
 scatter(lon(te1(te)),lat(te1(te)),5,s0(te1(te)),'filled')
 caxis(ii)
 hold on
-plot(cx,cy,'k')
+plot(c_lon,c_lat,'k')
 axis(io)
 
 te=find(mon(te1)>=7 & mon(te1)<=8 & yea(te1) >=1970 & yea(te1) <=1980);
@@ -684,7 +686,7 @@ subplot(2,3,3)
 scatter(lon(te1(te)),lat(te1(te)),5,s0(te1(te)),'filled')
 caxis(ii)
 hold on
-plot(cx,cy,'k')
+plot(c_lon,c_lat,'k')
 axis(io)
 
 te=find(mon(te1)>=7 & mon(te1)<=8 & yea(te1) >=1980 & yea(te1) <=1990);
@@ -692,7 +694,7 @@ subplot(2,3,4)
 scatter(lon(te1(te)),lat(te1(te)),5,s0(te1(te)),'filled')
 caxis(ii)
 hold on
-plot(cx,cy,'k')
+plot(c_lon,c_lat,'k')
 axis(io)
 
 te=find(mon(te1)>=7 & mon(te1)<=8 & yea(te1) >=1990 & yea(te1) <=2000);
@@ -700,7 +702,7 @@ subplot(2,3,5)
 scatter(lon(te1(te)),lat(te1(te)),5,s0(te1(te)),'filled')
 caxis(ii)
 hold on
-plot(cx,cy,'k')
+plot(c_lon,c_lat,'k')
 axis(io)
 
 te=find(mon(te1)>=7 & mon(te1)<=8 & yea(te1) >=2000 & yea(te1) <=2013);
@@ -708,7 +710,7 @@ subplot(2,3,6)
 scatter(lon(te1(te)),lat(te1(te)),5,s0(te1(te)),'filled')
 caxis(ii)
 hold on
-plot(cx,cy,'k')
+plot(c_lon,c_lat,'k')
 axis(io)
 
 
@@ -734,7 +736,7 @@ pcolor(XO,YO,ZOs)
 shading flat
 caxis(ii)
 hold on
-plot(cx,cy,'k')
+plot(c_lon,c_lat,'k')
 axis(io)
 %scatter(lon(te1(te)),lat(te1(te)),5,s0(te1(te)),'filled')
 plot(lon(te1(te)),lat(te1(te)),'.','color',[1 1 1]*0.7,'markersize',5)
@@ -767,7 +769,7 @@ pcolor(XO,YO,ZOs)
 shading flat
 caxis(ii)
 hold on
-plot(cx,cy,'k')
+plot(c_lon,c_lat,'k')
 axis(io)
 %scatter(lon(te1(te)),lat(te1(te)),5,s0(te1(te)),'filled')
 plot(lon(te1(te)),lat(te1(te)),'.','color',[1 1 1]*0.7,'markersize',5)
