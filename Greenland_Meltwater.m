@@ -372,6 +372,8 @@ load combined_x.mat
 load combined_y.mat
 
 % NOTHING CHANGED PAST HERE FOR REWORKING COAST
+polygon_x = [x_coast] ; % may need to add more points but I think this is fine?
+polygon_y = [y_coast] ;
 in = inpolygon(lon,lat,combined_x,combined_y) ; % All coasts within coastal section 
 % Determine which refference point to base slope of rectangle boxes
 reff_x = x_reff_new' ;
@@ -578,7 +580,7 @@ for i = 1:1:length(dep)
 end
 for i = 1:1
     if run == 1
-save ("interp_temp.mat", "interp_temp");
+save ("interp_temp.mat", "interp_temp", '-v7.3');
     end
 end
     load('interp_temp.mat')
@@ -590,7 +592,7 @@ for i = 1:1:length(dep)
 end
 for i = 1:1
     if run == 1
- save ("interp_sal.mat", "interp_sal");
+ save ("interp_sal.mat", "interp_sal", '-v7.3');
     end
 end
 load('interp_sal.mat')
@@ -635,7 +637,7 @@ load("interp_temp_mat.mat")
 in_temp = inpolygon(lon_a,lat_a,combined_x,combined_y) ;
 coast_sal_temporary = interp_sal_mat(:,in_temp) ;
 %% Selecting Fjord coordinates/area % defining areas of individual fjords
-run = 2 ;7 
+run = 2 ;
 if run == 1
     hold on
     plot(cx,cy,'k')
@@ -935,7 +937,7 @@ clear top_50 bottom bottom_remove diff_sal temporary non_nan value_below value_b
 remove_fj_any = any(remove_fj, 1);
 num_total = sum(remove_fj_any) ;
 compare_OMG = remove_fj_any & OMG_fj_profiles ;
-compare_OMG_nan = OMG_fj_profiles & too_many_nans ;
+compare_OMG_nan = OMG_fj_profiles & too_many_nans_fj ;
 num_OMG_nan = sum(compare_OMG_nan) ;
 num_OMG = sum(compare_OMG);
 disp(['Number of total Fjord profiles impacted: ', num2str(num_total)]) ;
@@ -1024,7 +1026,7 @@ box_temp_mat = box_temp_mat(:,~too_many_nans_box) ;
 clear temp_idx box_idx threshold_50 threshold top_50 bottom threshold bottom_remove top_50 threshold_50 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_50_remove length_NODC num_OMG
 clear num_OMG_nan 
 %% loop through collumns and calculate derivatives (delta y /delta x)
-run = 2 ;
+run = 1 ;
 if run == 1
     diff_result = NaN(size(interp_sal_mat)) ;
     for i  = 1:length(interp_sal_mat)
@@ -1178,7 +1180,7 @@ clear middle_idx latedec_idx earlyjan_idx day_a
 %range(:,unique_col) = [] ;
 %clear temp_sal
 % Create indicies for coastal casts within box and date range 
-run = 2 ;
+run = 1 ;
 for i = 1:length(vert)
         if run == 1  
             poly_idx = inpolygon(lon_a,lat_a,vert{i}(1,:),vert{i}(2,:)) ; % each collumn corresponds to a different cast
@@ -1224,7 +1226,7 @@ if mod(length(lon_a),2) == 1
 lon_a = [lon_a,0] ; % add additional garbage point to make even (remove after done)
 lat_a = [lat_a,0] ;
 end
-run = 2 ;
+run = 1 ;
 if run == 1
     for i = 1:length(lon_open)
 reff_lon = [repmat(lon_open(i),1,length(lon_a)/2)] ; % half the length of lat/lon_a to interleave
@@ -1280,7 +1282,7 @@ in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coasta
 coastal_sal = interp_sal_mat(:,in_a) ;
 coastal_temp = interp_temp_mat(:,in_a) ;
 % Coast means/std
-run = 2 ;
+run = 1 ;
 if run == 1
 for i = 1:1
     coastal_temp_mat = [] ;
@@ -1334,7 +1336,7 @@ unique_col = unique(col, 'stable');
 unique_col_idx_open = false(1,length(open_sal)) ;
 unique_col_idx_open(unique_col) = true ;
 
-run = 2 ;
+run = 1 ;
 for i = 1:1
     if run == 1
     open_temp_mat = [] ;
