@@ -10,14 +10,113 @@ nodc_lon = lon(1:length_NODC);
 clf
 hold on
 daspect([1 aspect_ratio 1])
-plot(cx, cy, 'k')
 scatter(nodc_lon, nodc_lat, 1.5, 'b','filled')
 scatter(omg_lon, omg_lat, 7, 'red','filled')
+plot(cx, cy, 'k')
 xlim([-100, -10])
 ylim([55, 85])
 
 % Export the plot with high resolution
 exportgraphics(gcf, 'finesst_plot.png', 'Resolution', 300); % Save as PNG with 300 DPI
+%% TS plot figure for FINESST
+%work to setup
+load glacier_FINESST.mat glacier
+glacier_coords = [66.350, -38.2000] ;
+glacier_idx = inpolygon(lon_fj, lat_fj, glacier(:, 1), glacier(:, 2));
+
+
+hel_fj = mon_fj(glacier_idx) ;
+Aug = hel_fj == 8 ;
+Sep = hel_fj == 9 ;
+%fjord_sal_mat_fj = double(fjord_sal_mat_fj) ;
+%fjord_temp_mat_fj = double(fjord_temp_mat_fj) ;
+
+temp_glacier = temp(in_idx) ; % not interpolated vertically
+temp_glacier = temp_glacier(:,glacier_idx) ;
+sal_glacier = sal(in_idx) ;
+sal_glacier = sal_glacier(:,glacier_idx) ;
+dep_glacier = dep(in_idx) ;
+dep_glacier = dep_glacier(:,glacier_idx) ;
+%Spline Interpolate
+for i = 1:length(dep_glacier)
+    spline_temp{1,i} = interp1(dep_glacier{1,i},temp_glacier{1,i},DepInterval,'spline') ;
+    spline_sal{1,i} = interp1(dep_glacier{1,i},sal_glacier{1,i},DepInterval,'spline') ;
+end
+% cell to matrix
+for i = 1:length(spline_temp)
+insidearray1 = spline_temp{i}' ;
+insidearray2 = spline_temp{i}' ;
+spline_temp_mat(:,i) = insidearray1 ;
+spline_sal_mat(:,i) = insidearray2 ;
+end
+
+spline_temp_mat_Sep = spline_temp_mat(:,Sep) ;
+spline_sal_mat_Sep = spline_sal_mat(:,Sep) ;
+
+all_hel_sal = fjord_sal_mat_fj(:,glacier_idx) ;
+all_hel_temp = fjord_temp_mat_fj(:,glacier_idx) ;
+all_hel_sal_Sep = all_hel_sal(:,Sep) ;
+all_hel_sal_Aug = all_hel_sal(:,Aug) ;
+all_hel_temp_Sep = all_hel_temp(:,Sep) ;
+all_hel_temp_Aug = all_hel_temp(:,Aug) ;
+
+hel_lon_Sep = lon_fj(:,glacier_idx) ;
+hel_lat_Sep = lat_fj(:,glacier_idx) ;
+hel_lon_Sep = hel_lon_Sep(:,Sep) ;
+hel_lat_Sep = hel_lat_Sep(:,Sep) ;
+
+for i = 1:length(hel_lat_Sep)
+    temp_gl = [glacier_coords;hel_lat_Sep(i),hel_lon_Sep(i)] ;
+    temp_x = temp_gl(:,2) ;
+    temp_y = temp_gl(:,1) ;
+dist_glacier(1,i) = sw_dist(temp_y,temp_x,'km') ;
+end
+%five_sal = fjord_sal_mat_fj(51:70,hel_idx) ;
+%five_temp = fjord_temp_mat_fj(51:70,hel_idx) ;
+%five_filter = all(~isnan(five_sal), 1) ;
+%five_sal = five_sal(:,five_filter) ;
+%five_temp = five_temp(:,five_filter) ;
+%five_dep = (51:70)' ;
+%five_sal_sep = five_sal(:,Sep(five_filter)) ;
+%five_temp_sep = five_temp(:,Sep(five_filter)) ;
+%seven_sal = fjord_sal_mat_fj(71:90,hel_idx) ;
+%seven_temp = fjord_temp_mat_fj(71:90,hel_idx) ;
+%nine_sal = fjord_sal_mat_fj(91:110,hel_idx) ;
+%nine_temp = fjord_temp_mat_fj(91:110,hel_idx) ;
+%%
+clf
+hold on
+colorbar;
+%caxis([min(dist_glacier), max(dist_glacier)]);  % Set color range
+%colormap();
+
+% Get the color for each data point based on dist_glacier
+for i = 1:9:size(spline_temp_mat_Sep,2)
+    %color_value = dist_glacier(i);  % Scalar value for color
+    %color = colormap('jet');  % Get the colormap
+    %color_index = round((color_value - min(dist_glacier)) / (max(dist_glacier) - min(dist_glacier)) * (size(color, 1) - 1)) + 1;  % Normalize and index the colormap
+    plot(spline_sal_mat_Sep(:,i), spline_temp_mat_Sep(:,i));
+end
+
+title('September Near Glacier Helheim TS')
+hold off
+%plot(seven_sal(:,hel_idx),seven_temp(:,hel_idx))
+% clear hel_idx Aug Sep
+%% Polished Plot (have to select a plot from the above grouping)
+addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_matlab_v3_06_16'
+addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_matlab_v3_06_16\html'
+addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_matlab_v3_06_16\library'
+addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_matlab_v3_06_16\pdf'
+addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_matlab_v3_06_16\thermodynamics_from_t'
+load profile.mat
+load profile3.mat
+
+figure
+hold on
+isopycnals = [21,22,23,24,25,26,27,28] ;
+gsw_SA_CT_plot_Aiden(profile3.Target.XData,profile3.Target.YData,0,isopycnals,'Helheim Glacier Temperature vs Salinity profiles')
+scatter(profile.Target.XData,profile.Target.YData,'b','filled')
+exportgraphics(gcf, 'finesst_TSplot.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %%
 % Plot coastline
 clf
