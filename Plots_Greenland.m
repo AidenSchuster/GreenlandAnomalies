@@ -37,22 +37,25 @@ sal_glacier = sal(in_idx) ;
 sal_glacier = sal_glacier(:,glacier_idx) ;
 dep_glacier = dep(in_idx) ;
 dep_glacier = dep_glacier(:,glacier_idx) ;
+
 %Spline Interpolate
+maxValues = cellfun(@max, dep_glacier) ;
 for i = 1:length(dep_glacier)
-    spline_temp{1,i} = interp1(dep_glacier{1,i},temp_glacier{1,i},DepInterval,'spline') ;
-    spline_sal{1,i} = interp1(dep_glacier{1,i},sal_glacier{1,i},DepInterval,'spline') ;
+    DepInterval_temp = (1:maxValues(i))' ; % array until the last depth value
+    spline_temp{1,i} = spline(dep_glacier{1,i},temp_glacier{1,i},DepInterval_temp) ; 
+    spline_sal{1,i} = spline(dep_glacier{1,i},sal_glacier{1,i},DepInterval_temp) ;
 end
-% cell to matrix
-for i = 1:length(spline_temp)
-insidearray1 = spline_temp{i}' ;
-insidearray2 = spline_temp{i}' ;
-spline_temp_mat(:,i) = insidearray1 ;
-spline_sal_mat(:,i) = insidearray2 ;
-end
+% cell to matrix (don't think this works with my approach without adding Nans
+%for i = 1:length(spline_temp)
+%insidearray1 = spline_temp{i}' ;
+%insidearray2 = spline_temp{i}' ;
+%spline_temp_mat(:,i) = insidearray1 ;
+%spline_sal_mat(:,i) = insidearray2 ;
+%end
 
-spline_temp_mat_Sep = spline_temp_mat(:,Sep) ;
-spline_sal_mat_Sep = spline_sal_mat(:,Sep) ;
-
+spline_temp_Sep = spline_temp(:,Sep) ;
+spline_sal_Sep = spline_sal(:,Sep) ;
+%%
 all_hel_sal = fjord_sal_mat_fj(:,glacier_idx) ;
 all_hel_temp = fjord_temp_mat_fj(:,glacier_idx) ;
 all_hel_sal_Sep = all_hel_sal(:,Sep) ;
@@ -91,11 +94,11 @@ colorbar;
 %colormap();
 
 % Get the color for each data point based on dist_glacier
-for i = 1:9:size(spline_temp_mat_Sep,2)
+for i = 1:3:size(spline_temp_Sep,2)
     %color_value = dist_glacier(i);  % Scalar value for color
     %color = colormap('jet');  % Get the colormap
     %color_index = round((color_value - min(dist_glacier)) / (max(dist_glacier) - min(dist_glacier)) * (size(color, 1) - 1)) + 1;  % Normalize and index the colormap
-    plot(spline_sal_mat_Sep(:,i), spline_temp_mat_Sep(:,i));
+    plot(spline_sal_Sep{i}(:,1), spline_temp_Sep{i}(:,1));
 end
 
 title('September Near Glacier Helheim TS')
@@ -108,15 +111,16 @@ addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_mat
 addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_matlab_v3_06_16\library'
 addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_matlab_v3_06_16\pdf'
 addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_matlab_v3_06_16\thermodynamics_from_t'
-load profile.mat
-load profile3.mat
+load profile5.mat
+load profile6.mat
 
 figure
 hold on
-isopycnals = [21,22,23,24,25,26,27,28] ;
-gsw_SA_CT_plot_Aiden(profile3.Target.XData,profile3.Target.YData,0,isopycnals,'Helheim Glacier Temperature vs Salinity profiles')
-scatter(profile.Target.XData,profile.Target.YData,'b','filled')
-exportgraphics(gcf, 'finesst_TSplot.png', 'Resolution', 300); % Save as PNG with 300 DPI
+isopycnals = [18,19,20,21,22,23,24,25,26,27,28] ;
+gsw_SA_CT_plot_Aiden(profile5.Target.XData,profile5.Target.YData,0,isopycnals,'Helheim Fjord Temperature vs Salinity profiles')
+scatter(profile6.Target.XData,profile6.Target.YData,'b','filled')
+ylim([-1,1.5])
+exportgraphics(gcf, 'test.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %%
 % Plot coastline
 clf
