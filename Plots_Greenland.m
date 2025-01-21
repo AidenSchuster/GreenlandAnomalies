@@ -41,9 +41,9 @@ dep_glacier = dep_glacier(:,glacier_idx) ;
 %Spline Interpolate
 maxValues = cellfun(@max, dep_glacier) ;
 for i = 1:length(dep_glacier)
-    DepInterval_temp = (1:maxValues(i))' ; % array until the last depth value
-    spline_temp{1,i} = spline(dep_glacier{1,i},temp_glacier{1,i},DepInterval_temp) ; 
-    spline_sal{1,i} = spline(dep_glacier{1,i},sal_glacier{1,i},DepInterval_temp) ;
+    DepInterval_temp{i} = (1:maxValues(i))' ; % array until the last depth value
+    spline_temp{1,i} = spline(dep_glacier{1,i},temp_glacier{1,i},DepInterval_temp{i}) ; 
+    spline_sal{1,i} = spline(dep_glacier{1,i},sal_glacier{1,i},DepInterval_temp{i}) ;
 end
 % cell to matrix (don't think this works with my approach without adding Nans
 %for i = 1:length(spline_temp)
@@ -55,6 +55,7 @@ end
 
 spline_temp_Sep = spline_temp(:,Sep) ;
 spline_sal_Sep = spline_sal(:,Sep) ;
+spline_dep_Sep = DepInterval_temp(:,Sep) ;
 %%
 all_hel_sal = fjord_sal_mat_fj(:,glacier_idx) ;
 all_hel_temp = fjord_temp_mat_fj(:,glacier_idx) ;
@@ -114,12 +115,29 @@ addpath 'C:\Users\ajs82292\Desktop\Research\Matlab\Source\Greenland_Melt\gsw_mat
 load profile5.mat
 load profile6.mat
 
+%find index of profiles selected
+five_x = profile5.Target.XData(:) ;
+match_profile5 = cellfun(@(c) isequal(c, five_x), spline_sal_Sep);
+five_idx = find(match_profile5 == 1) ;
+
+six_x = profile6.Target.XData(:) ;
+match_profile6 = cellfun(@(c) isequal(c, six_x), spline_sal_Sep);
+six_idx = find(match_profile6 == 1) ;
+clear six_x five_x
+
+five_dep = spline_dep_Sep(five_idx) ;
+six_dep =  spline_dep_Sep(six_idx) ;
 figure
 hold on
-isopycnals = [18,19,20,21,22,23,24,25,26,27,28] ;
-gsw_SA_CT_plot_Aiden(profile5.Target.XData,profile5.Target.YData,0,isopycnals,'Helheim Fjord Temperature vs Salinity profiles')
-scatter(profile6.Target.XData,profile6.Target.YData,'b','filled')
-ylim([-1,1.5])
+isopycnals = [17,18,19,20,21,22,23,24,25,26,27,28] ;
+gsw_SA_CT_plot_Aiden(profile5.Target.XData,profile5.Target.YData,0,isopycnals,'Helheim Fjord TS plot')
+scatter(profile5.Target.XData,profile5.Target.YData,50,five_dep{1},'filled')
+scatter(profile6.Target.XData,profile6.Target.YData,50,six_dep{1},'filled')
+a = colorbar;
+a.Label.String = 'Depth (m)';
+caxis([1,150])
+ylim([-1.5,2])
+xlim([20,36])
 exportgraphics(gcf, 'test.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %%
 % Plot coastline
