@@ -17,6 +17,7 @@ xlim([-100, -10])
 ylim([55, 85])
 
 % Export the plot with high resolution
+set(gca,'box','on')
 exportgraphics(gcf, 'finesst_plot.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %% TS plot figure for FINESST
 %work to setup
@@ -133,11 +134,13 @@ isopycnals = [17,18,19,20,21,22,23,24,25,26,27,28] ;
 gsw_SA_CT_plot_Aiden(profile5.Target.XData,profile5.Target.YData,0,isopycnals,'Helheim Fjord TS plot')
 scatter(profile5.Target.XData,profile5.Target.YData,50,five_dep{1},'filled')
 scatter(profile6.Target.XData,profile6.Target.YData,50,six_dep{1},'filled')
+colormap('jet');
 a = colorbar;
 a.Label.String = 'Depth (m)';
 caxis([1,150])
 ylim([-1.5,2])
 xlim([20,36])
+set(gca,'box','on')
 exportgraphics(gcf, 'test.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %%
 % Plot coastline
