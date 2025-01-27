@@ -372,9 +372,9 @@ load combined_x.mat
 load combined_y.mat
 
 % NOTHING CHANGED PAST HERE FOR REWORKING COAST
-polygon_x = [x_coast] ; % may need to add more points but I think this is fine?
-polygon_y = [y_coast] ;
-in = inpolygon(lon,lat,combined_x,combined_y) ; % All coasts within coastal section 
+polygon_x = [x_coast',flip(combined_x')] ; % may need to add more points but I think this is fine?
+polygon_y = [y_coast',flip(combined_y')] ;
+in = inpolygon(lon,lat,polygon_x,polygon_y) ; % All coasts within coastal section 
 % Determine which refference point to base slope of rectangle boxes
 reff_x = x_reff_new' ;
 reff_y = y_reff_new' ;
@@ -391,181 +391,52 @@ end
 idx = idx(1,:) ;
 clear temp_x temp_y temp_distance min_distance y_reff_new x_reff_new
 %% Defining parallelogram verticies for casts (length and width need work)
-inverse_new = -1./slope_new ;
-inverse_new = inverse_new(idx) ;
+% 40x20 km boxes for coastal profiles
 target_width = recwidth/2 ;
 target_length = reclength/2 ;
-dist = .3 ;
-num_points = 1000 ;
-%10 km towards and away from refference line (max distance off by 2.5 km)
-% minus
 run = 2 ;
-if run == 1
-for i = 1:length(coastal_lon)
-W = linspace(coastal_lon(1,i), coastal_lon(1,i) - dist, num_points); % minus longitude for western facing coasts
-x_perp_minus{1,i} = W' ;
-W =  inverse_new(i) * (x_perp_minus{i} - coastal_lon(1,i)) + coastal_lat(1,i);
-y_perp_minus{1,i} = W ;
-ref_minusx{1,i} = [x_perp_minus{i},repmat(coastal_lon(1,i),num_points,1)];
-ref_minusy{1,i} = [y_perp_minus{i},repmat(coastal_lat(1,i),num_points,1)];
-end
-for i = 1:1:length(ref_minusy)
-for j = 1:1:length(ref_minusy{1})
-dist_minus{1,i}(j,1) = sw_dist(ref_minusy{i}(j,:),ref_minusx{i}(j,:),'km') ;
-differences_minus{1,i}(j,1) = abs(dist_minus{1,i}(j,1)-target_width)  ;
-[min_minus(1,i),index_minus(1,i)] = min(differences_minus{i}) ;
-end
-j = 1 ;
-end
-for i = 1:1:length(dist_minus)
-index = index_minus(i) ;
-   exten_minus(:,i) = [x_perp_minus{i}(index),y_perp_minus{i}(index)] ; %cords for side poins ~10km away
-end
-clear x_perp_minus y_perp_minus ref_minusx ref_minusy index
-% plus
-for i = 1:length(coastal_lon)
-W = linspace(coastal_lon(1,i), coastal_lon(1,i) + dist, num_points); % minus longitude for western facing coasts
-x_perp_plus{1,i} = W' ;
-W =  inverse_new(i) * (x_perp_plus{i} - coastal_lon(1,i)) + coastal_lat(1,i);
-y_perp_plus{1,i} = W ;
-ref_plusx{1,i} = [x_perp_plus{i},repmat(coastal_lon(1,i),num_points,1)];
-ref_plusy{1,i} = [y_perp_plus{i},repmat(coastal_lat(1,i),num_points,1)];
-end
-for i = 1:1:length(ref_plusy)
-for j = 1:1:length(ref_plusy{1})
-dist_plus{1,i}(j,1) = sw_dist(ref_plusy{i}(j,:),ref_plusx{i}(j,:),'km') ;
-differences_plus{1,i}(j,1) = abs(dist_plus{1,i}(j,1)-target_width)  ;
-[min_plus(1,i),index_plus(1,i)] = min(differences_plus{i}) ;
-end
-j = 1 ;
-end
-for i = 1:1:length(dist_plus)
-index = index_plus(i) ;
-   exten_plus(:,i) = [x_perp_plus{i}(index),y_perp_plus{i}(index)] ; %cords for side poins ~10km away
-end
-clear x_perp_plus y_perp_plus ref_plusx ref_plusy index
-% make verticies points target reclength away
-%vert1 (uses exten_minus)
-slope_coast = slope_new(idx)';
-for i = 1:length(exten_minus)
-W = linspace(exten_minus(1,i), exten_minus(1,i) - dist, num_points); % minus longitude for western facing coasts
-bodge_xminus{1,i} = W' ;
-W =  slope_coast(i) * (bodge_xminus{i} - exten_minus(1,i)) + exten_minus(2,i);
-bodge_yminus{1,i} = W ;
-ref_minusx{1,i} = [bodge_xminus{i},repmat(exten_minus(1,i),num_points,1)];
-ref_minusy{1,i} = [bodge_yminus{i},repmat(exten_minus(2,i),num_points,1)];
-end
-for i = 1:1:length(ref_minusy)
-for j = 1:1:length(ref_minusy{1})
-dist_minus{1,i}(j,1) = sw_dist(ref_minusy{i}(j,:),ref_minusx{i}(j,:),'km') ;
-differences_minus{1,i}(j,1) = abs(dist_minus{1,i}(j,1)-target_length)  ;
-[min_minus(1,i),index_minus_vert(1,i)] = min(differences_minus{i}) ;
-end
-j = 1 ;
-end
-for i = 1:1:length(dist_minus)
-index = index_minus_vert(i) ;
-   vert_1(:,i) = [bodge_xminus{i}(index),bodge_yminus{i}(index)] ; %cords for side poins ~10km away
-end
-clear index ref_minusx ref_minusy bodge_yminus bodge_xminus
-% Vert2 (uses exten_minus)
-for i = 1:length(exten_minus)
-W = linspace(exten_minus(1,i), exten_minus(1,i) + dist, num_points); % minus longitude for western facing coasts
-bodge_xplus{1,i} = W' ;
-W =  slope_coast(i) * (bodge_xplus{i} - exten_minus(1,i)) + exten_minus(2,i);
-bodge_yplus{1,i} = W ;
-ref_plusx{1,i} = [bodge_xplus{i},repmat(exten_minus(1,i),num_points,1)];
-ref_plusy{1,i} = [bodge_yplus{i},repmat(exten_minus(2,i),num_points,1)];
-end
-for i = 1:1:length(ref_plusy)
-for j = 1:1:length(ref_plusy{1})
-dist_plus{1,i}(j,1) = sw_dist(ref_plusy{i}(j,:),ref_plusx{i}(j,:),'km') ;
-differences_plus{1,i}(j,1) = abs(dist_plus{1,i}(j,1)-target_length)  ;
-[min_plus(1,i),index_plus_vert(1,i)] = min(differences_plus{i}) ;
-end
-j = 1 ;
-end
-for i = 1:1:length(dist_plus)
-index = index_plus_vert(i) ;
-   vert_2(:,i) = [bodge_xplus{i}(index),bodge_yplus{i}(index)] ; %cords for side poins ~10km away
-end
-clear index ref_plusx ref_plusy bodge_yplus bodge_xplus
-%Vert 3 (uses exten_plus) WORKING ON NOW
-for i = 1:length(exten_minus)
-W = linspace(exten_plus(1,i), exten_plus(1,i) - dist, num_points); % minus longitude for western facing coasts
-bodge_xminus{1,i} = W' ;
-W =  slope_coast(i) * (bodge_xminus{i} - exten_plus(1,i)) + exten_plus(2,i);
-bodge_yminus{1,i} = W ;
-ref_minusx{1,i} = [bodge_xminus{i},repmat(exten_plus(1,i),num_points,1)];
-ref_minusy{1,i} = [bodge_yminus{i},repmat(exten_plus(2,i),num_points,1)];
-end
-for i = 1:1:length(ref_minusy)
-for j = 1:1:length(ref_minusy{1})
-dist_minus{1,i}(j,1) = sw_dist(ref_minusy{i}(j,:),ref_minusx{i}(j,:),'km') ;
-differences_minus{1,i}(j,1) = abs(dist_minus{1,i}(j,1)-target_length)  ;
-[min_minus(1,i),index_minus_vert(1,i)] = min(differences_minus{i}) ;
-end
-j = 1 ;
-end
-for i = 1:1:length(dist_minus)
-index = index_minus_vert(i) ;
-   vert_3(:,i) = [bodge_xminus{i}(index),bodge_yminus{i}(index)] ; %cords for side poins ~10km away
-end
-clear index ref_minusx ref_minusy bodge_yminus bodge_xminus
-% Vert 4 (uses exten_plus)
-for i = 1:length(exten_plus)
-W = linspace(exten_plus(1,i), exten_plus(1,i) + dist, num_points); % minus longitude for western facing coasts
-bodge_xplus{1,i} = W' ;
-W =  slope_coast(i) * (bodge_xplus{i} - exten_plus(1,i)) + exten_plus(2,i);
-bodge_yplus{1,i} = W ;
-ref_plusx{1,i} = [bodge_xplus{i},repmat(exten_plus(1,i),num_points,1)];
-ref_plusy{1,i} = [bodge_yplus{i},repmat(exten_plus(2,i),num_points,1)];
-end
-for i = 1:1:length(ref_plusy)
-for j = 1:1:length(ref_plusy{1})
-dist_plus{1,i}(j,1) = sw_dist(ref_plusy{i}(j,:),ref_plusx{i}(j,:),'km') ;
-differences_plus{1,i}(j,1) = abs(dist_plus{1,i}(j,1)-target_length)  ;
-[min_plus(1,i),index_plus_vert(1,i)] = min(differences_plus{i}) ;
-end
-j = 1 ;
-end
-for i = 1:1:length(dist_plus)
-index = index_plus_vert(i) ;
-   vert_4(:,i) = [bodge_xplus{i}(index),bodge_yplus{i}(index)] ; %cords for side poins ~10km away
-end
-clear exten_minus exten2 exten_plus i 
-%
-%combine verticies (not ordered)
-for i= 1:1:length(vert_1)
-vertices = [vert_1(:,i), vert_2(:,i), vert_3(:,i), vert_4(:,i)];
-vert_combined{i} = vertices ;
-end
-clear verticies
-% order the verticies based on angle relative to y-axis from central point
-for  i = 1:length(vert_combined)
-    for j = 1:length(vert_combined{i})
-angles(j) = atan2(vert_combined{i}(2,j)-coastal_lat(i),vert_combined{i}(1,j)-coastal_lon(i)) ;
-angle_vert{i} = angles ;
+if run == 1 % 10 km towards and away from refference line
+width_nm = km2nm(target_width*2);
+width_deg = nm2deg(width_nm);
+length_nm = km2nm(target_length*2);
+length_deg = nm2deg(length_nm);
+    for i = 1:length(x_reff)-1
+    azm(i) = azimuth(y_reff(i), x_reff(i), y_reff(i+1), x_reff(i+1), 'degrees');
+    % Calculate both +90 and -90 perpendicular bearings
+    bearing_perpendicular1 = mod(azm + 90, 360); % Clockwise perpendicular
+    bearing_perpendicular2 = mod(azm - 90, 360); % Counterclockwise perpendicular
+    x_reff_mid(i) = (x_reff(i) + x_reff(i+1))/2 ; % find middle points in refference lines to base distance off
+    y_reff_mid(i) = (y_reff(i) + y_reff(i+1))/2 ;
+    end 
+    %find index of nearest refference line
+    for i = 1:length(coastal_lon)
+        temp_dist = zeros(1, length(x_reff) - 1); % Reset temp_dist for each i cycle
+        for j = 1:length(x_reff)-1
+        temp_coords = [coastal_lon(i),x_reff_mid(j) ;coastal_lat(i),y_reff_mid(j)] ; 
+        temp_dist(j) = sw_dist(temp_coords(1,:),temp_coords(2,:),'km') ;
+        end
+    [~, min_idx] = min(temp_dist) ;
+    min_indices(i) = min_idx ;
     end
-    j = 1 ;
-end
-for  i = 1:length(vert_combined)
-    for j = 1:length(vert_combined{i})
-    [~, sortOrder] = sort(angle_vert{i});
-order{i} = sortOrder ;
-    end
-end
-for i = 1:length(order)
-    v = vert_combined{i} ;
-    o = order{i} ;
-    s = v(:,o) ;
-    vert{i} = s ;
-end
-save("vert.mat","vert")  
+    for i = 1:length(coastal_lon)
+    [lat_side,lon_side] = reckon(coastal_lat(i),coastal_lon(i),width_deg/2,bearing_perpendicular1(min_indices(i))) ; % gets coordinate a point on side of the rectangle
+    side_coords = [lat_side;lon_side] ; 
+    vert1 = reckon(side_coords(1,1),side_coords(2,1),length_deg/2,bearing_perpendicular1(min_indices(i))+90) ; % 1/2 on same side, use these to find 3/4 on opposite side
+    vert2 = reckon(side_coords(1,1),side_coords(2,1),length_deg/2,bearing_perpendicular1(min_indices(i))-90) ;
+    vert3 = reckon(vert1(1),vert1(2),width_deg,mod(bearing_perpendicular1(min_indices(i))+180,360));
+    vert4 = reckon(vert2(1),vert2(2),width_deg,mod(bearing_perpendicular1(min_indices(i))+180,360));
+    vertices{i} = [vert1;vert2;vert3;vert4] ;
+        for j = 1:4 % order vertices for inpolygon use
+        angles{i}(j) = atan2(vertices{i}(j,2) - coastal_lon(i), vertices{i}(j,1) - coastal_lat(i));    
+        end
+    [~, sorted_indices] = sort(angles{i});
+    vert{i} = vertices{i}(sorted_indices, :);
+    end    
+save("vert.mat","vert")
 end
 load("vert.mat","vert")
-clear v o s vert_combined vert_1 vert_2 vert_3 vert_4 vertices angles angles angle_vert bodge_yplus bodge_yminus bodge_xminus bodge_xplus order sortOrder inverse_new ref_plusx ref_minusy ref_plusy ref_minusx
-clear differences_plus differences_minus dist_plus dist_minus % need to tweak some stuff here eventually
+clear width_deg width_nm length_nm length_deg  bearing_perpendicular1 bearing_perpendicular2 azm temp_coords x_reff_mid y_reff_mid temp_coords temp_dist min_idx angles vertices
+clear sorted indices vert1 vert2 vert3 vert4 side_coords lat_side lon_side min_indices 
 %% get rid of compartment
 % Interpolate every 1 m for the region (will eventually need to exclude
 % fjord stuff via inpolygon indexing)
