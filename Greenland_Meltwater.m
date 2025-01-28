@@ -400,23 +400,44 @@ width_nm = km2nm(target_width*2);
 width_deg = nm2deg(width_nm);
 length_nm = km2nm(target_length*2);
 length_deg = nm2deg(length_nm);
+offset_dist = km2deg(10) ;
     for i = 1:length(x_reff)-1
     azm(i) = azimuth(y_reff(i), x_reff(i), y_reff(i+1), x_reff(i+1), 'degrees');
     % Calculate both +90 and -90 perpendicular bearings
     bearing_perpendicular1 = mod(azm + 90, 360); % Clockwise perpendicular
     bearing_perpendicular2 = mod(azm - 90, 360); % Counterclockwise perpendicular
-    x_reff_mid(i) = (x_reff(i) + x_reff(i+1))/2 ; % find middle points in refference lines to base distance off
-    y_reff_mid(i) = (y_reff(i) + y_reff(i+1))/2 ;
-    end 
+    [lat1,lon1] = reckon(y_reff(i),x_reff(i), offset_dist, azm(i),'degrees') ;
+    if i > 1
+        [lat2, lon2] = reckon(y_reff(i), x_reff(i), -offset_dist, azm(i-1), 'degrees'); % Backward point
+    else
+        lat2 = NaN; % Placeholder for the first iteration
+        lon2 = NaN;
+    end
+    x_reff_mid1(:,i) = lon1; % Clockwise perpendicular
+    y_reff_mid1(:,i) = lat1;
+    x_reff_mid2(:,i) = lon2; % Counterclockwise perpendicular
+    y_reff_mid2(:,i) = lat2;
+    end
+    x_reff_mid2(1) = [] ;
+    x_reff_mid2(end+1) = NaN ;
+    y_reff_mid2(1) = [] ;
+    y_reff_mid2(end+1) = NaN ;
+    x_reff_mid = [x_reff_mid1;x_reff_mid2] ;
+    y_reff_mid = [y_reff_mid1;y_reff_mid2] ;
     %find index of nearest refference line
     for i = 1:length(coastal_lon)
-        temp_dist = zeros(1, length(x_reff) - 1); % Reset temp_dist for each i cycle
+         temp_dist = zeros(2, length(x_reff) - 1); % Two rows for distances (forward and backward points)
         for j = 1:length(x_reff)-1
-        temp_coords = [coastal_lon(i),x_reff_mid(j) ;coastal_lat(i),y_reff_mid(j)] ; 
-        temp_dist(j) = sw_dist(temp_coords(1,:),temp_coords(2,:),'km') ;
+        % Calculate distances for both rows (forward and backward points)
+        for k = 1:2 % Loop through each row of combined midpoints
+            temp_coords = [coastal_lon(i), x_reff_mid(k, j); coastal_lat(i), y_reff_mid(k, j)];
+            temp_dist(k, j) = sw_dist(temp_coords(1, :), temp_coords(2, :), 'km');
         end
-    [~, min_idx] = min(temp_dist) ;
-    min_indices(i) = min_idx ;
+        end
+    % Find the minimum distance and its corresponding column
+    [~, min_idx] = min(temp_dist(:)); 
+    [row_idx, col_idx] = ind2sub(size(temp_dist), min_idx); % Convert linear index back to row/column
+    min_indices(i) = col_idx;
     end
     for i = 1:length(coastal_lon)
     [lat_side,lon_side] = reckon(coastal_lat(i),coastal_lon(i),width_deg/2,bearing_perpendicular1(min_indices(i))) ; % gets coordinate a point on side of the rectangle
@@ -435,8 +456,8 @@ length_deg = nm2deg(length_nm);
 save("vert.mat","vert")
 end
 load("vert.mat","vert")
-clear width_deg width_nm length_nm length_deg  bearing_perpendicular1 bearing_perpendicular2 azm temp_coords x_reff_mid y_reff_mid temp_coords temp_dist min_idx angles vertices
-clear sorted indices vert1 vert2 vert3 vert4 side_coords lat_side lon_side min_indices 
+clear width_deg width_nm length_nm length_deg  bearing_perpendicular1 bearing_perpendicular2 azm temp_coords temp_coords temp_dist min_idx angles vertices offset_dist
+clear sorted indices vert1 vert2 vert3 vert4 side_coords lat_side lon_side min_indices x_reff_mid1 x_reff_mid2 x_reff_mid y_reff_mid1 y_reff_mid2 y_reff_mid lon1 lon2 lat1 lat2
 %% get rid of compartment
 % Interpolate every 1 m for the region (will eventually need to exclude
 % fjord stuff via inpolygon indexing)
