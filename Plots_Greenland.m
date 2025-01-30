@@ -15,10 +15,14 @@ scatter(omg_lon, omg_lat, 7, 'red','filled')
 plot(cx, cy, 'k')
 xlim([-100, -10])
 ylim([55, 85])
-
+% Plot Mooring Lat Lon on top (optional and not used in FINNEST Figure)
+run = 1 ;
+if run == 1
+scatter(lon_moor,lat_moor,70,'green','filled')
+end
 % Export the plot with high resolution
 set(gca,'box','on')
-exportgraphics(gcf, 'finesst_plot.png', 'Resolution', 300); % Save as PNG with 300 DPI
+exportgraphics(gcf, 'finesst_plot_mooring.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %% TS plot figure for FINESST
 %work to setup
 load glacier_FINESST.mat glacier

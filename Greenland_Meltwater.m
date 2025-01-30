@@ -94,7 +94,7 @@ save 'cx-cy.mat' cx cy
     end
 end
 load 'cx-cy.mat' cx cy
-clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx XX_eto_E YY_eto_E Z_eto_E
+clear rowGrid colGrid cols R te rows depth_min depth_max C Z_masked coast_range h indices zeroidx
 % Extend it further north using same ETOPO dataset and 0-5 contour
 [Z_eto_N,R] = readgeoraster('extendedNcoast.tiff') ;
 [rows,cols] = size(Z_eto_N) ;
@@ -372,9 +372,11 @@ load combined_x.mat
 load combined_y.mat
 
 % NOTHING CHANGED PAST HERE FOR REWORKING COAST
-polygon_x = [x_coast',flip(combined_x')] ; % may need to add more points but I think this is fine?
-polygon_y = [y_coast',flip(combined_y')] ;
-in = inpolygon(lon,lat,polygon_x,polygon_y) ; % All coasts within coastal section 
+polygon_x = [x_coast] ; % may need to add more points but I think this is fine?
+polygon_y = [y_coast] ;
+combined_x = [x_coast',flip(combined_x')] ; % may need to add more points but I think this is fine?
+combined_y = [y_coast',flip(combined_y')] ;
+in = inpolygon(lon,lat,combined_x,combined_y) ; % All coasts within coastal section 
 % Determine which refference point to base slope of rectangle boxes
 reff_x = x_reff_new' ;
 reff_y = y_reff_new' ;
@@ -578,6 +580,7 @@ if run == 1
     iso_interval = 200:100:3000 ;
     [~, ContourMatrix] = contour(XX_eto, YY_eto, Z_eto, isobath_interval);
     [~,CountourM] = contour(XX,YY,ZZ, iso_interval) ;
+    [~,ContourE] = contour(XX_eto_E,YY_eto_E,Z_eto_E,isobath_interval) ;
     daspect([1 aspect_ratio 1])
     xlim([-80,-30])
     ylim([55,80])
@@ -623,6 +626,7 @@ if run == 1
     [~, ContourMatrix] = contour(XX_eto, YY_eto, Z_eto, isobath_interval);
     [~, ContourMatrix_N] = contour(XX_eto_N, YY_eto_N, Z_eto_N, isobath_interval);
     [~,CountourM] = contour(XX,YY,ZZ, iso_interval) ;
+    [~,ContourE] = countour(XX_eto_E,YY_eto_E,Z_eto_E,isobath_interval) ;
     for i = 1:length(fjord_vert)
         fill(fjord_vert{i}(:, 1), fjord_vert{i}(:, 2), 'b');
     end
@@ -918,7 +922,7 @@ box_temp_mat = box_temp_mat(:,~too_many_nans_box) ;
 clear temp_idx box_idx threshold_50 threshold top_50 bottom threshold bottom_remove top_50 threshold_50 diff_sal temporary non_nan value_below value_below_idx diff_result non_nan_store remove top_50_remove length_NODC num_OMG
 clear num_OMG_nan 
 %% loop through collumns and calculate derivatives (delta y /delta x)
-run = 1 ;
+run = 2 ;
 if run == 1
     diff_result = NaN(size(interp_sal_mat)) ;
     for i  = 1:length(interp_sal_mat)
@@ -1072,10 +1076,10 @@ clear middle_idx latedec_idx earlyjan_idx day_a
 %range(:,unique_col) = [] ;
 %clear temp_sal
 % Create indicies for coastal casts within box and date range 
-run = 1 ;
-for i = 1:length(vert)
-        if run == 1  
-            poly_idx = inpolygon(lon_a,lat_a,vert{i}(1,:),vert{i}(2,:)) ; % each collumn corresponds to a different cast
+run = 2 ;
+if run == 1
+        for i = 1:length(vert)
+            poly_idx = inpolygon(lon_a,lat_a,vert{i}(:,2),vert{i}(:,1)) ; % each collumn corresponds to a different cast
                 if datenum_coast(i) > 14 && datenum_coast(i) < 350 % Middle ranges
                    coastal_idx = datenum_a >= range(1,i) & datenum_a <= range(2,i) ; 
                 elseif datenum_coast(i) <= 14 || datenum_coast(i) >= 351 % Early Jan and Late Dec 
@@ -1084,8 +1088,8 @@ for i = 1:length(vert)
                 % combine indices
                 combined_idx = poly_idx & coastal_idx ;
                 coast_find{i} = find(combined_idx == 1) ;
-                save("coast_find.mat",'coast_find')
         end
+save("coast_find.mat",'coast_find')
 end
 load('coast_find.mat') ;
 clear combined_idx coastal_idx poly_idx  
@@ -1108,7 +1112,7 @@ dummy_lat = lat_a ;
 %refference lat and lon
 start_pattern = [true,false] ;
 pattern = [true,true,false] ;  %pattern for opendist/sw_dist data sorting
-num_repeat = ceil(129456/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
+num_repeat = ceil(256629/length(pattern)) ; % # should be equal to length of open_dist -2 have to change if you change length!
 pattern = repmat(pattern,1,num_repeat) ;
 pattern = [start_pattern,pattern,true] ; % concats start and end values
 clear num_repeat start_pattern lon_temp
@@ -1118,7 +1122,7 @@ if mod(length(lon_a),2) == 1
 lon_a = [lon_a,0] ; % add additional garbage point to make even (remove after done)
 lat_a = [lat_a,0] ;
 end
-run = 1 ;
+run = 2 ;
 if run == 1
     for i = 1:length(lon_open)
 reff_lon = [repmat(lon_open(i),1,length(lon_a)/2)] ; % half the length of lat/lon_a to interleave
@@ -1174,7 +1178,7 @@ in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coasta
 coastal_sal = interp_sal_mat(:,in_a) ;
 coastal_temp = interp_temp_mat(:,in_a) ;
 % Coast means/std
-run = 1 ;
+run = 2 ;
 if run == 1
 for i = 1:1
     coastal_temp_mat = [] ;
@@ -1228,12 +1232,13 @@ unique_col = unique(col, 'stable');
 unique_col_idx_open = false(1,length(open_sal)) ;
 unique_col_idx_open(unique_col) = true ;
 
-run = 1 ;
-for i = 1:1
-    if run == 1
+run = 2 ;
+if run == 1
+    % clear for open_find run (everything thats not needed)
+    clearvars -except open_find interp_sal_mat interp_temp_mat open_sal open_temp
+        for j = 1:length(open_find)
     open_temp_mat = [] ;
     open_sal_mat = [] ;
-        for j = 1:length(open_find)
     open_temp_mat = interp_temp_mat(:,open_find{j}) ;
     open_sal_mat = interp_sal_mat(:,open_find{j}) ;
     open_sal_mean = mean(open_sal_mat,2,'omitnan') ; 
@@ -1248,7 +1253,6 @@ for i = 1:1
    save("open_sal_anom.mat",'open_sal_anom','-v7.3')
   % save("open_temp_std.mat",'open_temp_std')
    %save("open_sal_std",'open_sal_std')
-    end
 end
 load("open_temp_anom.mat") 
 load("open_sal_anom.mat")
@@ -1392,6 +1396,8 @@ clear mean_temp_values threshold threshold_25 too_many_nans_box too_many_nans_fj
 clear open_temp_anom box_find_combined box_sal_mat date datenum day_box fjord_box_cords in lat_box lon_box lat_temp remove remove_box remove_coast % may need these
 clear unique_col_idx_open yea_box yea box_temp_mat box_find exten2 sal_mat_fj
 %% Potential Density and Spicity
+run = 2 ;
+if run == 1
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
 numpoints = length(DepInterval) ;
 for i = 1:length(lat_fj)
@@ -1419,16 +1425,15 @@ clear interp_sal_mat interp_temp_mat press_a half
 % fjord spicity (get profiles of spicity for each fjord profile (using sw_pspi())
 spice_fj = sw_pspi(fjord_sal_mat_fj,fjord_temp_mat_fj,press_fj,0) ; % last # is pressure refference (kg/m^3)
 spice_fj = double(spice_fj) ;
-run = 2 ;
-if run == 1
+run = 1 ;
 spice_1 = sw_pspi(sal_1,temp_1,press_1,0) ; % last # is pressure refference (kg/m^3)
 spice_2 = sw_pspi(sal_2,temp_2,press_2,0) ; % last # is pressure refference (kg/m^3)
 spice_a = [spice_1,spice_2] ;
 save('spice_a.mat', 'spice_a', '-v7.3');
-end
-load spice_a.mat spice_a
 interp_sal_mat = [sal_1,sal_2] ;
 interp_temp_mat = [temp_1,temp_2] ;
+end
+load spice_a.mat spice_a
 clear press_a press_fj spice_1 spice_2 sal_1 sal_2 press_1 press_1
 %%
 %top 300 m of both open and coastal
