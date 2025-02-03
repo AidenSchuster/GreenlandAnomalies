@@ -10,19 +10,25 @@ nodc_lon = lon(1:length_NODC);
 clf
 hold on
 daspect([1 aspect_ratio 1])
-scatter(nodc_lon, nodc_lat, 1.5, 'b','filled')
-scatter(omg_lon, omg_lat, 7, 'red','filled')
+%scatter(nodc_lon, nodc_lat, 1.5, 'b','filled')
+%scatter(omg_lon, omg_lat, 7, 'red','filled')
 plot(cx, cy, 'k')
 xlim([-100, -10])
 ylim([55, 85])
 % Plot Mooring Lat Lon on top (optional and not used in FINNEST Figure)
+if iscell(lat_moor)
+lat_moor = cell2mat(lat_moor) ;
+lon_moor = cell2mat(lon_moor) ;
+year_moor = cell2mat(year_moor) ;
+month_moor = cell2mat(month_moor) ;
+end
 run = 1 ;
 if run == 1
-scatter(lon_moor,lat_moor,70,'green','filled')
+scatter(lon_moor,lat_moor,7,'green','filled')
 end
 % Export the plot with high resolution
-set(gca,'box','on')
-exportgraphics(gcf, 'finesst_plot_mooring.png', 'Resolution', 300); % Save as PNG with 300 DPI
+%set(gca,'box','on')
+%exportgraphics(gcf, 'finesst_plot_mooring.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %% TS plot figure for FINESST
 %work to setup
 load glacier_FINESST.mat glacier
@@ -704,6 +710,74 @@ clear step_s sal_combined_reduced
 if size(fj_temp_combined,2) > 301
 fj_temp_combined = fj_combined' ;
 end
+%% EOF 1 vs 2 for coast, open, and fjord
+%setup of GMM
+k = 1 ; % # number of clusters
+c_sal_combined = [first_PC_coast_sal,second_PC_coast_sal] ;
+c_model = fitgmdist(c_sal_combined,k) ;
+c_idx = cluster(c_model,c_sal_combined) ;
+
+o_sal_combined = [first_PC_open_sal,second_PC_open_sal] ;
+o_model = fitgmdist(o_sal_combined,k+1) ;
+o_idx = cluster(o_model,o_sal_combined) ;
+
+% start plot
+clf
+sgtitle(sprintf('Salinity %s %d',month_string{month_selected},year_selected))
+%coast
+subplot(2,2,1)
+hold on
+gscatter(c_sal_combined(:,1), c_sal_combined(:,2), c_idx, 'br', 'o','filled');
+%scatter(first_PC_coast_sal,second_PC_coast_sal,'b','filled')
+%scatter selected points using idx
+%scatter(first_PC_coast_sal(c_idx),second_PC_coast_sal(c_idx),'r','filled')
+xlabel('First PC')
+ylabel('Second PC') 
+title('Coastal Profiles')
+
+% Coastal Salinities
+DepInterval_custom = DepInterval(1:size(PC_coast_sal,2))' ;
+subplot(2,2,3)
+hold on
+for i = 1:size(PC_coast_sal,1)
+    plot(PC_coast_sal(i,:),DepInterval_custom,'b')
+end
+%plot selected profiles using idx
+c2_idx = c_idx == 2 ;
+temp_sal = PC_coast_sal(c2_idx,:) ;
+for i = 1:size(temp_sal,1)
+    plot(temp_sal(i,:),DepInterval_custom,'r')
+end
+axis ij
+xlabel('Salinity (psu)')
+ylabel('Depth (m)')
+
+%open
+subplot(2,2,2)
+hold on
+gscatter(o_sal_combined(:,1), o_sal_combined(:,2), o_idx, 'br', 'o','filled');
+%scatter selected points using idx
+xlabel('First PC')
+ylabel('Second PC')
+title('Open Profiles')
+
+%open salinties
+DepInterval_custom = DepInterval(1:size(PC_open_sal,2))' ;
+subplot(2,2,4)
+hold on
+for i = 1:size(PC_open_sal,1)
+    plot(PC_open_sal(i,:),DepInterval_custom,'b')
+end
+%plot selected profiles using idx
+o2_idx = o_idx == 2 ;
+temp_sal = PC_open_sal(o2_idx,:) ;
+for i = 1:size(temp_sal,1)
+    plot(temp_sal(i,:),DepInterval_custom,'r')
+end
+axis ij
+xlabel('Salinity (psu)')
+ylabel('Depth (m)')
+clear temp_sal c_idx o_idx
 %% Reconstruct a salinity profile using the 1st principal component
 DepInterval_custom = DepInterval(1:300) ;
 number = 1 ; % which profile

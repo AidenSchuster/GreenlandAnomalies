@@ -1395,7 +1395,8 @@ clear bottom_remove remove_anom idx value_below_idx value_below top_25 top_25_re
 clear mean_temp_values threshold threshold_25 too_many_nans_box too_many_nans_fj top_100_coast top_50 OMG_fj_profiles OMG_box_profiles
 clear open_temp_anom box_find_combined box_sal_mat date datenum day_box fjord_box_cords in lat_box lon_box lat_temp remove remove_box remove_coast % may need these
 clear unique_col_idx_open yea_box yea box_temp_mat box_find exten2 sal_mat_fj
-%% Potential Density and Spicity
+clear XX_eto YY_eto Z_eto XX_eto_E YY_eto_E Z_eto_E XX_eto_N YY_eto_N Z_eto_N
+%% Potential Density and Spicity (needs to be rerun with higher optimization)
 run = 2 ;
 if run == 1
 % Pressure (db) from Depth and Density (can clear after getting potential temp)
@@ -1433,7 +1434,7 @@ save('spice_a.mat', 'spice_a', '-v7.3');
 interp_sal_mat = [sal_1,sal_2] ;
 interp_temp_mat = [temp_1,temp_2] ;
 end
-load spice_a.mat spice_a
+%load spice_a.mat spice_a
 clear press_a press_fj spice_1 spice_2 sal_1 sal_2 press_1 press_1
 %%
 %top 300 m of both open and coastal
@@ -1580,8 +1581,8 @@ load("y_canada.mat")
 canada = inpolygon(lon_open,lat_open,x_canada,y_canada) ;
 copy = open_sal ;
 %% Invert
-month_selected = 7 ; % for sprintf
-year_selected = 2018 ; % for sprintf, replace with desired year
+month_selected = 9 ; % for sprintf
+year_selected = 2012 ; % for sprintf, replace with desired year
 five_year_range = [year_selected - 0, year_selected + 0] ; % for scarcer fjord data
 % Invert for PCA
 if size(sal_anom_combined,2) > 301
@@ -1602,7 +1603,7 @@ fj_combined = fj_combined' ;
 fj_anom_combined = fj_anom_combined';
 fj_temp_combined = fj_temp_combined' ;
 fj_temp_anom_combined = fj_temp_anom_combined' ;
-spice_fj = spice_fj' ;
+%spice_fj = spice_fj' ;
 end
 % Fj_combined single to double
 fj_combined = double(fj_combined) ;
@@ -1698,7 +1699,7 @@ clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s
 %sal_anom_combined = sal_anom_combined(NoNaN,:) ;
 %clear columnSums NaN_idx NoNaN
 %% PCA change month/index as desired
-sal_anom = coast_sal_anom(year_mon_coast, :); % should just be able to change this
+sal_anom = open_sal_anom(year_mon_coast, :); % should just be able to change this
 % Find the first column where there are less then 3 non-nan values and
 % truncate
 last_nan_col = find(sum(~isnan(sal_anom), 1) < 3, 1);
@@ -1713,7 +1714,7 @@ second_PC_anom = score(:,2) ; % second
 third_PC_anom = score(:,3) ;
 explained_anom = 100 * latent / sum(latent);
 clear last_nan_col
-%% corresponding raw salinity data (includes all salinity profiles)
+%% coastal raw salinity data 
 sal = coastal_sal(yeamon_n_coast,:) ; % change this to open/coast
 mean_sal = nanmean(sal, 1); % mean ignoring NaNs
 sal_minus = (sal - mean_sal) ;
@@ -1724,12 +1725,38 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal_minus = sal_minus(:, 1:last_nan_col-1);
 end
-[coeff_n, score_n, latent_n , ~] = eof225(sal_minus,NaN,50); % Renato's Function 
-first_PC_n = score_n(:,1) ; % first principal component
-first_coeff_n = coeff_n(:,1); % first pc coeff
-second_PC_n = score_n(:,2) ; % second
-third_PC_n = score_n(:,3) ;
-explained_n = 100 * latent_n / sum(latent_n);
+[coeff_coast_sal, score_coast_sal, latent_coast_sal , ~] = eof225(sal_minus,NaN,50); % Renato's Function 
+first_PC_coast_sal = score_coast_sal(:,1) ; % first principal component
+first_coeff_coast_sal = coeff_coast_sal(:,1); % first pc coeff
+second_PC_coast_sal = score_coast_sal(:,2) ; % second
+third_PC_coast_sal = score_coast_sal(:,3) ;
+explained_coast_sal = 100 * latent_coast_sal / sum(latent_coast_sal);
+PC_coast_lon = lon_coast_n(yeamon_n_coast) ;
+PC_coast_lat = lat_coast_n(yeamon_n_coast) ;
+PC_coast_sal = coastal_sal(yeamon_n_coast,:) ;
+clear last_nan_col
+%
+%% open raw salinity data 
+sal = open_sal(yeamon_n_open,:) ; 
+mean_sal = nanmean(sal, 1); % mean ignoring NaNs
+sal_minus = (sal - mean_sal) ;
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal_minus), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal_minus = sal_minus(:, 1:last_nan_col-1);
+end
+[coeff_open_sal, score_open_sal, latent_open_sal , ~] = eof225(sal_minus,NaN,50); % Renato's Function 
+first_PC_open_sal = score_open_sal(:,1) ; % first principal component
+first_coeff_open_sal = coeff_open_sal(:,1); % first pc coeff
+second_PC_open_sal = score_open_sal(:,2) ; % second
+third_PC_open_sal = score_open_sal(:,3) ;
+explained_open_sal = 100 * latent_open_sal / sum(latent_open_sal);
+% get coords for plotting
+PC_open_lon = lon_open_n(yeamon_n_open) ;
+PC_open_lat = lat_open_n(yeamon_n_open) ;
+PC_open_sal = open_sal(yeamon_n_open,:) ;
 clear last_nan_col
 %% Fjord salinity PCA
 sal = fj_combined(year_mon_fj,:) ; % five year span centered around year_selected
