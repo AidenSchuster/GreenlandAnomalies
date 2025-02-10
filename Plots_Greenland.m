@@ -27,14 +27,13 @@ if run == 1
 scatter(lon_moor,lat_moor,7,'green','filled')
 end
 % Export the plot with high resolution
-%set(gca,'box','on')
+set(gca,'box','on')
 %exportgraphics(gcf, 'finesst_plot_mooring.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %% TS plot figure for FINESST
 %work to setup
 load glacier_FINESST.mat glacier
 glacier_coords = [66.350, -38.2000] ;
 glacier_idx = inpolygon(lon_fj, lat_fj, glacier(:, 1), glacier(:, 2));
-
 
 hel_fj = mon_fj(glacier_idx) ;
 Aug = hel_fj == 8 ;
@@ -67,7 +66,6 @@ end
 spline_temp_Sep = spline_temp(:,Sep) ;
 spline_sal_Sep = spline_sal(:,Sep) ;
 spline_dep_Sep = DepInterval_temp(:,Sep) ;
-%%
 all_hel_sal = fjord_sal_mat_fj(:,glacier_idx) ;
 all_hel_temp = fjord_temp_mat_fj(:,glacier_idx) ;
 all_hel_sal_Sep = all_hel_sal(:,Sep) ;
@@ -98,7 +96,7 @@ end
 %seven_temp = fjord_temp_mat_fj(71:90,hel_idx) ;
 %nine_sal = fjord_sal_mat_fj(91:110,hel_idx) ;
 %nine_temp = fjord_temp_mat_fj(91:110,hel_idx) ;
-%%
+%% Rough plot with too much data
 clf
 hold on
 colorbar;
@@ -152,17 +150,6 @@ ylim([-1.5,2])
 xlim([20,36])
 set(gca,'box','on')
 exportgraphics(gcf, 'test.png', 'Resolution', 300); % Save as PNG with 300 DPI
-%%
-% Plot coastline
-clf
-hold on
-plot(cx,cy,'k')
-%scatter(lon,lat,3,'MarkerFaceColor','b','MarkerEdgeAlpha','.05')
-%scatter(OMG_lon,OMG_lat,7,'MarkerFaceColor','r','MarkerEdgeAlpha','.05')
-xlim([-84,-30])
-ylim([55,80])
-daspect([1 aspect_ratio 1])
-hold off
 %% bathmetry setup
 hold on
 isobath_interval = -200:-100:-3000;  % Define isobath intervals down to the minimum depth
@@ -971,11 +958,6 @@ ylabel('Depth (m)')
 title('Helheim Spiciness')
 hold off
 clear temp_idx
-
-
-
-
-
 %% Plot profiles with eliminated points in top 50 m's geogrpahic location
 top_50 = remove(1:50,:) ;
 col = any(top_50, 1);
@@ -1005,36 +987,4 @@ xlabel('Longitude');
 ylabel('Latitude');
 daspect([1 aspect_ratio 1])
 hold off
-%% find sal anom issue
-test = sal_anom_combined >= 5 | sal_anom_combined <= -5 ;
-column_keep = any(test,1) ;
-sal_anom_combined(:,~column_keep) = [] ;
-lat_combined(:,~column_keep) = [] ;
-lon_combined(:,~column_keep) = [] ;
-%plot 
-hold on
-daspect([1 aspect_ratio 1])
-xlim([-80,-30])
-ylim([55,80])
-scatter(lon_combined,lat_combined,50,'k')
-plot(cx,cy,'k') ;
-xlabel('Longitude');
-ylabel('Latitude');
-hold off
-%% example bad data with profile 80,064
-hold on 
-daspect([1 aspect_ratio 1])
-xlim([-80,-30])
-ylim([55,80])
-scatter(lon_combined(80064),lat_combined(80064),50,'k')
-plot(cx,cy,'k') ;
-xlabel('Longitude');
-ylabel('Latitude');
-hold off
 
-hold on 
-plot(open_sal(:,80064),DepInterval) ;
-xlabel('Salinity');
-ylabel('Depth');
-axis ij
-hold off

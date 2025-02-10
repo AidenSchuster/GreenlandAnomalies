@@ -1440,7 +1440,9 @@ clear press_a press_fj spice_1 spice_2 sal_1 sal_2 press_1 press_1
 %top 300 m of both open and coastal
 sal_combined = [open_sal,coastal_sal] ;
 coastal_sal = coastal_sal(1:300,:) ;
+coastal_temp = coastal_temp(1:300,:) ;
 open_sal = open_sal(1:300,:) ;
+open_temp = open_temp(1:300,:) ;
 length_open = length(open_sal) ;
 sal_combined = sal_combined(1:300,:) ;
 fj_anom_combined = fj_anoms_mat(1:300,:) ;
@@ -1502,7 +1504,9 @@ end
 % same for open salinity 
 for i = 1:size(open_sal, 2)
     top10 = open_sal(1:10, i);  % Extract the top 10 rows of the column
+    top10_temp = open_temp(1:10,i) ;
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
+    nonNaN_temp = top10_temp(~isnan(top10_temp)) ;
     %if length(nonNaN_values) >= 3
         % Average the top three non-NaN values
         %avg_value = mean(nonNaN_values(1:3));
@@ -1512,11 +1516,17 @@ for i = 1:size(open_sal, 2)
         top_most_value = nonNaN_values(1);
         open_sal(1:10, i) = fillmissing(top10, 'constant', top_most_value);
     end
+    if length(nonNaN_temp) >= 1
+        top_most_value = nonNaN_temp(1) ;
+        open_temp(1:10,i) = fillmissing(top10_temp,'constant',top_most_value) ;
+    end
 end
 % same for coastal_salinity
 for i = 1:size(coastal_sal, 2)
     top10 = coastal_sal(1:10, i);  % Extract the top 10 rows of the column
+    top10_temp = coastal_temp(1:10,i) ;
     nonNaN_values = top10(~isnan(top10));  % Extract non-NaN values
+    nonNaN_temp = top10_temp(~isnan(top10_temp)) ;
     %if length(nonNaN_values) >= 3
         % Average the top three non-NaN values
         %avg_value = mean(nonNaN_values(1:3));
@@ -1525,6 +1535,10 @@ for i = 1:size(coastal_sal, 2)
         % If fewer than 3 non-NaN values, use the top-most non-NaN value
         top_most_value = nonNaN_values(1);
         coastal_sal(1:10, i) = fillmissing(top10, 'constant', top_most_value);
+    end
+    if length(nonNaN_values) >= 1
+        top_most_value = nonNaN_values(1) ;
+        coastal_temp(1:10,i) = fillmissing(top10_temp,'constant',top_most_value) ;
     end
 end
 % Same for fjord salinity
@@ -1543,8 +1557,20 @@ for i = 1:size(fj_combined, 2)
     fj_temp_combined(1:10, i) = fillmissing(top10_temp, 'constant', top_most_value_temp);
     end
 end
+
+% combined everything for another PCA  
+open_lat = lat_a(~in_a) ; %unaltered length
+open_lon = lon_a(~in_a) ;
+lat_coastal = lat_a(in_a) ;
+lon_coastal =  lon_a(in_a) ;
+
+all_sal = [open_sal,coastal_sal,fj_combined] ;
+all_temp = [open_temp,coastal_temp,fj_temp_combined] ;
+all_lon = [open_lon,lon_coastal,lon_fj] ;
+all_lat = [open_lat,lat_coastal,lat_fj] ;
+
 clear top_most_value top10 nonNaN_values avg_value open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
-clear top_most_value_temp top10_temp nonNaN_temp_values
+clear top_most_value_temp top10_temp nonNaN_temp_values nonNaN_temp
 %% Canadian area selection (not based off anything? maybe countour bathy to verfiy)
 % Defining Coastline
 run = 2 ;
@@ -1592,6 +1618,8 @@ end
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
 open_sal = open_sal' ;
+all_temp = all_temp' ;
+all_sal = all_sal' ;
 end
 
 % remove all nan columns for fj_combined
@@ -1699,7 +1727,7 @@ clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s
 %sal_anom_combined = sal_anom_combined(NoNaN,:) ;
 %clear columnSums NaN_idx NoNaN
 %% PCA change month/index as desired
-sal_anom = open_sal_anom(year_mon_coast, :); % should just be able to change this
+sal_anom = open_sal_anom(year_mon_open, :); % should just be able to change this
 % Find the first column where there are less then 3 non-nan values and
 % truncate
 last_nan_col = find(sum(~isnan(sal_anom), 1) < 3, 1);
