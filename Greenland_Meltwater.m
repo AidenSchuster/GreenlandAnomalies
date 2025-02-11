@@ -1393,7 +1393,7 @@ load fj_temp_anoms_mat.mat
 clear interp_sal interp_temp fj_profile_back  valid_rows valid_rows_1_149 valid_rows_150_end mean_values non_nan diff_result threshold_50 bottom top_50_remove %fj_anom_idx
 clear bottom_remove remove_anom idx value_below_idx value_below top_25 top_25_remove valid_temp_anoms valid_rows_150_end_temp valid_rows_1_149_temp
 clear mean_temp_values threshold threshold_25 too_many_nans_box too_many_nans_fj top_100_coast top_50 OMG_fj_profiles OMG_box_profiles
-clear open_temp_anom box_find_combined box_sal_mat date datenum day_box fjord_box_cords in lat_box lon_box lat_temp remove remove_box remove_coast % may need these
+clear box_find_combined box_sal_mat date datenum day_box fjord_box_cords in lat_box lon_box lat_temp remove remove_box remove_coast % may need these
 clear unique_col_idx_open yea_box yea box_temp_mat box_find exten2 sal_mat_fj
 clear XX_eto YY_eto Z_eto XX_eto_E YY_eto_E Z_eto_E XX_eto_N YY_eto_N Z_eto_N
 %% Potential Density and Spicity (needs to be rerun with higher optimization)
@@ -1464,8 +1464,13 @@ fj_temp_combined = fjord_temp_mat_fj(1:300,:) ;
 
 sal_anom_combined = [open_sal_anom,coast_sal_anom] ;
 sal_anom_combined = sal_anom_combined(1:300, :);
-lat_combined = [lat_open,coastal_lat] ; % this coastal_lat/lon is NOT correct
-lon_combined = [lon_open,coastal_lon ] ;
+sal_anom_combined = [sal_anom_combined,fj_anom_combined] ;
+lat_combined = [lat_open,coastal_lat,lat_fj] ; 
+lon_combined = [lon_open,coastal_lon,lon_fj ] ;
+
+temp_anom_combined = [open_temp_anom,coast_temp_anom] ;
+temp_anom_combined = temp_anom_combined(1:300, :);
+temp_anom_combined = [temp_anom_combined,fj_temp_anom_combined] ;
 % extropolate and replace NaN from 10 m to surface (avg of top three values
 % or lacking that top value gets repeated to surface)
 for i = 1:size(sal_anom_combined, 2)
@@ -1620,6 +1625,8 @@ coastal_sal = coastal_sal' ;
 open_sal = open_sal' ;
 all_temp = all_temp' ;
 all_sal = all_sal' ;
+temp_anom_combined = temp_anom_combined' ;
+sal_anom_combined = sal_anom_combined' ;
 end
 
 % remove all nan columns for fj_combined
@@ -1637,6 +1644,8 @@ end
 fj_combined = double(fj_combined) ;
 fj_temp_combined = double(fj_temp_combined) ;
 fj_temp_anom_combined = double(fj_temp_combined) ;
+all_sal = double(all_sal) ;
+all_temp = double(all_temp) ;
 % create variables for non-anomaly use
 lat_coast_n = lat_a(in_a) ;
 lon_coast_n = lon_a(in_a) ;
@@ -1647,14 +1656,18 @@ coastal_mon = mon_a(in_a) ;
 coastal_mon = coastal_mon(coast_idx) ;
 open_mon = mon_a(~in_a) ;
 open_mon = open_mon(open_idx);
-can_mon = open_mon(canada) ;
-open_mon = open_mon(~canada) ;
+%can_mon = open_mon(canada) ;
+%open_mon = open_mon(~canada) ;
 coastal_yea = yea_a(in_a) ;
 coastal_yea = coastal_yea(coast_idx) ;
 open_yea = yea_a(~in_a) ;
 open_yea = open_yea(open_idx) ;
-can_yea = open_yea(canada) ;
-open_yea = open_yea(~canada) ;
+%can_yea = open_yea(canada) ;
+%open_yea = open_yea(~canada) ;
+all_mon = [open_mon,coastal_mon,mon_fj] ;
+all_yea = [open_yea,coastal_yea,yea_fj] ;
+anom_mon = [];
+anom_yea = [];
 % month
 month_string = {'January', 'February', 'March', 'April', 'May', 'June','July', 'August', 'September', 'October', 'November', 'December'} ;
 mon_comb = [open_mon,coastal_mon] ;
@@ -1662,6 +1675,7 @@ month_s = mon_comb == month_selected ; % # of desired month;
 month_s_fj = mon_fj == month_selected ; % don't need seperate one for anomaly since i didn't remove them, just set to NAN
 month_open = open_mon == month_selected ;
 month_coast = coastal_mon == month_selected ;
+month_all = all_mon == month_selected ;
 % Salinity Month
 month_coast_n_test = mon_a(in_a) ;
 month_open_n_test = mon_a(~in_a) ;
@@ -1673,6 +1687,7 @@ year = yea_combined == year_selected ;
 year_open = open_yea == year_selected ;
 year_coast = coastal_yea == year_selected ;
 five_yea_s_fj = yea_fj >= five_year_range(1,1) & yea_fj <= five_year_range(1,2) ; % don't need seperate
+year_all = all_yea == year_selected ;
 % Salinity Year
 year_coast_n_test = yea_a(in_a) ;
 year_open_n_test = yea_a(~in_a) ;
@@ -1683,6 +1698,7 @@ year_mon = year & month_s ;
 year_mon_open = year_open & month_open ;
 year_mon_coast = year_coast & month_coast ;
 year_mon_fj = five_yea_s_fj & month_s_fj ;
+all_yea_mon = month_all & year_all ;
 % Salinity combine
 yeamon_n_coast = year_coast_n & month_coast_n ;
 yeamon_n_open = year_open_n & month_open_n ;
@@ -1696,36 +1712,89 @@ lon_open = lon_combined(~in_combined) ;
 lat_coast = lat_combined(in_combined) ;
 lat_open = lat_combined(~in_combined) ;
 % Canada
-canada_n = inpolygon(lon_open_n,lat_open_n,x_canada,y_canada) ;
-can_lon_n = lon_open_n(canada_n) ;
-can_lat_n = lat_open_n(canada_n) ;
-lat_open_n = lat_open_n(~canada_n) ;
-lon_open_n = lon_open_n(~canada_n) ;
-can_lon = lon_open(canada) ;
-can_lat = lat_open(canada) ;
-lon_open = lon_open(~canada) ;
-lat_open = lat_open(~canada) ;
-yeamon_n_open = yeamon_n_open(~canada_n) ;
+%canada_n = inpolygon(lon_open_n,lat_open_n,x_canada,y_canada) ;
+%can_lon_n = lon_open_n(canada_n) ;
+%can_lat_n = lat_open_n(canada_n) ;
+%lat_open_n = lat_open_n(~canada_n) ;
+%lon_open_n = lon_open_n(~canada_n) ;
+%can_lon = lon_open(canada) ;
+%can_lat = lat_open(canada) ;
+%lon_open = lon_open(~canada) ;
+%lat_open = lat_open(~canada) ;
+%yeamon_n_open = yeamon_n_open(~canada_n) ;
 % sal/anom/temp/anom
-    if size(canada,1) == 1
-    can_invert = canada' ;
-    can_n_invert = canada_n' ;
-    end
-    can_sal = open_sal(can_n_invert,:) ; % copy so we can rerun this section as needed
-    can_sal_anom = open_sal_anom(can_invert,:) ;
-    open_sal_anom = open_sal_anom(~can_invert,:) ;
-    open_sal = open_sal(~can_n_invert,:) ;
+    %if size(canada,1) == 1
+    %can_invert = canada' ;
+    %can_n_invert = canada_n' ;
+    %end
+    %can_sal = open_sal(can_n_invert,:) ; % copy so we can rerun this section as needed
+    %can_sal_anom = open_sal_anom(can_invert,:) ;
+    %open_sal_anom = open_sal_anom(~can_invert,:) ;
+    %open_sal = open_sal(~can_n_invert,:) ;
 clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
 clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s_fj
-%% Subsections and removals (maybe get rid of this?)
-% Index casts that have NO nan's through 300 m
-%sal_anom_combined = copy ;
-%sal_anom_combined = sal_anom_combined(:,1:10) ;
-%NaN_idx = isnan(sal_anom_combined) ;
-%columnSums = sum(NaN_idx,2); % Sum along rows to get column sums
-%NoNaN = columnSums == 0; % Find columns with no true values
-%sal_anom_combined = sal_anom_combined(NoNaN,:) ;
-%clear columnSums NaN_idx NoNaN
+clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_lat_n can_lon_n can_mon can_yea % clearing all canada variables (will get rid of them entirely eventually)
+%% Fjord sal anom PCA
+run = 2 ;
+if run == 1
+sal_anom = fj_anom_combined ; % should just be able to change this
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal_anom), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal_anom = sal_anom(:, 1:last_nan_col-1);
+end
+[coeff, score, latent , tsquared] = eof225(sal_anom,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC_anom = score(:,1) ; % first principal component
+first_coeff_anom = coeff(:,1); % first pc coeff
+second_PC_anom = score(:,2) ; % second
+third_PC_anom = score(:,3) ;
+explained_anom = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_anom = coeff ;
+score_fj_anom = score ;
+latent_fj_anom = latent ;
+tsqaured_fj_anom = tsquared ;
+explained_fj_anom = explained_anom ;
+save fj_anom_PCA.mat coeff_fj_anom score_fj_anom latent_fj_anom tsqaured_fj_anom explained_fj_anom
+end
+load fj_anom_PCA.mat coeff_fj_anom score_fj_anom latent_fj_anom tsqaured_fj_anom
+%% Fjord Temp anom PCA
+run = 1 ;
+if run == 1
+temp_anom = fj_temp_anom_combined ; 
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(temp_anom), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    temp_anom = temp_anom(:, 1:last_nan_col-1);
+end
+[coeff, score, latent , tsquared] = eof225(temp_anom,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC_anom = score(:,1) ; % first principal component
+first_coeff_anom = coeff(:,1); % first pc coeff
+second_PC_anom = score(:,2) ; % second
+third_PC_anom = score(:,3) ;
+explained_anom = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_anom_temp = coeff ;
+score_fj_anom_temp = score ;
+latent_fj_anom_temp = latent ;
+tsqaured_fj_anom_temp = tsquared ;
+explained_fj_anom_temp = explained_anom ;
+save fj_anom_temp_PCA.mat coeff_fj_anom_temp score_fj_anom_temp latent_fj_anom_temp tsqaured_fj_anom_temp explained_fj_anom_temp
+end
+load fj_anom_temp_PCA.mat coeff_fj_anom_temp score_fj_anom_temp latent_fj_anom_temp tsqaured_fj_anom_temp explained_fj_anom_temp
+%% Train GMM on PCA Data
+
+
+
+
+
+
 %% PCA change month/index as desired
 sal_anom = open_sal_anom(year_mon_open, :); % should just be able to change this
 % Find the first column where there are less then 3 non-nan values and

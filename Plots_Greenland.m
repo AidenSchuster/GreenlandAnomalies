@@ -347,6 +347,60 @@ plot(salinityData{j}, DepInterval, 'Color', colors(i, :))
 end
 axis ij
 hold off
+%% Sal Anom Fjord PCA
+folderPath = 'C:\Users\ajs82292\Desktop\Research\Committee Meeting\1st meeting (fill in date)\images' ; % change depending on folderlocation
+DepInterval_custom = DepInterval(1:size(fj_anom_combined,2)) ;
+hold on
+daspect([1 aspect_ratio 1])
+xlim([-100,-10])
+ylim([55,85])
+scatter(lon_fj, lat_fj, 20, first_PC_anom, 'filled');
+colorbar;
+% caxis([-3 3]);
+colormap('cool')
+plot(cx,cy,'k') ;
+xlabel('Longitude');
+ylabel('Latitude');
+title('First Principal Component Fjord Salinity Anomaly');
+hold off
+filename = ('PCA_score_fj_anom_sal') ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Plot Coeff
+figure
+hold on
+plot(coeff_fj_anom(:,1),DepInterval_custom)
+title('1st Coefficients vs Depth ')
+axis ij
+hold off
+filename = ('PCA_coeff_fj_anom_sal') ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Plot sal_anom
+figure
+hold on
+plot(fj_anom_combined,DepInterval_custom) ;
+ylim([0,300])
+axis ij
+hold off
+title('0-300m Salinity Anomaly')
+xlabel('Salinity Anomaly')
+ylabel('Depth')
+hold off
+filename = ('Fj Sal Anoms') ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+% Create Scree Plot
+figure
+hold on
+plot(1:length(explained_fj_anom), explained_fj_anom, 'o-', 'LineWidth', 2);
+xlabel('Principal Component');
+xlim([0,5])
+xticks(1:5); 
+ylabel('Variance Explained (%)');
+title('Scree Plot');
+grid on;
+hold off
+filename = ('PCA_scree_fj_anom') ;
+print(fullfile(folderPath, filename), '-djpeg') ;
+clear filename
 %% PCA correct (includes coeff and sal_anom/salinity) Coastal!
 folderPath = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\10-24-24' ; % change depending on folderlocation
 DepInterval_custom = DepInterval(1:length(sal_anom)) ;
