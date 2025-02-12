@@ -1704,13 +1704,13 @@ yeamon_n_coast = year_coast_n & month_coast_n ;
 yeamon_n_open = year_open_n & month_open_n ;
 %clear open_mon coastal_mon %combined_idx_open combined_idx_coast
 %copy = sal_anom_combined ; % for copying
-in_combined = inpolygon(lon_combined,lat_combined,combined_x,combined_y) ;
-open_sal_anom = sal_anom_combined(~in_combined,:) ;
-coast_sal_anom = sal_anom_combined(in_combined,:) ;
-lon_coast = lon_combined(in_combined) ;
-lon_open = lon_combined(~in_combined) ;
-lat_coast = lat_combined(in_combined) ;
-lat_open = lat_combined(~in_combined) ;
+%in_combined = inpolygon(lon_combined,lat_combined,combined_x,combined_y) ;
+%open_sal_anom = sal_anom_combined(~in_combined,:) ;
+%coast_sal_anom = sal_anom_combined(in_combined,:) ;
+%lon_coast = lon_combined(in_combined) ;
+%lon_open = lon_combined(~in_combined) ;
+%lat_coast = lat_combined(in_combined) ;
+%lat_open = lat_combined(~in_combined) ;
 % Canada
 %canada_n = inpolygon(lon_open_n,lat_open_n,x_canada,y_canada) ;
 %can_lon_n = lon_open_n(canada_n) ;
@@ -1788,16 +1788,72 @@ explained_fj_anom_temp = explained_anom ;
 save fj_anom_temp_PCA.mat coeff_fj_anom_temp score_fj_anom_temp latent_fj_anom_temp tsqaured_fj_anom_temp explained_fj_anom_temp
 end
 load fj_anom_temp_PCA.mat coeff_fj_anom_temp score_fj_anom_temp latent_fj_anom_temp tsqaured_fj_anom_temp explained_fj_anom_temp
+%% Test PCA's only looking at stuff with measurements to 300 m) for both temp and sal
+% sal
+fj_combined_test = fj_combined(:,1:100) ; % reduced depths
+fj_temp_combined_test = fj_temp_combined(:,1:100) ;
+run = 1 ;
+if run == 1
+valid_rows = all(~isnan(fj_combined_test), 2) & all(~isnan(fj_temp_combined_test), 2);
+sal = fj_combined_test(valid_rows,:) ; % should just be able to change this
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal = sal(:, 1:last_nan_col-1);
+end
+[coeff, score, latent , tsquared] = eof225(sal,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_sal = coeff ;
+score_fj_sal = score ;
+latent_fj_sal = latent ;
+tsqaured_fj_sal = tsquared ;
+explained_fj_sal = explained ;
+end
+% Fjord Temp anom PCA
+run = 1 ;
+if run == 1
+temp = fj_temp_combined_test(valid_rows,:) ; 
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(temp), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    temp = temp(:, 1:last_nan_col-1);
+end
+[coeff, score, latent , tsquared] = eof225(temp,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_temp = coeff ;
+score_fj_temp = score ;
+latent_fj_temp = latent ;
+tsqaured_fj_temp = tsquared ;
+explained_fj_temp = explained_anom ;
+end
 %% Train GMM on PCA Data (both depth dependent and not)
 %depth independent
-% select random training data
-index = randperm(length(score_fj_anom)) ;
-train_idx = false(length(score_fj_anom), 1);
-train_idx(index(1:(round(0.9*length(score_fj_anom))))) = true ; % randomly chooses 90% of profiles to be used in training 
-k = 5 ; % number of clusters
-feature_matrix = [score_fj_anom_temp(train_idx,1:2),score_fj_anom(train_idx,1:2)] ;
+% select random training data (wasn't working right, do later) 
+k = 8 ; % number of clusters
+feature_matrix = [score_fj_temp(:,1:4),score_fj_sal(:,1:4)] ;
+lat_fj_test = lat_fj(valid_rows) ;
+lon_fj_test = lon_fj(valid_rows) ;
+mon_fj_test = mon_fj(valid_rows) ;
+yea_fj_test = yea_fj(valid_rows) ;
+%Model
 options = statset('MaxIter', 500, 'Display', 'final');  % Increase iterations to 500
-anom_model = fitgmdist(feature_matrix, k, 'Options', options, 'RegularizationValue', 1e-5);
+anom_model = fitgmdist(feature_matrix, k, 'Options', options);
 cluster_labels = cluster(anom_model, feature_matrix);
 
 clear index

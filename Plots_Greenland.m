@@ -873,6 +873,90 @@ axis ij
 xlabel('Salinity (psu)')
 ylabel('Depth (m)')
 clear temp_sal c_idx o_idx
+%% Plot GMM results (depth indepdendent aka top down)
+clf
+hold on
+cmap = jet(length(unique(cluster_labels)));
+daspect([1 aspect_ratio 1])
+plot(cx, cy, 'k')
+xlim([-100, -10])
+ylim([55, 85])
+plot(cx,cy,'k')
+gscatter(lon_fj_test, lat_fj_test, cluster_labels', cmap, 'o','filled');
+% plot only a certain yea_mon
+month_select = 9 ;
+year_select = 2020 ;
+month_idx = mon_fj_test == month_select ;
+yea_idx = yea_fj_test == year_select ;
+yea_mon_fj = yea_idx & mon_fj_test ;
+figure 
+hold on
+cmap = jet(length(unique(cluster_labels(yea_mon_fj)))) ;
+daspect([1 aspect_ratio 1])
+plot(cx, cy, 'k')
+xlim([-100, -10])
+ylim([55, 85])
+plot(cx,cy,'k')
+gscatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj), cluster_labels(yea_mon_fj)', cmap, 'o','filled');
+% plot corresponding temperature, colored by cluster labels
+figure
+DepInterval_custom = DepInterval(1:size(fj_temp_combined_test,2)) ;
+cmap = lines(max(cluster_labels));
+temperature = fj_temp_combined_test(valid_rows,:) ;
+hold on
+for i = 1:size(temperature, 1) % Loop over profiles
+    plot(temperature(i, :), DepInterval_custom, 'Color', cmap(cluster_labels(i), :), 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Temperature');
+ylabel('Depth');
+title('Fjord Temperature Clustered');
+hold off;
+% Plot Salinity
+figure
+DepInterval_custom = DepInterval(1:size(fj_combined_test,2)) ;
+cmap = lines(max(cluster_labels));
+sal = fj_combined_test(valid_rows,:) ;
+hold on
+for i = 1:size(sal, 1) % Loop over profiles
+    plot(sal(i, :), DepInterval_custom, 'Color', cmap(cluster_labels(i), :), 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Salinity');
+ylabel('Depth');
+title('Fjord Salinity Clustered');
+hold off;
+
+%  plot corresponding salinity and temperature, colored by cluster label for yea_mon
+figure
+DepInterval_custom = DepInterval(1:size(fj_temp_combined_test,2)) ;
+cmap = lines(max(cluster_labels(yea_mon_fj)));
+temperature = fj_temp_combined_test(valid_rows,:) ;
+temperature = temperature(yea_mon_fj,:) ;
+hold on
+for i = 1:size(temperature, 1) % Loop over profiles
+    plot(temperature(i, :), DepInterval_custom, 'Color', cmap(cluster_labels(i), :), 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Temperature');
+ylabel('Depth');
+title('Fjord Temp Clustered Sept 2020');
+hold off;
+%Plot Salinity yea_mon
+figure
+DepInterval_custom = DepInterval(1:size(fj_combined_test,2)) ;
+cmap = lines(max(cluster_labels(yea_mon_fj)));
+sal = fj_combined_test(valid_rows,:) ;
+sal = sal(yea_mon_fj,:) ;
+hold on
+for i = 1:size(sal, 1) % Loop over profiles
+    plot(sal(i, :), DepInterval_custom, 'Color', cmap(cluster_labels(i), :), 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Salinity');
+ylabel('Depth');
+title('Fjord Sal Clustered Sept 2020');
+hold off;
 %% Reconstruct a salinity profile using the 1st principal component
 DepInterval_custom = DepInterval(1:300) ;
 number = 1 ; % which profile
