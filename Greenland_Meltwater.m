@@ -1761,8 +1761,8 @@ explained_fj_anom = explained_anom ;
 save fj_anom_PCA.mat coeff_fj_anom score_fj_anom latent_fj_anom tsqaured_fj_anom explained_fj_anom
 end
 load fj_anom_PCA.mat coeff_fj_anom score_fj_anom latent_fj_anom tsqaured_fj_anom
-%% Fjord Temp anom PCA
-run = 1 ;
+% Fjord Temp anom PCA
+run = 2 ;
 if run == 1
 temp_anom = fj_temp_anom_combined ; 
 % Find the first column where there are less then 3 non-nan values and
@@ -1788,13 +1788,19 @@ explained_fj_anom_temp = explained_anom ;
 save fj_anom_temp_PCA.mat coeff_fj_anom_temp score_fj_anom_temp latent_fj_anom_temp tsqaured_fj_anom_temp explained_fj_anom_temp
 end
 load fj_anom_temp_PCA.mat coeff_fj_anom_temp score_fj_anom_temp latent_fj_anom_temp tsqaured_fj_anom_temp explained_fj_anom_temp
-%% Train GMM on PCA Data
+%% Train GMM on PCA Data (both depth dependent and not)
+%depth independent
+% select random training data
+index = randperm(length(score_fj_anom)) ;
+train_idx = false(length(score_fj_anom), 1);
+train_idx(index(1:(round(0.9*length(score_fj_anom))))) = true ; % randomly chooses 90% of profiles to be used in training 
+k = 5 ; % number of clusters
+feature_matrix = [score_fj_anom_temp(train_idx,1:2),score_fj_anom(train_idx,1:2)] ;
+options = statset('MaxIter', 500, 'Display', 'final');  % Increase iterations to 500
+anom_model = fitgmdist(feature_matrix, k, 'Options', options, 'RegularizationValue', 1e-5);
+cluster_labels = cluster(anom_model, feature_matrix);
 
-
-
-
-
-
+clear index
 %% PCA change month/index as desired
 sal_anom = open_sal_anom(year_mon_open, :); % should just be able to change this
 % Find the first column where there are less then 3 non-nan values and
