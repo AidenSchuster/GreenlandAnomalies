@@ -1037,16 +1037,35 @@ xlabel('Salinity')
 ylabel('Temperature')
 xlim([0,40])
 ylim([-2,12])
-%% Plot the # of occurances for each cluster label
+%% Plot the # of occurances for each cluster label and at each depth
+% # of occurances
 figure
 edges = unique(cluster_labels) - 0.5;
 edges(end+1) = max(cluster_labels) + 0.5;
 counts = histcounts(cluster_labels, edges);
 binCenters = unique(cluster_labels);
 bar(binCenters, counts);
-xlabel('Value');
+xlabel('Cluster Label');
 ylabel('Frequency');
 title('Frequency of Each Cluster Group');
+% Frequency at each depth
+cluster_interleave = interleave_matrix(cluster_labels',num_splits) ;
+uniqueClusters = unique(cluster_interleave(:));
+numClusters = length(uniqueClusters);
+numDepthSegments = size(cluster_interleave, 1);
+for i = 1:numDepthSegments
+    for j = 1:numClusters
+        freq(i, j) = sum(cluster_interleave(i, :) == uniqueClusters(j));
+    end
+end
+figure;
+bar(uniqueClusters, freq.')   % Note the transpose (freq') so that each group is one cluster label.
+xlabel('Cluster Label')
+ylabel('Frequency')
+customLabels = {'0-19 m', '20-39 m', '40-59 m', '60-79 m', '80-99 m'};
+legend(customLabels, 'Location', 'Best');
+title('Frequency of Cluster Labels by Depth Segment')
+grid on
 %% Plot an Individual Profile (Should be an interval of 5, i.e. 1,6,11, ect)
 profile_num = 16 ;
 figure
@@ -1092,7 +1111,42 @@ cluster_labels_inter = cluster_labels_inter(:,yea_mon_selected) ;
 lon_linear = lon_fj_test(yea_mon_selected) ;
 lat_linear = lat_fj_test(yea_mon_selected) ;
 lambda = 10 ; % km rossby radius
+% Linear Area
+figure
+hold on
+plot(cx,cy,'k')
+scatter(lon_linear,lat_linear,'r.')
+plot(linear_coords(:,1),linear_coords(:,2),'b')
+scatter(linear_coords(:,1),linear_coords(:,2),'b.')
+daspect([1 aspect_ratio 1])
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
+set(gca,'box','on')
+%exportgraphics(gcf, 'Linear_Area.png', 'Resolution', 300); % Save as PNG with 300 DPI
 
+% Linear Interpolation Section (Sal, Temp and Cluster Class)
+%find profiles within 10 km of each linear point
+t_s = sal_init';
+t_t = temp_init';
+sal_linear = t_s(:,yea_mon_selected) ;
+temp_linear = t_t(:,yea_mon_selected) ;
+clear t_s t_t
+% find profiles within 10km of points
+for i = 1:length(linear_coords)
+   for j = 1:length(sal_linear)
+   dist_lon = [linear_coords(i,1),lon_linear(j)] ;
+   dist_lat = [linear_coords(i,2),lat_linear(j)] ;
+   dist = sw_dist(dist_lat,dist_lon,'km') ;
+        if dist > 10 
+        dist_idx{i}(j) = 0 ;
+        elseif dist <= 10 
+        dist_idx{i}(j) = 1 ;
+    end
+   end
+end
+clear dist_lon dist_lat
+%pcolor(lon,lat,depth)
+%shading flat
 %% Reconstruct a salinity profile using the 1st principal component
 DepInterval_custom = DepInterval(1:300) ;
 number = 1 ; % which profile

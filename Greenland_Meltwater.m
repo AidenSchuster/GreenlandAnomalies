@@ -1919,7 +1919,7 @@ tsqaured_fj_temp = tsquared ;
 explained_fj_temp = explained ;
 end
 %% GMM Training (Depth Dependent)
-run = 1 ;
+run = 2 ;
 if run == 1
 %depth independent
 % select random training data (wasn't working right, do later) 
@@ -1936,6 +1936,10 @@ clear index
 save depth_model.mat depth_model
 end
 load depth_model.mat depth_model
+lat_fj_test = lat_fj(valid_rows) ;
+lon_fj_test = lon_fj(valid_rows) ;
+mon_fj_test = mon_fj(valid_rows) ;
+yea_fj_test = yea_fj(valid_rows) ;
 feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
 cluster_labels = cluster(depth_model, feature_matrix);
 cluster_probs = posterior(depth_model, feature_matrix);
