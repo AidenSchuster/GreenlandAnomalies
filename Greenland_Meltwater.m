@@ -846,7 +846,6 @@ clear compare_OMG remove_fj_any num_total num_OMG too_many_nans num_OMG_nan comp
 fjord_sal_mat_fj(remove_fj) = NaN ;
 fjord_temp_mat_fj(remove_fj) = NaN ;
 %interp_temp_mat_fj(remove_fj) = NaN ; (not a thing yet)
-clear fj_find_combined
 %% Clean fjord box anomaly profiles (by same standards as open/coastal) (needs to be light/conservative)
  box_find_combined = [] ;
  for i = 1:length(fjord_box_cords)
@@ -1817,7 +1816,7 @@ latent_fj_sal = latent ;
 tsqaured_fj_sal = tsquared ;
 explained_fj_sal = explained ;
 end
-% Fjord Temp anom PCA
+% Fjord Temp PCA
 run = 1 ;
 if run == 1
 temp = fj_temp_combined_test(valid_rows,:) ; 
@@ -1840,9 +1839,9 @@ coeff_fj_temp = coeff ;
 score_fj_temp = score ;
 latent_fj_temp = latent ;
 tsqaured_fj_temp = tsquared ;
-explained_fj_temp = explained_anom ;
+explained_fj_temp = explained ;
 end
-%% Train GMM on PCA Data (both depth dependent and not)
+% Train GMM on PCA Data (Depth Indepdent)
 %depth independent
 % select random training data (wasn't working right, do later) 
 k = 8 ; % number of clusters
@@ -1855,8 +1854,91 @@ yea_fj_test = yea_fj(valid_rows) ;
 options = statset('MaxIter', 500, 'Display', 'final');  % Increase iterations to 500
 anom_model = fitgmdist(feature_matrix, k, 'Options', options);
 cluster_labels = cluster(anom_model, feature_matrix);
-
+cluster_probs = posterior(anom_model, feature_matrix);
 clear index
+%% Depth Dependent Setup, PCA, and GMM training
+%setup (split and concatenate profiles by a selected depth)
+fj_combined_test = fj_combined(:,1:100) ; % reduced depths
+fj_temp_combined_test = fj_temp_combined(:,1:100) ;
+num_splits = 5 ; % should be evenly divisible by the total length
+disp([num2str(size(fj_combined_test, 2)/2) ' meter segments']); % length of depth segments (should be whole number)
+
+% PCA 
+% sal
+run = 1 ;
+if run == 1
+valid_rows = all(~isnan(fj_combined_test), 2) & all(~isnan(fj_temp_combined_test), 2);
+sal_init = fj_combined_test(valid_rows,:) ; % should just be able to change this
+sal = interleave_matrix(sal_init,num_splits) ; % splits and interleaves collumns for depth dependent PCA
+
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal = sal(:, 1:last_nan_col-1);
+end
+[coeff, score, latent , tsquared] = eof225(sal,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_sal = coeff ;
+score_fj_sal = score ;
+latent_fj_sal = latent ;
+tsqaured_fj_sal = tsquared ;
+explained_fj_sal = explained ;
+end
+% Fjord Temp PCA
+run = 1 ;
+if run == 1
+temp_init = fj_temp_combined_test(valid_rows,:) ; 
+temp = interleave_matrix(temp_init,num_splits) ; % splits and interleaves collumns for depth dependent PCA
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(temp), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    temp = temp(:, 1:last_nan_col-1);
+end
+[coeff, score, latent , tsquared] = eof225(temp,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_temp = coeff ;
+score_fj_temp = score ;
+latent_fj_temp = latent ;
+tsqaured_fj_temp = tsquared ;
+explained_fj_temp = explained ;
+end
+%% GMM Training (Depth Dependent)
+run = 1 ;
+if run == 1
+%depth independent
+% select random training data (wasn't working right, do later) 
+k = 5 ; % number of clusters
+feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
+lat_fj_test = lat_fj(valid_rows) ;
+lon_fj_test = lon_fj(valid_rows) ;
+mon_fj_test = mon_fj(valid_rows) ;
+yea_fj_test = yea_fj(valid_rows) ;
+%Model
+options = statset('MaxIter', 1000, 'Display', 'final');  % Increase iterations to 500
+depth_model = fitgmdist(feature_matrix, k, 'Options', options);
+clear index
+save depth_model.mat depth_model
+end
+load depth_model.mat depth_model
+feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
+cluster_labels = cluster(depth_model, feature_matrix);
+cluster_probs = posterior(depth_model, feature_matrix);
 %% PCA change month/index as desired
 sal_anom = open_sal_anom(year_mon_open, :); % should just be able to change this
 % Find the first column where there are less then 3 non-nan values and

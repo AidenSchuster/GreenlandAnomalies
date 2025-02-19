@@ -41,11 +41,11 @@ Sep = hel_fj == 9 ;
 %fjord_sal_mat_fj = double(fjord_sal_mat_fj) ;
 %fjord_temp_mat_fj = double(fjord_temp_mat_fj) ;
 
-temp_glacier = temp(in_idx) ; % not interpolated vertically
+temp_glacier = temp(fj_find_combined) ; % not interpolated vertically
 temp_glacier = temp_glacier(:,glacier_idx) ;
-sal_glacier = sal(in_idx) ;
+sal_glacier = sal(fj_find_combined) ;
 sal_glacier = sal_glacier(:,glacier_idx) ;
-dep_glacier = dep(in_idx) ;
+dep_glacier = dep(fj_find_combined) ;
 dep_glacier = dep_glacier(:,glacier_idx) ;
 
 %Spline Interpolate
@@ -111,7 +111,7 @@ for i = 1:3:size(spline_temp_Sep,2)
     plot(spline_sal_Sep{i}(:,1), spline_temp_Sep{i}(:,1));
 end
 
-title('September Near Glacier Helheim TS')
+title('September Near Glacier Sermilik TS')
 hold off
 %plot(seven_sal(:,hel_idx),seven_temp(:,hel_idx))
 % clear hel_idx Aug Sep
@@ -139,7 +139,7 @@ six_dep =  spline_dep_Sep(six_idx) ;
 figure
 hold on
 isopycnals = [17,18,19,20,21,22,23,24,25,26,27,28] ;
-gsw_SA_CT_plot_Aiden(profile5.Target.XData,profile5.Target.YData,0,isopycnals,'Helheim Fjord TS plot')
+gsw_SA_CT_plot_Aiden(profile5.Target.XData,profile5.Target.YData,0,isopycnals,'Sermilik Fjord TS plot')
 scatter(profile5.Target.XData,profile5.Target.YData,50,five_dep{1},'filled')
 scatter(profile6.Target.XData,profile6.Target.YData,50,six_dep{1},'filled')
 colormap('jet');
@@ -149,7 +149,7 @@ caxis([1,150])
 ylim([-1.5,2])
 xlim([20,36])
 set(gca,'box','on')
-exportgraphics(gcf, 'test.png', 'Resolution', 300); % Save as PNG with 300 DPI
+exportgraphics(gcf, 'paste.png', 'Resolution', 300); % Save as PNG with 300 DPI
 %% bathmetry setup
 hold on
 isobath_interval = -200:-100:-3000;  % Define isobath intervals down to the minimum depth
@@ -957,6 +957,142 @@ xlabel('Salinity');
 ylabel('Depth');
 title('Fjord Sal Clustered Sept 2020');
 hold off;
+%% GMM Cluster Prbabilities (Depth Independent)
+target_cluster = 8 ; % this won't consistently be the same group I think
+target_probs = cluster_probs(:,target_cluster) ;
+figure;
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+xlim([-100, -10])
+ylim([55, 85])
+scatter(lon_fj_test, lat_fj_test,30, target_probs, 'filled'); 
+colormap(jet) ;
+colorbar
+caxis([0,1])
+title(sprintf('Probability of belonging to Cluster %s', num2str(target_cluster)))
+% Probability for yea_mon
+figure;
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+xlim([-100, -10])
+ylim([55, 85])
+scatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj),30, target_probs(yea_mon_fj), 'filled'); 
+colormap(jet) ;
+colorbar
+caxis([0,1]) 
+title(sprintf('Probability of belonging to Cluster %s in September 2020', num2str(target_cluster)))
+% Plot target Group Sal and Temp to give an idea of characteristics
+%Temp
+figure
+hold on
+DepInterval_custom = DepInterval(1:size(fj_combined_test,2)) ;
+temperature = fj_temp_combined_test(valid_rows,:) ;
+target_idx = cluster_labels == target_cluster ; 
+temperature = temperature(target_idx,:) ;
+for i = 1:size(temperature, 1) % Loop over profiles
+    plot(temperature(i, :), DepInterval_custom, 'Color', "#A2142F" , 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Temperature')
+ylabel('Depth')
+title('Temp vs Depth of Group 8 profiles')
+xlim([-2,12])
+%Sal
+figure
+hold on
+DepInterval_custom = DepInterval(1:size(fj_combined_test,2)) ;
+sal = fj_combined_test(valid_rows,:) ;
+target_idx = cluster_labels == target_cluster ; 
+sal = sal(target_idx,:) ;
+for i = 1:size(sal, 1) % Loop over profiles
+    plot(sal(i, :), DepInterval_custom, 'Color', "#A2142F" , 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Salinity')
+ylabel('Depth')
+title('Sal vs Depth of Group 8 profiles')
+xlim([0,40])
+%% Depth Dependent GMM Plots
+% Temp Salinity Colored by cluster
+cmap = jet(length(unique(cluster_labels)));
+cluster_labels_inter = interleave_matrix(cluster_labels',size(sal_init,1)) ;
+sal_interleave = interleave_matrix(sal_init,num_splits) ;
+temp_interleave = interleave_matrix(temp_init,num_splits) ;
+depth_map = [0:19;20:39;40:59;60:79;80:99] ; % each row represents 5th of the profile's depth (this can be automated for sure)
+depth_mat = repmat(depth_map, size(sal_interleave, 1) / size(depth_map, 1), 1);
+clear depth_map
+clf
+hold on
+target_cluster = 5 ;
+for i = 1:size(score_fj_sal,1)
+    if cluster_labels(i) == target_cluster
+    cluster_color = cmap(cluster_labels(i));
+    plot(sal_interleave(i,:),temp_interleave(i,:),'Color', cmap(cluster_labels(i),:))
+    end
+end
+title(sprintf('TS of Group %d in Fjord Profiles',target_cluster))
+xlabel('Salinity')
+ylabel('Temperature')
+xlim([0,40])
+ylim([-2,12])
+%% Plot the # of occurances for each cluster label
+figure
+edges = unique(cluster_labels) - 0.5;
+edges(end+1) = max(cluster_labels) + 0.5;
+counts = histcounts(cluster_labels, edges);
+binCenters = unique(cluster_labels);
+bar(binCenters, counts);
+xlabel('Value');
+ylabel('Frequency');
+title('Frequency of Each Cluster Group');
+%% Plot an Individual Profile (Should be an interval of 5, i.e. 1,6,11, ect)
+profile_num = 16 ;
+figure
+hold on
+cmap = jet(length(unique(cluster_labels)));
+first = ((profile_num - 1) * num_splits + 1) ;
+last = (profile_num * num_splits);
+    for i = first:last % plots first profile
+        plot(sal_interleave(i,:),depth_mat(i,:),'Color',cmap(cluster_labels(i),:))
+    end
+axis ij
+xlabel('Salinity')
+ylabel('Depth (m)')
+title(sprintf('Profile %s Sal',num2str(profile_num)))
+% temp
+figure
+hold on
+for i = first:last % plots first profile
+        plot(temp_interleave(i,:),depth_mat(i,:),'Color',cmap(cluster_labels(i),:))
+end
+axis ij
+xlabel('Temperature')
+ylabel('Depth (m)')
+title(sprintf('Profile %s Temp',num2str(profile_num)))
+% TS
+figure
+hold on
+for i = first:last % plots first profile
+        plot(sal_interleave(i,:),temp_interleave(i,:),'Color',cmap(cluster_labels(i),:))
+end
+axis ij
+xlabel('Salinity')
+ylabel('Temperature')
+title(sprintf('Profile %s TS',num2str(profile_num)))
+%% Plot Linear Segment utilizing (W = e^d/lambda)
+load linear_coords.mat linear_coords
+% points on line every km (in future)
+month_selected = 8 ;
+years_selected = [2015,2020] ;
+yea_mon_selected = mon_fj_test == month_selected & yea_fj_test >= years_selected(1) & yea_fj_test <= years_selected(end) ;
+cluster_labels_inter = interleave_matrix(cluster_labels',num_splits) ;
+cluster_labels_inter = cluster_labels_inter(:,yea_mon_selected) ;
+lon_linear = lon_fj_test(yea_mon_selected) ;
+lat_linear = lat_fj_test(yea_mon_selected) ;
+lambda = 10 ; % km rossby radius
+
 %% Reconstruct a salinity profile using the 1st principal component
 DepInterval_custom = DepInterval(1:300) ;
 number = 1 ; % which profile
