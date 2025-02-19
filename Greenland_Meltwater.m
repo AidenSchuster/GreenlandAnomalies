@@ -1878,6 +1878,8 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal = sal(:, 1:last_nan_col-1);
 end
+mu_sal = mean(sal,1) ;
+std_sal = std(sal) ;
 [coeff, score, latent , tsquared] = eof225(sal,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
@@ -1904,6 +1906,8 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     temp = temp(:, 1:last_nan_col-1);
 end
+mu_temp = mean(temp,1) ;
+std_temp = std(temp)
 [coeff, score, latent , tsquared] = eof225(temp,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff

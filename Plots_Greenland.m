@@ -1136,17 +1136,85 @@ for i = 1:length(linear_coords)
    for j = 1:length(sal_linear)
    dist_lon = [linear_coords(i,1),lon_linear(j)] ;
    dist_lat = [linear_coords(i,2),lat_linear(j)] ;
-   dist = sw_dist(dist_lat,dist_lon,'km') ;
-        if dist > 10 
+   dist{i}(j) = sw_dist(dist_lat,dist_lon,'km') ;
+        if dist{i}(j) > 10 
         dist_idx{i}(j) = 0 ;
-        elseif dist <= 10 
+        weights{i}(j) = 0 ; % if too far away no weight
+        elseif dist{i}(j) <= 10 
+        weights{i}(j) = exp(-dist{i}(j)/lambda) ; % weights for profiles at each point
         dist_idx{i}(j) = 1 ;
     end
    end
 end
-clear dist_lon dist_lat
-%pcolor(lon,lat,depth)
-%shading flat
+clear dist_lon dist_lat dist
+
+%sal/temp calc
+cluster_expanded = repelem(cluster_labels_inter, size(sal_linear,1)/num_splits, 1);
+for i = 1:length(weights)
+    for j = 1:length(sal_linear)
+    sal_temp(:,j) = sal_linear(:,j)*weights{i}(j) ; % w*S
+    temp_temp(:,j) = temp_linear(:,j)*weights{i}(j) ; % w*T
+    end
+sal_sum(:,i) = sum(sal_temp,2) ;   %row wise summation
+temp_sum(:,i) = sum(temp_temp,2) ;
+weight_sum(:,i) = sum(weights{i},2) ;
+end
+weight_sal = sal_sum ./ weight_sum ;
+weight_temp = temp_sum ./ weight_sum ;
+for i = 1:length(linear_coords)
+   dist_lon = [linear_coords(1,1),linear_coords(i,1)] ; % calc dist from each linear_coord to start
+   dist_lat = [linear_coords(1,2),linear_coords(i,2)] ;
+   dist_linear(i) = sw_dist(dist_lat,dist_lon,'km') ; % point along x-axis where the data is interpolated from
+end
+
+% Salinity
+figure
+hold on
+contourf(dist_linear, DepInterval(1:100) ,weight_sal,50, 'LineColor', 'none')
+for i = 1:length(dist_linear)
+    xline(dist_linear(i), '--k', 'LineWidth', 1.0); % Dashed black lines
+end
+axis ij
+shading flat
+cb = colorbar;
+ylabel(cb, 'Salinity (psu)');
+colormap(jet);
+title('Interpolated Salinity along Transect')
+xlabel('Distance from Origin (km)')
+ylabel('Depth (m)')
+hold off
+xlim([min(dist_linear)-0.5,max(dist_linear)+0.5])
+%exportgraphics(gcf, 'Linear_Sal.png', 'Resolution', 300); % Save as PNG with 300 DPI
+
+% Temperature
+figure
+hold on
+contourf(dist_linear, DepInterval(1:100) ,weight_temp,50, 'LineColor', 'none')
+for i = 1:length(dist_linear)
+    xline(dist_linear(i), '--k', 'LineWidth', 1.0); % Dashed black lines
+end
+axis ij
+shading flat
+cb = colorbar;
+ylabel(cb, 'Temperature (C)');
+colormap(jet);
+title('Interpolated Temperature along Transect')
+xlabel('Distance from Origin (km)')
+ylabel('Depth (m)')
+hold off
+xlim([min(dist_linear)-0.5,max(dist_linear)+0.5])
+exportgraphics(gcf, 'Linear_temp.png', 'Resolution', 300); % Save as PNG with 300 DPI
+
+%% Class Calculation have to interpolate (chance of belonging to a class aka 5 different plots here)
+target_cluster = 1 ;
+weight_sal_inter = interleave_matrix(weight_sal',num_splits) ;
+weight_temp_inter = interleave_matrix(weight_temp',num_splits) ;
+projected_sal = ((weight_sal_inter - mu_sal) ./ std_sal) * coeff_fj_sal ;
+projected_temp = ((weight_temp_inter - mu_temp) ./ std_temp) * coeff_fj_temp ;
+f_mat = [projected_temp(:,1:3),projected_sal(:,1:3)] ;
+labels =  cluster(depth_model, f_mat) ;
+probs = posterior(depth_model, f_mat) ;
+print('ran')
 %% Reconstruct a salinity profile using the 1st principal component
 DepInterval_custom = DepInterval(1:300) ;
 number = 1 ; % which profile
