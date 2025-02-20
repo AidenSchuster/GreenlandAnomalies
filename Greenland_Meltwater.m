@@ -1851,10 +1851,15 @@ lon_fj_test = lon_fj(valid_rows) ;
 mon_fj_test = mon_fj(valid_rows) ;
 yea_fj_test = yea_fj(valid_rows) ;
 %Model
+run = 2 ;
+if run == 1
 options = statset('MaxIter', 500, 'Display', 'final');  % Increase iterations to 500
-anom_model = fitgmdist(feature_matrix, k, 'Options', options);
-cluster_labels = cluster(anom_model, feature_matrix);
-cluster_probs = posterior(anom_model, feature_matrix);
+indepen_model = fitgmdist(feature_matrix, k, 'Options', options);
+save indepen_model.mat indepen_model
+end
+load indepen_model
+cluster_labels = cluster(indepen_model, feature_matrix);
+cluster_probs = posterior(indepen_model, feature_matrix);
 clear index
 %% Depth Dependent Setup, PCA, and GMM training
 %setup (split and concatenate profiles by a selected depth)
@@ -1907,7 +1912,7 @@ if ~isempty(last_nan_col)
     temp = temp(:, 1:last_nan_col-1);
 end
 mu_temp = mean(temp,1) ;
-std_temp = std(temp)
+std_temp = std(temp) ;
 [coeff, score, latent , tsquared] = eof225(temp,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff

@@ -879,10 +879,14 @@ hold on
 cmap = jet(length(unique(cluster_labels)));
 daspect([1 aspect_ratio 1])
 plot(cx, cy, 'k')
-xlim([-100, -10])
-ylim([55, 85])
+%xlim([-100, -10])
+%ylim([55, 85])
 plot(cx,cy,'k')
 gscatter(lon_fj_test, lat_fj_test, cluster_labels', cmap, 'o','filled');
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
+xlabel('Lon')
+ylabel('Lat')
 % plot only a certain yea_mon
 month_select = 9 ;
 year_select = 2020 ;
@@ -894,10 +898,14 @@ hold on
 cmap = jet(length(unique(cluster_labels(yea_mon_fj)))) ;
 daspect([1 aspect_ratio 1])
 plot(cx, cy, 'k')
-xlim([-100, -10])
-ylim([55, 85])
+%xlim([-100, -10])
+%ylim([55, 85])
 plot(cx,cy,'k')
 gscatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj), cluster_labels(yea_mon_fj)', cmap, 'o','filled');
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
+xlabel('Lon')
+ylabel('Lat')
 % plot corresponding temperature, colored by cluster labels
 figure
 DepInterval_custom = DepInterval(1:size(fj_temp_combined_test,2)) ;
@@ -970,6 +978,8 @@ scatter(lon_fj_test, lat_fj_test,30, target_probs, 'filled');
 colormap(jet) ;
 colorbar
 caxis([0,1])
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
 title(sprintf('Probability of belonging to Cluster %s', num2str(target_cluster)))
 % Probability for yea_mon
 figure;
@@ -982,8 +992,10 @@ scatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj),30, target_probs(yea_mo
 colormap(jet) ;
 colorbar
 caxis([0,1]) 
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
 title(sprintf('Probability of belonging to Cluster %s in September 2020', num2str(target_cluster)))
-% Plot target Group Sal and Temp to give an idea of characteristics
+%Plot target Group Sal and Temp to give an idea of characteristics
 %Temp
 figure
 hold on
@@ -991,13 +1003,18 @@ DepInterval_custom = DepInterval(1:size(fj_combined_test,2)) ;
 temperature = fj_temp_combined_test(valid_rows,:) ;
 target_idx = cluster_labels == target_cluster ; 
 temperature = temperature(target_idx,:) ;
+target_probs = target_probs(target_idx) ;
 for i = 1:size(temperature, 1) % Loop over profiles
+    if target_probs(i) >= .90 
     plot(temperature(i, :), DepInterval_custom, 'Color', "#A2142F" , 'LineWidth', 1.5);
+    else
+    plot(temperature(i, :), DepInterval_custom, 'Color', "c" , 'LineWidth', 1.5);  
+    end
 end
 axis ij
 xlabel('Temperature')
 ylabel('Depth')
-title('Temp vs Depth of Group 8 profiles')
+title('Temp of Group 8 profiles')
 xlim([-2,12])
 %Sal
 figure
@@ -1007,12 +1024,16 @@ sal = fj_combined_test(valid_rows,:) ;
 target_idx = cluster_labels == target_cluster ; 
 sal = sal(target_idx,:) ;
 for i = 1:size(sal, 1) % Loop over profiles
+    if target_probs(i) >= .90
     plot(sal(i, :), DepInterval_custom, 'Color', "#A2142F" , 'LineWidth', 1.5);
+    else
+    plot(sal(i, :), DepInterval_custom, 'Color', "c" , 'LineWidth', 1.5); 
+    end
 end
 axis ij
 xlabel('Salinity')
 ylabel('Depth')
-title('Sal vs Depth of Group 8 profiles')
+title('Sal of Group 8 profiles')
 xlim([0,40])
 %% Depth Dependent GMM Plots
 % Temp Salinity Colored by cluster
