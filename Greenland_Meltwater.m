@@ -1802,7 +1802,11 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal = sal(:, 1:last_nan_col-1);
 end
-[coeff, score, latent , tsquared] = eof225(sal,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+mu_sal = mean(sal,1) ;
+std_sal = std(sal) ;
+sal_norm = (sal-mu_sal)./std_sal ;
+ % standard normalization of data
+[coeff, score, latent , tsquared] = eof225(sal_norm,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
@@ -1827,7 +1831,11 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     temp = temp(:, 1:last_nan_col-1);
 end
-[coeff, score, latent , tsquared] = eof225(temp,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+mu_temp = mean(temp,1) ;
+std_temp = std(temp) ;
+temp_norm = (temp-mu_temp)./std_temp ;
+% standard normalization of data
+[coeff, score, latent , tsquared] = eof225(temp_norm,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
@@ -1851,7 +1859,7 @@ lon_fj_test = lon_fj(valid_rows) ;
 mon_fj_test = mon_fj(valid_rows) ;
 yea_fj_test = yea_fj(valid_rows) ;
 %Model
-run = 2 ;
+run = 1 ;
 if run == 1
 options = statset('MaxIter', 500, 'Display', 'final');  % Increase iterations to 500
 indepen_model = fitgmdist(feature_matrix, k, 'Options', options);
@@ -1885,6 +1893,7 @@ if ~isempty(last_nan_col)
 end
 mu_sal = mean(sal,1) ;
 std_sal = std(sal) ;
+sal_norm = (sal-mu_sal)./std_sal ;
 [coeff, score, latent , tsquared] = eof225(sal,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
@@ -1913,6 +1922,7 @@ if ~isempty(last_nan_col)
 end
 mu_temp = mean(temp,1) ;
 std_temp = std(temp) ;
+temp_norm = (temp-mu_temp)./std_temp ;
 [coeff, score, latent , tsquared] = eof225(temp,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
@@ -1927,8 +1937,8 @@ latent_fj_temp = latent ;
 tsqaured_fj_temp = tsquared ;
 explained_fj_temp = explained ;
 end
-%% GMM Training (Depth Dependent)
-run = 2 ;
+% GMM Training (Depth Dependent)
+run = 1 ;
 if run == 1
 %depth independent
 % select random training data (wasn't working right, do later) 
