@@ -1328,10 +1328,12 @@ for i = 1:length(fj_anom_idx)
         valid_temp_rows = [valid_rows_1_149_temp; valid_rows_150_end_temp];     
         % Calculate salinity anomalies only for valid depths
         if any(valid_rows)
-            % Mean of valid depths (row-wise), ignoring NaNs
-            mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');            
+            % Mean and std of valid depths (row-wise), ignoring NaNs
+            mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');    
+            std_values = std(relevant_data(valid_rows,:), 2, 'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_anoms{i}(valid_rows, j) = fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values;
+            fj_z_anoms{i}(valid_rows,j) =fj_anoms{i}(valid_rows,j) ./ std_values ;
         end
         % same for temp anoms
         if any(valid_rows)
@@ -1733,6 +1735,200 @@ yeamon_n_open = year_open_n & month_open_n ;
 clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
 clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s_fj
 clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_lat_n can_lon_n can_mon can_yea % clearing all canada variables (will get rid of them entirely eventually)
+%% Helheim (or other restricted region anom PCA) PCA and GMM
+% sal
+% location index (helheim is fjord_vert{32}
+hel_idx = inpolygon(lon_fj,lat_fj,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
+fj_combined_hel = fj_combined(hel_idx,:) ;
+fj_combined_test = fj_combined_hel(:,1:100) ; % reduced depths
+fj_temp_hel = fj_temp_combined(hel_idx,:) ;
+fj_temp_combined_test = fj_temp_hel(:,1:100) ;
+run = 1 ;
+if run == 1
+valid_rows = all(~isnan(fj_combined_test), 2) & all(~isnan(fj_temp_combined_test), 2);
+sal = fj_combined_test(valid_rows,:) ; % should just be able to change this
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal = sal(:, 1:last_nan_col-1);
+end
+mu_sal = mean(sal,1) ;
+std_sal = std(sal) ;
+sal_norm = (sal-mu_sal)./std_sal ;
+ % standard normalization of data
+[coeff, score, latent , tsquared] = eof225(sal_norm,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_sal = coeff ;
+score_fj_sal = score ;
+latent_fj_sal = latent ;
+tsqaured_fj_sal = tsquared ;
+explained_fj_sal = explained ;
+end
+% Fjord Temp PCA
+run = 1 ;
+if run == 1
+temp = fj_temp_combined_test(valid_rows,:) ; 
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(temp), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    temp = temp(:, 1:last_nan_col-1);
+end
+mu_temp = mean(temp,1) ;
+std_temp = std(temp) ;
+temp_norm = (temp-mu_temp)./std_temp ;
+% standard normalization of data
+[coeff, score, latent , tsquared] = eof225(temp_norm,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_temp = coeff ;
+score_fj_temp = score ;
+latent_fj_temp = latent ;
+tsqaured_fj_temp = tsquared ;
+explained_fj_temp = explained ;
+end
+% Train GMM on PCA Data (Depth Indepdent)
+%depth independent
+% select random training data (wasn't working right, do later) 
+k = 5 ; % number of clusters
+feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
+lat_fj_test = lat_fj(hel_idx) ;
+lat_fj_test = lat_fj_test(valid_rows') ;
+lon_fj_test = lon_fj(hel_idx) ;
+lon_fj_test = lon_fj_test(valid_rows') ;
+mon_fj_test = mon_fj(hel_idx) ;
+mon_fj_test = mon_fj_test(valid_rows') ;
+yea_fj_test = yea_fj(hel_idx) ;
+yea_fj_test = yea_fj_test(valid_rows) ;
+%Model
+run = 1 ;
+if run == 1
+options = statset('MaxIter', 500, 'Display', 'final');  % Increase iterations to 500
+indepen_model = fitgmdist(feature_matrix, k, 'Options', options);
+%save indepen_model.mat indepen_model
+end
+%load indepen_model
+cluster_labels = cluster(indepen_model, feature_matrix);
+cluster_probs = posterior(indepen_model, feature_matrix);
+clear index
+%% Helheim Depth Dependent
+hel_idx = inpolygon(lon_fj,lat_fj,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
+fj_combined_hel = fj_combined(hel_idx,:) ;
+fj_combined_test = fj_combined_hel(:,1:100) ; % reduced depths
+fj_temp_hel = fj_temp_combined(hel_idx,:) ;
+fj_temp_combined_test = fj_temp_hel(:,1:100) ;
+num_splits = 5 ; % should be evenly divisible by the total length
+disp([num2str(size(fj_combined_test, 2)/2) ' meter segments']); % length of depth segments (should be whole number)
+
+% PCA 
+% sal
+run = 1 ;
+if run == 1
+valid_rows = all(~isnan(fj_combined_test), 2) & all(~isnan(fj_temp_combined_test), 2);
+sal_init = fj_combined_test(valid_rows,:) ; % should just be able to change this
+sal = interleave_matrix(sal_init,num_splits) ; % splits and interleaves collumns for depth dependent PCA
+
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal = sal(:, 1:last_nan_col-1);
+end
+mu_sal = mean(sal,1) ;
+std_sal = std(sal) ;
+sal_norm = (sal-mu_sal)./std_sal ;
+[coeff, score, latent , tsquared] = eof225(sal,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_sal = coeff ;
+score_fj_sal = score ;
+latent_fj_sal = latent ;
+tsqaured_fj_sal = tsquared ;
+explained_fj_sal = explained ;
+end
+% Fjord Temp PCA
+run = 1 ;
+if run == 1
+temp_init = fj_temp_combined_test(valid_rows,:) ; 
+temp = interleave_matrix(temp_init,num_splits) ; % splits and interleaves collumns for depth dependent PCA
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(temp), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    temp = temp(:, 1:last_nan_col-1);
+end
+mu_temp = mean(temp,1) ;
+std_temp = std(temp) ;
+temp_norm = (temp-mu_temp)./std_temp ;
+[coeff, score, latent , tsquared] = eof225(temp,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col
+
+coeff_fj_temp = coeff ;
+score_fj_temp = score ;
+latent_fj_temp = latent ;
+tsqaured_fj_temp = tsquared ;
+explained_fj_temp = explained ;
+end
+% GMM Training (Depth Dependent)
+run = 1 ;
+if run == 1
+%depth independent
+% select random training data (wasn't working right, do later) 
+k = 3 ; % number of clusters
+feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
+lat_fj_test = lat_fj(hel_idx) ;
+lat_fj_test = lat_fj_test(valid_rows') ;
+lon_fj_test = lon_fj(hel_idx) ;
+lon_fj_test = lon_fj_test(valid_rows') ;
+mon_fj_test = mon_fj(hel_idx) ;
+mon_fj_test = mon_fj_test(valid_rows') ;
+yea_fj_test = yea_fj(hel_idx) ;
+yea_fj_test = yea_fj_test(valid_rows) ;
+%Model
+options = statset('MaxIter', 1000, 'Display', 'final');  % Increase iterations to 500
+depth_model = fitgmdist(feature_matrix, k, 'Options', options);
+clear index
+save depth_model.mat depth_model
+end
+load depth_model.mat depth_model
+lat_fj_test = lat_fj(hel_idx) ;
+lat_fj_test = lat_fj_test(valid_rows') ;
+lon_fj_test = lon_fj(hel_idx) ;
+lon_fj_test = lon_fj_test(valid_rows') ;
+mon_fj_test = mon_fj(hel_idx) ;
+mon_fj_test = mon_fj_test(valid_rows') ;
+yea_fj_test = yea_fj(hel_idx) ;
+yea_fj_test = yea_fj_test(valid_rows) ;
+feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
+cluster_labels = cluster(depth_model, feature_matrix);
+cluster_probs = posterior(depth_model, feature_matrix);
+
 %% Fjord sal anom PCA
 run = 2 ;
 if run == 1
@@ -1787,7 +1983,7 @@ explained_fj_anom_temp = explained_anom ;
 save fj_anom_temp_PCA.mat coeff_fj_anom_temp score_fj_anom_temp latent_fj_anom_temp tsqaured_fj_anom_temp explained_fj_anom_temp
 end
 load fj_anom_temp_PCA.mat coeff_fj_anom_temp score_fj_anom_temp latent_fj_anom_temp tsqaured_fj_anom_temp explained_fj_anom_temp
-%% Test PCA's only looking at stuff with measurements to 300 m) for both temp and sal
+%% Test PCA's only looking at stuff with measurements to 100 m) for both temp and sal
 % sal
 fj_combined_test = fj_combined(:,1:100) ; % reduced depths
 fj_temp_combined_test = fj_temp_combined(:,1:100) ;

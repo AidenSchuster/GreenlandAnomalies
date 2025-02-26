@@ -1,4 +1,17 @@
-%recreating FINESST OMG NODC plot
+% Quickly Save every open figure
+figHandles = findall(0, 'Type', 'figure'); % Get all open figures
+saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\02-26-25\Sermilik';  % Set your desired directory
+
+for i = 1:length(figHandles)
+    fig = figHandles(i);
+    filename = fullfile(saveDir, sprintf('Figure_%d.png', i)); % Change extension if needed
+    saveas(fig, filename);
+    % For high resolution:
+    print(fig, filename, '-dpng', '-r300');  % 300 dpi for high quality
+end
+
+%%
+% recreating FINESST OMG NODC plot
 % Set figure size
 figure('Units', 'inches', 'Position', [1, 1, 8, 6]); % Adjust size as needed
 
@@ -876,7 +889,9 @@ clear temp_sal c_idx o_idx
 %% Plot GMM results (depth indepdendent aka top down)
 clf
 hold on
-cmap = jet(length(unique(cluster_labels)));
+unique_clusters = unique(cluster_labels);
+cmap = lines(length(unique_clusters));  % Ensure same color mapping
+cluster_color_map = containers.Map(unique_clusters, num2cell(cmap, 2));
 daspect([1 aspect_ratio 1])
 plot(cx, cy, 'k')
 %xlim([-100, -10])
@@ -895,7 +910,7 @@ yea_idx = yea_fj_test == year_select ;
 yea_mon_fj = yea_idx & mon_fj_test ;
 figure 
 hold on
-cmap = jet(length(unique(cluster_labels(yea_mon_fj)))) ;
+%cmap = jet(length(unique(cluster_labels(yea_mon_fj)))) ;
 daspect([1 aspect_ratio 1])
 plot(cx, cy, 'k')
 %xlim([-100, -10])
@@ -909,11 +924,13 @@ ylabel('Lat')
 % plot corresponding temperature, colored by cluster labels
 figure
 DepInterval_custom = DepInterval(1:size(fj_temp_combined_test,2)) ;
-cmap = lines(max(cluster_labels));
+%cmap = lines(max(cluster_labels));
 temperature = fj_temp_combined_test(valid_rows,:) ;
 hold on
-for i = 1:size(temperature, 1) % Loop over profiles
-    plot(temperature(i, :), DepInterval_custom, 'Color', cmap(cluster_labels(i), :), 'LineWidth', 1.5);
+for i = 1:size(temperature, 1) % Loop over profiles\
+    cluster_id = cluster_labels(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(temperature(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
 end
 axis ij
 xlabel('Temperature');
@@ -927,23 +944,27 @@ cmap = lines(max(cluster_labels));
 sal = fj_combined_test(valid_rows,:) ;
 hold on
 for i = 1:size(sal, 1) % Loop over profiles
-    plot(sal(i, :), DepInterval_custom, 'Color', cmap(cluster_labels(i), :), 'LineWidth', 1.5);
+    cluster_id = cluster_labels(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(sal(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
 end
 axis ij
 xlabel('Salinity');
 ylabel('Depth');
 title('Fjord Salinity Clustered');
 hold off;
-
 %  plot corresponding salinity and temperature, colored by cluster label for yea_mon
 figure
 DepInterval_custom = DepInterval(1:size(fj_temp_combined_test,2)) ;
-cmap = lines(max(cluster_labels(yea_mon_fj)));
+%cmap = lines(max(cluster_labels(yea_mon_fj)));
 temperature = fj_temp_combined_test(valid_rows,:) ;
 temperature = temperature(yea_mon_fj,:) ;
 hold on
 for i = 1:size(temperature, 1) % Loop over profiles
-    plot(temperature(i, :), DepInterval_custom, 'Color', cmap(cluster_labels(i), :), 'LineWidth', 1.5);
+    cluster_yea_mon = cluster_labels(yea_mon_fj) ;
+    cluster_id = cluster_yea_mon(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(temperature(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
 end
 axis ij
 xlabel('Temperature');
@@ -953,20 +974,142 @@ hold off;
 %Plot Salinity yea_mon
 figure
 DepInterval_custom = DepInterval(1:size(fj_combined_test,2)) ;
-cmap = lines(max(cluster_labels(yea_mon_fj)));
+%cmap = lines(max(cluster_labels(yea_mon_fj)));
 sal = fj_combined_test(valid_rows,:) ;
 sal = sal(yea_mon_fj,:) ;
 hold on
 for i = 1:size(sal, 1) % Loop over profiles
-    plot(sal(i, :), DepInterval_custom, 'Color', cmap(cluster_labels(i), :), 'LineWidth', 1.5);
+    cluster_yea_mon = cluster_labels(yea_mon_fj) ;
+    cluster_id = cluster_yea_mon(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(sal(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
 end
 axis ij
 xlabel('Salinity');
 ylabel('Depth');
 title('Fjord Sal Clustered Sept 2020');
 hold off;
+% plot representative cluster
+salinity_idx = 4;     % e.g., first EOF for salinity
+temperature_idx = 1;  % e.g., first EOF for temperature
+numComponents = indepen_model.NumComponents;  % gm is your gmdistribution object
+%cmap = lines(numComponents);         % Choose colors for each component
+theta = linspace(0, 2*pi, 100);        % 100 points to define the ellipse
+[~, sorted_cluster_indices] = sort(indepen_model.mu(:, [temperature_idx, salinity_idx]), 'ascend');
+sorted_cmap = cmap(sorted_cluster_indices, :);
+figure 
+hold on
+for k = 1:numComponents
+    % Extract the 2x2 sub-covariance matrix for the chosen T-S dimensions:
+    Sigma_TS = squeeze(indepen_model.Sigma([salinity_idx,temperature_idx], [salinity_idx,temperature_idx], k));
+    mu_TS{k} = indepen_model.mu(k, [salinity_idx,temperature_idx]);
+    % Eigen-decomposition of the 2x2 covariance matrix
+    [V, D] = eig(Sigma_TS);
+    % Compute ellipse coordinates:
+    % diag(sqrt(diag(D))) produces a 2x2 diagonal matrix with sqrt(eigenvalues)
+    ellipse_coords = 1*(V * diag(sqrt(diag(D)))) * [cos(theta); sin(theta)];
+    % In T-S space we typically plot salinity on the x-axis and temperature on the y-axis.
+    % Here, mu_TS(1) is salinity and mu_TS(2) is temperature.
+    plot(mu_TS{k}(1) + ellipse_coords(1, :), mu_TS{k}(2) + ellipse_coords(2, :), ...
+         'Color', cmap(k, :), 'LineWidth', 2, 'DisplayName', sprintf('Cluster %d', k));
+end
+gscatter(feature_matrix(:,salinity_idx),feature_matrix(:,temperature_idx), cluster_labels, cmap, '.', 12);
+xlabel('Salinity EOF 2');
+ylabel('Temperature EOF 2');
+title('First EOF Sermilik Training');
+legend('show');
+axis equal
+hold off;
 %% GMM Cluster Prbabilities (Depth Independent)
-target_cluster = 8 ; % this won't consistently be the same group I think
+% plot representative cluster
+unique_clusters = unique(cluster_labels);
+cmap = lines(length(unique_clusters));  % Ensure same color mapping
+salinity_idx = 4;     % e.g., first EOF for salinity
+temperature_idx = 1;  % e.g., first EOF for temperature
+numComponents = depth_model.NumComponents;  % gm is your gmdistribution object
+%cmap = lines(numComponents);         % Choose colors for each component
+theta = linspace(0, 2*pi, 100);        % 100 points to define the ellipse
+figure 
+hold on
+unique_labels = unique(cluster_labels);
+for i = 1:length(unique_labels)
+    idx = cluster_labels == unique_labels(i);
+    scatter(feature_matrix(idx, salinity_idx), feature_matrix(idx, temperature_idx), 36, cmap(i, :), 'filled', 'MarkerFaceAlpha', 0.5);
+end
+for k = 1:numComponents
+    % Extract the 2x2 sub-covariance matrix for the chosen T-S dimensions:
+    Sigma_TS = squeeze(depth_model.Sigma([salinity_idx,temperature_idx], [salinity_idx,temperature_idx], k));
+    mu_TS{k} = depth_model.mu(k, [salinity_idx,temperature_idx]);
+    % Eigen-decomposition of the 2x2 covariance matrix
+    [V, D] = eig(Sigma_TS);
+    % Compute ellipse coordinates:
+    % diag(sqrt(diag(D))) produces a 2x2 diagonal matrix with sqrt(eigenvalues)
+    ellipse_coords = 1*(V * diag(sqrt(diag(D)))) * [cos(theta); sin(theta)];
+    % In T-S space we typically plot salinity on the x-axis and temperature on the y-axis.
+    % Here, mu_TS(1) is salinity and mu_TS(2) is temperature.
+    plot(mu_TS{k}(1) + ellipse_coords(1, :), mu_TS{k}(2) + ellipse_coords(2, :), ...
+         'Color', cmap(k, :), 'LineWidth', 2, 'DisplayName', sprintf('Cluster %d', k));
+end
+xlabel('Salinity EOF 1');
+ylabel('Temperature EOF 1');
+title('First EOF Sermilik Training');
+legend('show');
+axis equal
+hold off;
+% plot of each depth Segment top down
+depth_seg = 5 ; %which depth segment you want to plot
+figure 
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+depth_idx = depth_seg:5:length(sal) ; % gives all profiles at a certain depth segment
+cluster_colors = nan(length(depth_idx), 3);  % RGB colors for each point
+for i = 1:length(unique_clusters)
+    cluster_idx = (cluster_labels(depth_idx) == unique_clusters(i));
+    cluster_colors(cluster_idx, :) = repmat(cmap(i, :), sum(cluster_idx), 1);
+end
+scatter(lon_fj_test, lat_fj_test, 36, cluster_colors, 'filled', 'MarkerFaceAlpha', 1);
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
+title(sprintf('Distribution of Clusters at Depth Segment %d', depth_seg));
+xlabel('Longitude');
+ylabel('Latitude');
+hold off
+% plot each depth segment for Sept 2020 to simplify somewhat
+month_select = 9 ;
+year_select = 2020 ;
+month_idx = mon_fj_test == month_select ;
+yea_idx = yea_fj_test == year_select ;
+yea_mon_fj = yea_idx & mon_fj_test ;
+figure 
+hold on
+plot(cx,cy,'k')
+daspect([1 aspect_ratio 1])
+depth_idx = depth_seg:5:length(sal) ; % gives all profiles at a certain depth segment
+cluster_colors = nan(length(depth_idx), 3);  % RGB colors for each point
+for i = 1:length(unique_clusters)
+    cluster_idx = (cluster_labels(depth_idx) == unique_clusters(i));
+    cluster_colors(cluster_idx, :) = repmat(cmap(i, :), sum(cluster_idx), 1);
+end
+scatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj), 36, cluster_colors(yea_mon_fj',:), 'filled', 'MarkerFaceAlpha', 1);
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
+title(sprintf('Distribution of Clusters at Depth Segment %d Sept 2020', depth_seg));
+xlabel('Longitude');
+ylabel('Latitude');
+hold off
+% Plot TS of each profile (all T-S segments colored properly
+figure
+hold on
+for i = 1:length(sal)
+plot(sal(i,:),temp(i,:),'Color',cmap(cluster_labels(i),:))
+end
+xlabel('Salintiy')
+ylabel('Temperature')
+title('T-S plot of Sermilik')
+hold off
+%%
+target_cluster = 5 ; % this won't consistently be the same group I think
 target_probs = cluster_probs(:,target_cluster) ;
 figure;
 hold on
@@ -1014,7 +1157,7 @@ end
 axis ij
 xlabel('Temperature')
 ylabel('Depth')
-title('Temp of Group 8 profiles')
+title('Temp of Group 5 profiles')
 xlim([-2,12])
 %Sal
 figure
@@ -1088,7 +1231,7 @@ legend(customLabels, 'Location', 'Best');
 title('Frequency of Cluster Labels by Depth Segment')
 grid on
 %% Plot an Individual Profile (Should be an interval of 5, i.e. 1,6,11, ect)
-profile_num = 16 ;
+profile_num = 200 ;
 figure
 hold on
 cmap = jet(length(unique(cluster_labels)));
