@@ -707,6 +707,7 @@ if run == 1
 end
 load rectangle_lon.mat
 load rectangle_lat.mat
+load backup_boxes.mat % larger boxes for backup anomalies for eastern Greenland
 for i = 1:length(rectangle_lon)
 fjord_box_cords{i} = [rectangle_lon{i}',rectangle_lat{i}'] ;
 end
@@ -1341,6 +1342,7 @@ for i = 1:length(fj_anom_idx)
             mean_temp_values = mean(relevant_temp_data(valid_temp_rows, :), 2, 'omitnan');            
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_temp_anoms{i}(valid_temp_rows, j) = fjord_temp_mat_fj(valid_temp_rows, fj_profile_back{i}(j)) - mean_temp_values;
+            fj_z_temp_anoms{i}(valid_rows,j) =fj_temp_anoms{i}(valid_rows,j) ./ std_values ;
         end
     end
 end
@@ -1739,9 +1741,9 @@ clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_
 % sal
 % location index (helheim is fjord_vert{32}
 hel_idx = inpolygon(lon_fj,lat_fj,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
-fj_combined_hel = fj_combined(hel_idx,:) ;
+fj_combined_hel = fj_anom_combined(hel_idx,:) ;
 fj_combined_test = fj_combined_hel(:,1:100) ; % reduced depths
-fj_temp_hel = fj_temp_combined(hel_idx,:) ;
+fj_temp_hel = fj_temp_anom_combined(hel_idx,:) ;
 fj_temp_combined_test = fj_temp_hel(:,1:100) ;
 run = 1 ;
 if run == 1
