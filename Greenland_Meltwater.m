@@ -1264,6 +1264,21 @@ clear coast_find open_find open_temp_mat open_sal_mat % will need these back eve
 %% Fjord Anomaly Calculations (include profiles + or - 15 days)
 run = 2 ;
 if run == 1
+
+% Generate backup variables for easier indexing later
+load backup_index.mat backup_index % 3 indices for fjords that have backup boxes in case data resolution is too low
+load backup_boxes.mat backup_boxes % backup box defining coords
+lat_coastal = lat_a(in_a) ;
+lon_coastal =  lon_a(in_a) ;
+for i = 1:length(backup_boxes)
+backup_value_index = inpolygon(lon_coastal,lat_coastal,backup_boxes{i}(1,:),backup_boxes{i}(2,:)) ; % gives coastal index per box
+backup_value_coords{i} = [lon_coastal(backup_value_index);lat_coastal(backup_value_index)] ;
+backup_temp{i} = coastal_temp(:,backup_value_index) ;
+backup_sal{i} = coastal_sal(:,backup_value_index) ;
+backup_datenum{i} = datenum_coast(:,backup_value_index) ;
+end
+
+
 for i = 1:length(fjord_box_cords)
 fj_box_profiles{i} = inpolygon(lon_box,lat_box,fjord_box_cords{i}(:,1),fjord_box_cords{i}(:,2)) ; % gives index of all profiles within the fjord anomaly boxes.
 fj_profiles{i} = inpolygon(lon_fj,lat_fj,fjord_vert{i}(:,1),fjord_vert{i}(:,2)) ; % idx of profiles inside defined fjords
@@ -1315,34 +1330,71 @@ for i = 1:length(fj_anom_idx)
         % Extract relevant data for the current fj_anom_idx
         relevant_data = box_sal_mat(:, fj_anom_idx{i}{j});
         relevant_temp_data = box_temp_mat(:, fj_anom_idx{i}{j});
+
         % Initialize the anomaly column with NaN
         fj_anoms{i}(:, j) = NaN(size(fjord_sal_mat_fj, 1), 1);
         fj_temp_anoms{i}(:, j) = NaN(size(fjord_temp_mat_fj, 1), 1);
+
         % Check validity of rows 1:99 (at least 2 non-NaN values)
         valid_rows_1_149 = (sum(~isnan(relevant_data(1:149, :)), 2) >= 2);
         valid_rows_1_149_temp = (sum(~isnan(relevant_temp_data(1:149, :)), 2) >= 2);
+
         % Check validity of rows 100:end (at least 3 non-NaN values)
         valid_rows_150_end = (sum(~isnan(relevant_data(150:end, :)), 2) >= 3);
         valid_rows_150_end_temp = (sum(~isnan(relevant_temp_data(150:end, :)), 2) >= 3);
+
         % Combine row validity
         valid_rows = [valid_rows_1_149; valid_rows_150_end];       
         valid_temp_rows = [valid_rows_1_149_temp; valid_rows_150_end_temp];     
+
+
+
+
+        % If no valid rows, use backup box
+        if all(~valid_rows) && any(backup_index(:,i) ~= 0) % checks to see if all rows are invalid AND has a backup box
+            box_number = find(backup_index(:,i),1) ; % should output which row/backup box we are looking at
+            if fj_datenum{i}(j) > 15 && fj_datenum{i}(j) < 351  % normal cases (for date indexing)
+            backup_date_idx = abs(fj_datenum{i}(j) - backup_datenum{box_number}) <= 15;  % within ±15 days
+            elseif fj_datenum{i}(j) <= 15  % start in January, wrap to December
+            backup_date_idx = abs(fj_datenum{i}(j) - backup_datenum{box_number}) <= 15 | abs((fj_datenum{i}(j) + 365) - backup_datenum{box_number}) <= 15;
+            elseif fj_datenum{i}(j) >= 351  % start in December, wrap to January
+            backup_date_idx = abs(fj_datenum{i}(j) - backup_datenum{box_number}) <= 15 | abs((fj_datenum{i}(j) - 365) - backup_datenum{box_number}) <= 15;
+            end
+        % calculate validity with backup data using same standards 
+         validity_sal = backup_sal{box_number}(:,backup_date_idx) ;
+         validitiy_temp = backup_temp{box_number}(:,backup_date_idx) ;
+       
+         valid_rows_1_backup = (sum(~isnan(validity_sal(1:149, :)), 2) >= 2);
+         valid_rows_150_backup = (sum(~isnan(validity_sal(150:end, :)), 2) >= 3);
+         valid_backup = [valid_rows_1_backup;valid_rows_150_backup] ;
+
+         valid_rows_1_back_temp = (sum(~isnan(validitiy_temp(1:149, :)), 2) >= 2);
+         valid_rows_150_back_temp = (sum(~isnan(validitiy_temp(150:end, :)), 2) >= 3);
+         valid_backup_temp = [valid_rows_1_back_temp;valid_rows_150_back_temp] ;
+        end
+
         % Calculate salinity anomalies only for valid depths
         if any(valid_rows)
             % Mean and std of valid depths (row-wise), ignoring NaNs
             mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');    
-            std_values = std(relevant_data(valid_rows,:), 2, 'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_anoms{i}(valid_rows, j) = fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values;
-            fj_z_anoms{i}(valid_rows,j) =fj_anoms{i}(valid_rows,j) ./ std_values ;
+        elseif any(valid_backup)
+            mean_backup_values = mean(validity_sal(valid_backup,:),2,'omitnan') ;
+            % Subtract the mean from fjord_sal_mat_fj for valid depths
+            fj_anoms{i}(valid_backup, j) = fjord_sal_mat_fj(valid_backup, fj_profile_back{i}(j)) - mean_backup_values;
         end
+
         % same for temp anoms
         if any(valid_rows)
             % Mean of valid depths (row-wise), ignoring NaNs
             mean_temp_values = mean(relevant_temp_data(valid_temp_rows, :), 2, 'omitnan');            
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_temp_anoms{i}(valid_temp_rows, j) = fjord_temp_mat_fj(valid_temp_rows, fj_profile_back{i}(j)) - mean_temp_values;
-            fj_z_temp_anoms{i}(valid_rows,j) =fj_temp_anoms{i}(valid_rows,j) ./ std_values ;
+        elseif any(valid_backup_temp)
+        mean_backup_temp_values = mean(validitiy_temp(valid_backup_temp,:),2,'omitnan') ;
+            % Subtract the mean from fjord_sal_mat_fj for valid depths
+            fj_temp_anoms{i}(valid_backup_temp, j) = fjord_temp_mat_fj(valid_backup_temp, fj_profile_back{i}(j)) - mean_backup_temp_values;    
         end
     end
 end
@@ -1806,7 +1858,7 @@ end
 % Train GMM on PCA Data (Depth Indepdent)
 %depth independent
 % select random training data (wasn't working right, do later) 
-k = 5 ; % number of clusters
+k = 4 ; % number of clusters
 feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
 lat_fj_test = lat_fj(hel_idx) ;
 lat_fj_test = lat_fj_test(valid_rows') ;
