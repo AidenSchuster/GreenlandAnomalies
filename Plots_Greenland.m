@@ -1,6 +1,6 @@
 % Quickly Save every open figure
 figHandles = findall(0, 'Type', 'figure'); % Get all open figures
-saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\02-26-25\Sermilik';  % Set your desired directory
+saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-05-25\post-cutting';  % Set your desired directory
 
 for i = 1:length(figHandles)
     fig = figHandles(i);
@@ -902,12 +902,13 @@ xlim([-38.5,-36.5])
 ylim([65.5,66.6])
 xlabel('Lon')
 ylabel('Lat')
+
 % plot only a certain yea_mon
 month_select = 9 ;
 year_select = 2020 ;
 month_idx = mon_fj_test == month_select ;
 yea_idx = yea_fj_test == year_select ;
-yea_mon_fj = yea_idx & mon_fj_test ;
+yea_mon_fj = yea_idx & month_idx ;
 figure 
 hold on
 %cmap = jet(length(unique(cluster_labels(yea_mon_fj)))) ;
@@ -921,25 +922,58 @@ xlim([-38.5,-36.5])
 ylim([65.5,66.6])
 xlabel('Lon')
 ylabel('Lat')
+
+% same thing as above but only if they have >90% probability
+for i = 1:length(cluster_labels)
+    if cluster_probs(i,cluster_labels(i)) >= .90
+        high_prob_idx(i) = 1 ;
+    else
+        high_prob_idx(i) = 0 ;
+    end
+end
+high_prob_idx = logical(high_prob_idx) ;
+figure 
+hold on
+daspect([1 aspect_ratio 1])
+plot(cx, cy, 'k')
+gscatter(lon_fj_test(high_prob_idx), lat_fj_test(high_prob_idx), cluster_labels(high_prob_idx)', cmap, 'o','filled');
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
+xlabel('Lon')
+ylabel('Lat')
+title('Profiles with >90% of belonging to cluster')
+% yea_mon >90
+combined_idx = yea_mon_fj & high_prob_idx ;
+figure 
+hold on
+daspect([1 aspect_ratio 1])
+plot(cx, cy, 'k')
+plot(cx,cy,'k')
+gscatter(lon_fj_test(combined_idx), lat_fj_test(combined_idx), cluster_labels(combined_idx)', cmap, 'o','filled');
+xlim([-38.5,-36.5])
+ylim([65.5,66.6])
+xlabel('Lon')
+ylabel('Lat')
+title('Sept 2020 Profiles with >90% of belonging to cluster')
+
 % plot corresponding temperature, colored by cluster labels
 figure
-DepInterval_custom = DepInterval(1:size(fj_temp_combined_test,2)) ;
+DepInterval_custom = DepInterval(starting_depth:size(fj_temp_combined_test,2)+starting_depth-1) ;
 %cmap = lines(max(cluster_labels));
 temperature = fj_temp_combined_test(valid_rows,:) ;
 hold on
-for i = 1:size(temperature, 1) % Loop over profiles\
+for i = 1:size(temperature, 1) % Loop over profiles
     cluster_id = cluster_labels(i);
     color = cluster_color_map(cluster_id); % Get the correct color
     plot(temperature(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
 end
 axis ij
-xlabel('Temperature');
+xlabel('Temperature Anomaly');
 ylabel('Depth');
-title('Fjord Temperature Clustered');
+title('Fjord Temperature Anomalies Clustered');
 hold off;
 % Plot Salinity
 figure
-DepInterval_custom = DepInterval(1:size(fj_combined_test,2)) ;
 cmap = lines(max(cluster_labels));
 sal = fj_combined_test(valid_rows,:) ;
 hold on
@@ -949,13 +983,12 @@ for i = 1:size(sal, 1) % Loop over profiles
     plot(sal(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
 end
 axis ij
-xlabel('Salinity');
+xlabel('Salinity Anomaly');
 ylabel('Depth');
-title('Fjord Salinity Clustered');
+title('Fjord Salinity Anomalies Clustered');
 hold off;
 %  plot corresponding salinity and temperature, colored by cluster label for yea_mon
 figure
-DepInterval_custom = DepInterval(1:size(fj_temp_combined_test,2)) ;
 %cmap = lines(max(cluster_labels(yea_mon_fj)));
 temperature = fj_temp_combined_test(valid_rows,:) ;
 temperature = temperature(yea_mon_fj,:) ;
@@ -967,13 +1000,12 @@ for i = 1:size(temperature, 1) % Loop over profiles
     plot(temperature(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
 end
 axis ij
-xlabel('Temperature');
+xlabel('Temperature Anomaly');
 ylabel('Depth');
-title('Fjord Temp Clustered Sept 2020');
+title('Fjord Temp Anomalies Clustered Sept 2020');
 hold off;
 %Plot Salinity yea_mon
 figure
-DepInterval_custom = DepInterval(1:size(fj_combined_test,2)) ;
 %cmap = lines(max(cluster_labels(yea_mon_fj)));
 sal = fj_combined_test(valid_rows,:) ;
 sal = sal(yea_mon_fj,:) ;
@@ -985,9 +1017,9 @@ for i = 1:size(sal, 1) % Loop over profiles
     plot(sal(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
 end
 axis ij
-xlabel('Salinity');
+xlabel('Salinity Anomaly');
 ylabel('Depth');
-title('Fjord Sal Clustered Sept 2020');
+title('Fjord Sal Anomalies Clustered Sept 2020');
 hold off;
 % plot representative cluster
 salinity_idx = 4;     % e.g., first EOF for salinity
@@ -998,6 +1030,8 @@ theta = linspace(0, 2*pi, 100);        % 100 points to define the ellipse
 [~, sorted_cluster_indices] = sort(indepen_model.mu(:, [temperature_idx, salinity_idx]), 'ascend');
 sorted_cmap = cmap(sorted_cluster_indices, :);
 figure 
+tiledlayout(2,2,'TileSpacing','compact'); % Use tiledlayout for better control
+nexttile([1 2]); % Span across both columns
 hold on
 for k = 1:numComponents
     % Extract the 2x2 sub-covariance matrix for the chosen T-S dimensions:
@@ -1014,12 +1048,28 @@ for k = 1:numComponents
          'Color', cmap(k, :), 'LineWidth', 2, 'DisplayName', sprintf('Cluster %d', k));
 end
 gscatter(feature_matrix(:,salinity_idx),feature_matrix(:,temperature_idx), cluster_labels, cmap, '.', 12);
-xlabel('Salinity EOF 2');
-ylabel('Temperature EOF 2');
+xlabel('Salinity Anomaly EOF 1');
+ylabel('Temperature Anomaly EOF 1');
 title('First EOF Sermilik Training');
 legend('show');
 axis equal
 hold off;
+%bottom left sal coeff
+nexttile;
+plot(coeff_fj_sal(:,1),DepInterval_custom)
+xlabel('Salinity Anomaly')
+ylabel('Depth')
+title('1st Sal Coefficient')
+axis ij
+%bottom right temp coefficient
+nexttile;
+plot(coeff_fj_temp(:,1),DepInterval_custom)
+xlabel('Salinity Anomaly')
+title('1st Temp Coefficient')
+axis ij
+%% Animation of a single month
+yea_mon_day  = day_fj_test ; % should give only days of selected year & mon
+
 %% GMM Cluster Prbabilities (Depth Independent)
 % plot representative cluster
 unique_clusters = unique(cluster_labels);

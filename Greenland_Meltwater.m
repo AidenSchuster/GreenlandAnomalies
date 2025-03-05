@@ -1698,7 +1698,7 @@ end
 % Fj_combined single to double
 fj_combined = double(fj_combined) ;
 fj_temp_combined = double(fj_temp_combined) ;
-fj_temp_anom_combined = double(fj_temp_combined) ;
+fj_temp_anom_combined = double(fj_temp_anom_combined) ;
 all_sal = double(all_sal) ;
 all_temp = double(all_temp) ;
 % create variables for non-anomaly use
@@ -1793,10 +1793,12 @@ clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_
 % sal
 % location index (helheim is fjord_vert{32}
 hel_idx = inpolygon(lon_fj,lat_fj,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
+starting_depth = 20 ;
+ending_depth = 100 ;
 fj_combined_hel = fj_anom_combined(hel_idx,:) ;
-fj_combined_test = fj_combined_hel(:,1:100) ; % reduced depths
+fj_combined_test = fj_combined_hel(:,starting_depth:ending_depth) ; % reduced depths
 fj_temp_hel = fj_temp_anom_combined(hel_idx,:) ;
-fj_temp_combined_test = fj_temp_hel(:,1:100) ;
+fj_temp_combined_test = fj_temp_hel(:,starting_depth:ending_depth) ;
 run = 1 ;
 if run == 1
 valid_rows = all(~isnan(fj_combined_test), 2) & all(~isnan(fj_temp_combined_test), 2);
@@ -1826,6 +1828,7 @@ latent_fj_sal = latent ;
 tsqaured_fj_sal = tsquared ;
 explained_fj_sal = explained ;
 end
+
 % Fjord Temp PCA
 run = 1 ;
 if run == 1
@@ -1868,6 +1871,8 @@ mon_fj_test = mon_fj(hel_idx) ;
 mon_fj_test = mon_fj_test(valid_rows') ;
 yea_fj_test = yea_fj(hel_idx) ;
 yea_fj_test = yea_fj_test(valid_rows) ;
+day_fj_test = day_fj(hel_idx) ;
+day_fj_test = day_fj_test(valid_rows) ;
 %Model
 run = 1 ;
 if run == 1
