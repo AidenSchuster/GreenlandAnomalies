@@ -1793,7 +1793,7 @@ clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_
 % sal
 % location index (helheim is fjord_vert{32}
 hel_idx = inpolygon(lon_fj,lat_fj,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
-starting_depth = 20 ;
+starting_depth = 30 ;
 ending_depth = 100 ;
 fj_combined_hel = fj_anom_combined(hel_idx,:) ;
 fj_combined_test = fj_combined_hel(:,starting_depth:ending_depth) ; % reduced depths
@@ -1885,12 +1885,16 @@ cluster_labels = cluster(indepen_model, feature_matrix);
 cluster_probs = posterior(indepen_model, feature_matrix);
 clear index
 %% Helheim Depth Dependent
+starting_depth = 31 ;
+ending_depth = 100 ;
+segment_length = 15 ; % how many meters you want considered per segment
+overlap = 10 ; % how much overlap you want per segment
 hel_idx = inpolygon(lon_fj,lat_fj,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
-fj_combined_hel = fj_combined(hel_idx,:) ;
-fj_combined_test = fj_combined_hel(:,1:100) ; % reduced depths
-fj_temp_hel = fj_temp_combined(hel_idx,:) ;
-fj_temp_combined_test = fj_temp_hel(:,1:100) ;
-num_splits = 5 ; % should be evenly divisible by the total length
+fj_combined_hel = fj_anom_combined(hel_idx,:) ;
+fj_combined_test = fj_combined_hel(:,starting_depth:ending_depth) ; % reduced depths
+fj_temp_hel = fj_temp_anom_combined(hel_idx,:) ;
+fj_temp_combined_test = fj_temp_hel(:,starting_depth:ending_depth) ;
+num_splits = 4 ; % should be evenly divisible by the total length
 disp([num2str(size(fj_combined_test, 2)/2) ' meter segments']); % length of depth segments (should be whole number)
 
 % PCA 
@@ -1899,7 +1903,7 @@ run = 1 ;
 if run == 1
 valid_rows = all(~isnan(fj_combined_test), 2) & all(~isnan(fj_temp_combined_test), 2);
 sal_init = fj_combined_test(valid_rows,:) ; % should just be able to change this
-sal = interleave_matrix(sal_init,num_splits) ; % splits and interleaves collumns for depth dependent PCA
+sal = interleave_overlap(sal_init,segment_length,overlap) ; % splits and interleaves collumns for depth dependent PCA with overlap
 
 % Find the first column where there are less then 3 non-nan values and
 % truncate
@@ -1929,7 +1933,7 @@ end
 run = 1 ;
 if run == 1
 temp_init = fj_temp_combined_test(valid_rows,:) ; 
-temp = interleave_matrix(temp_init,num_splits) ; % splits and interleaves collumns for depth dependent PCA
+temp = interleave_overlap(temp_init,segment_length,overlap) ; % splits and interleaves collumns for depth dependent PCA
 % Find the first column where there are less then 3 non-nan values and
 % truncate
 last_nan_col = find(sum(~isnan(temp), 1) < 3, 1);
@@ -1960,7 +1964,7 @@ if run == 1
 %depth independent
 % select random training data (wasn't working right, do later) 
 k = 3 ; % number of clusters
-feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
+feature_matrix = [score_fj_temp(:,1:2),score_fj_sal(:,1:2)] ;
 lat_fj_test = lat_fj(hel_idx) ;
 lat_fj_test = lat_fj_test(valid_rows') ;
 lon_fj_test = lon_fj(hel_idx) ;
@@ -1975,7 +1979,7 @@ depth_model = fitgmdist(feature_matrix, k, 'Options', options);
 clear index
 save depth_model.mat depth_model
 end
-load depth_model.mat depth_model
+%load depth_model.mat depth_model
 lat_fj_test = lat_fj(hel_idx) ;
 lat_fj_test = lat_fj_test(valid_rows') ;
 lon_fj_test = lon_fj(hel_idx) ;
@@ -1984,7 +1988,7 @@ mon_fj_test = mon_fj(hel_idx) ;
 mon_fj_test = mon_fj_test(valid_rows') ;
 yea_fj_test = yea_fj(hel_idx) ;
 yea_fj_test = yea_fj_test(valid_rows) ;
-feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
+feature_matrix = [score_fj_temp(:,1:2),score_fj_sal(:,1:2)] ;
 cluster_labels = cluster(depth_model, feature_matrix);
 cluster_probs = posterior(depth_model, feature_matrix);
 

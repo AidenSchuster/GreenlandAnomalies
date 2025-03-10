@@ -1,6 +1,6 @@
 % Quickly Save every open figure
 figHandles = findall(0, 'Type', 'figure'); % Get all open figures
-saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-05-25\post-cutting';  % Set your desired directory
+saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-12-25\15-10';  % Set your desired directory
 
 for i = 1:length(figHandles)
     fig = figHandles(i);
@@ -1070,8 +1070,9 @@ axis ij
 %% Animation of a single month
 yea_mon_day  = day_fj_test ; % should give only days of selected year & mon
 
-%% GMM Cluster Prbabilities (Depth Independent)
+%% GMM Cluster Prbabilities (Depth dependent)
 % plot representative cluster
+DepInterval_custom = DepInterval(1:segment_length) ;
 unique_clusters = unique(cluster_labels);
 cmap = lines(length(unique_clusters));  % Ensure same color mapping
 salinity_idx = 4;     % e.g., first EOF for salinity
@@ -1080,11 +1081,13 @@ numComponents = depth_model.NumComponents;  % gm is your gmdistribution object
 %cmap = lines(numComponents);         % Choose colors for each component
 theta = linspace(0, 2*pi, 100);        % 100 points to define the ellipse
 figure 
+tiledlayout(2,2,'TileSpacing','compact'); % Use tiledlayout for better control
+nexttile([1 2]); % Span across both columns
 hold on
 unique_labels = unique(cluster_labels);
 for i = 1:length(unique_labels)
     idx = cluster_labels == unique_labels(i);
-    scatter(feature_matrix(idx, salinity_idx), feature_matrix(idx, temperature_idx), 36, cmap(i, :), 'filled', 'MarkerFaceAlpha', 0.5);
+    scatter(feature_matrix(idx, salinity_idx), feature_matrix(idx, temperature_idx), 36, cmap(i, :), 'filled', 'MarkerFaceAlpha', 0.1);
 end
 for k = 1:numComponents
     % Extract the 2x2 sub-covariance matrix for the chosen T-S dimensions:
@@ -1098,56 +1101,72 @@ for k = 1:numComponents
     % In T-S space we typically plot salinity on the x-axis and temperature on the y-axis.
     % Here, mu_TS(1) is salinity and mu_TS(2) is temperature.
     plot(mu_TS{k}(1) + ellipse_coords(1, :), mu_TS{k}(2) + ellipse_coords(2, :), ...
-         'Color', cmap(k, :), 'LineWidth', 2, 'DisplayName', sprintf('Cluster %d', k));
+     'k', 'LineWidth', 3,'HandleVisibility', 'off'); % Thicker black outline
+    plot(mu_TS{k}(1) + ellipse_coords(1, :), mu_TS{k}(2) + ellipse_coords(2, :), ...
+     'Color', cmap(k, :), 'LineWidth', 2, 'DisplayName', sprintf('Cluster %d', k));
 end
 xlabel('Salinity EOF 1');
 ylabel('Temperature EOF 1');
 title('First EOF Sermilik Training');
 legend('show');
-axis equal
 hold off;
+axis 'equal'
+%bottom left sal coeff
+nexttile;
+plot(coeff_fj_sal(:,1),DepInterval_custom)
+xlabel('Salinity Anomaly')
+ylabel('Depth')
+title('1st Sal Coefficient')
+axis ij
+%bottom right temp coefficient
+nexttile;
+plot(coeff_fj_temp(:,1),DepInterval_custom)
+xlabel('Salinity Anomaly')
+title('1st Temp Coefficient')
+axis ij
+%xlim([-0.5,.5])
 % plot of each depth Segment top down
-depth_seg = 5 ; %which depth segment you want to plot
-figure 
-hold on
-plot(cx,cy,'k')
-daspect([1 aspect_ratio 1])
-depth_idx = depth_seg:5:length(sal) ; % gives all profiles at a certain depth segment
-cluster_colors = nan(length(depth_idx), 3);  % RGB colors for each point
-for i = 1:length(unique_clusters)
-    cluster_idx = (cluster_labels(depth_idx) == unique_clusters(i));
-    cluster_colors(cluster_idx, :) = repmat(cmap(i, :), sum(cluster_idx), 1);
-end
-scatter(lon_fj_test, lat_fj_test, 36, cluster_colors, 'filled', 'MarkerFaceAlpha', 1);
-xlim([-38.5,-36.5])
-ylim([65.5,66.6])
-title(sprintf('Distribution of Clusters at Depth Segment %d', depth_seg));
-xlabel('Longitude');
-ylabel('Latitude');
-hold off
+%depth_seg = 1 ; %which depth segment you want to plot
+%figure 
+%hold on
+%plot(cx,cy,'k')
+%daspect([1 aspect_ratio 1])
+%depth_idx = depth_seg:5:length(sal) ; % gives all profiles at a certain depth segment
+%cluster_colors = nan(length(depth_idx), 3);  % RGB colors for each point
+%for i = 1:length(unique_clusters)
+%    cluster_idx = (cluster_labels(depth_idx) == unique_clusters(i));
+%    cluster_colors(cluster_idx, :) = repmat(cmap(i, :), sum(cluster_idx), 1);
+%end
+%scatter(lon_fj_test, lat_fj_test, 36, cluster_colors, 'filled', 'MarkerFaceAlpha', 1);
+%xlim([-38.5,-36.5])
+%ylim([65.5,66.6])
+%title(sprintf('Distribution of Clusters at Depth Segment %d', depth_seg));
+%xlabel('Longitude');
+%ylabel('Latitude');
+%hold off
 % plot each depth segment for Sept 2020 to simplify somewhat
-month_select = 9 ;
-year_select = 2020 ;
-month_idx = mon_fj_test == month_select ;
-yea_idx = yea_fj_test == year_select ;
-yea_mon_fj = yea_idx & mon_fj_test ;
-figure 
-hold on
-plot(cx,cy,'k')
-daspect([1 aspect_ratio 1])
-depth_idx = depth_seg:5:length(sal) ; % gives all profiles at a certain depth segment
-cluster_colors = nan(length(depth_idx), 3);  % RGB colors for each point
-for i = 1:length(unique_clusters)
-    cluster_idx = (cluster_labels(depth_idx) == unique_clusters(i));
-    cluster_colors(cluster_idx, :) = repmat(cmap(i, :), sum(cluster_idx), 1);
-end
-scatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj), 36, cluster_colors(yea_mon_fj',:), 'filled', 'MarkerFaceAlpha', 1);
-xlim([-38.5,-36.5])
-ylim([65.5,66.6])
-title(sprintf('Distribution of Clusters at Depth Segment %d Sept 2020', depth_seg));
-xlabel('Longitude');
-ylabel('Latitude');
-hold off
+%month_select = 9 ;
+%year_select = 2020 ;
+%month_idx = mon_fj_test == month_select ;
+%yea_idx = yea_fj_test == year_select ;
+%yea_mon_fj = yea_idx & mon_fj_test ;
+%figure 
+%hold on
+%plot(cx,cy,'k')
+%daspect([1 aspect_ratio 1])
+%depth_idx = depth_seg:5:length(sal) ; % gives all profiles at a certain depth segment
+%cluster_colors = nan(length(depth_idx), 3);  % RGB colors for each point
+%for i = 1:length(unique_clusters)
+%    cluster_idx = (cluster_labels(depth_idx) == unique_clusters(i));
+%    cluster_colors(cluster_idx, :) = repmat(cmap(i, :), sum(cluster_idx), 1);
+%end
+%scatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj), 36, cluster_colors(yea_mon_fj',:), 'filled', 'MarkerFaceAlpha', 1);
+%xlim([-38.5,-36.5])
+%ylim([65.5,66.6])
+%title(sprintf('Distribution of Clusters at Depth Segment %d Sept 2020', depth_seg));
+%xlabel('Longitude');
+%ylabel('Latitude');
+%hold off
 % Plot TS of each profile (all T-S segments colored properly
 figure
 hold on
@@ -1230,27 +1249,30 @@ title('Sal of Group 8 profiles')
 xlim([0,40])
 %% Depth Dependent GMM Plots
 % Temp Salinity Colored by cluster
+clf;
+hold on;
 cmap = jet(length(unique(cluster_labels)));
-cluster_labels_inter = interleave_matrix(cluster_labels',size(sal_init,1)) ;
-sal_interleave = interleave_matrix(sal_init,num_splits) ;
-temp_interleave = interleave_matrix(temp_init,num_splits) ;
-depth_map = [0:19;20:39;40:59;60:79;80:99] ; % each row represents 5th of the profile's depth (this can be automated for sure)
-depth_mat = repmat(depth_map, size(sal_interleave, 1) / size(depth_map, 1), 1);
-clear depth_map
-clf
-hold on
-target_cluster = 5 ;
-for i = 1:size(score_fj_sal,1)
+
+%cluster_labels_inter = interleave_overlap(cluster_labels', segment_length, overlap); % not right
+sal_interleave = interleave_overlap(sal_init, segment_length, overlap);
+temp_interleave = interleave_overlap(temp_init, segment_length, overlap);
+
+% Select target cluster
+for i = 1:length(unique(cluster_labels))
+target_cluster = i; 
+
+for i = 1:size(cluster_labels,1)
     if cluster_labels(i) == target_cluster
-    cluster_color = cmap(cluster_labels(i));
-    plot(sal_interleave(i,:),temp_interleave(i,:),'Color', cmap(cluster_labels(i),:))
+        cluster_color = cmap(cluster_labels(i), :);
+        plot(sal_interleave(i,:), temp_interleave(i,:), 'Color', cluster_color);
     end
 end
-title(sprintf('TS of Group %d in Fjord Profiles',target_cluster))
-xlabel('Salinity')
-ylabel('Temperature')
-xlim([0,40])
-ylim([-2,12])
+end
+title('TS Anomalies of Fjord Profiles (30-100m)')
+%title(sprintf('TS of Group %d in Fjord Profiles', target_cluster));
+xlabel('Salinity Anomaly');
+ylabel('Temperature Anomaly');
+hold off;
 %% Plot the # of occurances for each cluster label and at each depth
 % # of occurances
 figure
@@ -1263,7 +1285,7 @@ xlabel('Cluster Label');
 ylabel('Frequency');
 title('Frequency of Each Cluster Group');
 % Frequency at each depth
-cluster_interleave = interleave_matrix(cluster_labels',num_splits) ;
+cluster_interleave = interleave_overlap(cluster_labels',segment_length,overlap) ;
 uniqueClusters = unique(cluster_interleave(:));
 numClusters = length(uniqueClusters);
 numDepthSegments = size(cluster_interleave, 1);
@@ -1276,11 +1298,11 @@ figure;
 bar(uniqueClusters, freq.')   % Note the transpose (freq') so that each group is one cluster label.
 xlabel('Cluster Label')
 ylabel('Frequency')
-customLabels = {'0-19 m', '20-39 m', '40-59 m', '60-79 m', '80-99 m'};
+customLabels = {'20-39 m', '40-59 m', '60-79 m', '80-99 m'};
 legend(customLabels, 'Location', 'Best');
 title('Frequency of Cluster Labels by Depth Segment')
 grid on
-%% Plot an Individual Profile (Should be an interval of 5, i.e. 1,6,11, ect)
+%% Plot an Individual Profile (Should be an interval of 5, i.e. 1,6,11, ect) (doesn't work with overlap)
 profile_num = 200 ;
 figure
 hold on
@@ -1320,8 +1342,8 @@ load linear_coords.mat linear_coords
 month_selected = 8 ;
 years_selected = [2015,2020] ;
 yea_mon_selected = mon_fj_test == month_selected & yea_fj_test >= years_selected(1) & yea_fj_test <= years_selected(end) ;
-cluster_labels_inter = interleave_matrix(cluster_labels',num_splits) ;
-cluster_labels_inter = cluster_labels_inter(:,yea_mon_selected) ;
+%cluster_labels_inter = interleave_matrix(cluster_labels',num_splits) ;
+cluster_labels_inter = cluster_labels(:,yea_mon_selected) ;
 lon_linear = lon_fj_test(yea_mon_selected) ;
 lat_linear = lat_fj_test(yea_mon_selected) ;
 lambda = 10 ; % km rossby radius
