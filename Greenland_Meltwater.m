@@ -1629,6 +1629,20 @@ all_temp = [open_temp,coastal_temp,fj_temp_combined] ;
 all_lon = [open_lon,lon_coastal,lon_fj] ;
 all_lat = [open_lat,lat_coastal,lat_fj] ;
 
+%redoing combined anoms now that we've filled out top 10 m
+sal_anom_combined = [open_sal_anom,coast_sal_anom] ;
+sal_anom_combined = sal_anom_combined(1:300, :);
+sal_anom_combined = [sal_anom_combined,fj_anom_combined] ;
+
+temp_anom_combined = [open_temp_anom,coast_temp_anom] ;
+temp_anom_combined = temp_anom_combined(1:300, :);
+temp_anom_combined = [temp_anom_combined,fj_temp_anom_combined] ;
+
+lat_combined = [lat_open,coastal_lat,lat_fj] ; 
+lon_combined = [lon_open,coastal_lon,lon_fj ] ;
+yea_combined = [open_yea,coastal_yea,yea_fj] ;
+mon_combined = [open_mon,coastal_mon,mon_fj] ;
+
 clear top_most_value top10 nonNaN_values avg_value open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
 clear top_most_value_temp top10_temp nonNaN_temp_values nonNaN_temp
 %% Canadian area selection (not based off anything? maybe countour bathy to verfiy)
@@ -1792,12 +1806,13 @@ clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_
 %% Helheim (or other restricted region anom PCA) PCA and GMM
 % sal
 % location index (helheim is fjord_vert{32}
-hel_idx = inpolygon(lon_fj,lat_fj,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
+load hel_plus_cords.mat hel_plus_cords
+hel_plus_idx = inpolygon(lon_combined,lat_combined,hel_plus_cords(:,1),hel_plus_cords(:,2))' ;
 starting_depth = 30 ;
 ending_depth = 100 ;
-fj_combined_hel = fj_anom_combined(hel_idx,:) ;
+fj_combined_hel = sal_anom_combined(hel_plus_idx,:) ;
 fj_combined_test = fj_combined_hel(:,starting_depth:ending_depth) ; % reduced depths
-fj_temp_hel = fj_temp_anom_combined(hel_idx,:) ;
+fj_temp_hel = temp_anom_combined(hel_plus_idx,:) ;
 fj_temp_combined_test = fj_temp_hel(:,starting_depth:ending_depth) ;
 run = 1 ;
 if run == 1
@@ -1861,18 +1876,18 @@ end
 % Train GMM on PCA Data (Depth Indepdent)
 %depth independent
 % select random training data (wasn't working right, do later) 
-k = 4 ; % number of clusters
-feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
-lat_fj_test = lat_fj(hel_idx) ;
+k = 5 ; % number of clusters
+feature_matrix = [score_fj_temp(:,1:2),score_fj_sal(:,1:2)] ;
+lat_fj_test = lat_combined(hel_plus_idx) ;
 lat_fj_test = lat_fj_test(valid_rows') ;
-lon_fj_test = lon_fj(hel_idx) ;
+lon_fj_test = lon_combined(hel_plus_idx) ;
 lon_fj_test = lon_fj_test(valid_rows') ;
-mon_fj_test = mon_fj(hel_idx) ;
+mon_fj_test = mon_combined(hel_plus_idx) ;
 mon_fj_test = mon_fj_test(valid_rows') ;
-yea_fj_test = yea_fj(hel_idx) ;
+yea_fj_test = yea_combined(hel_plus_idx) ;
 yea_fj_test = yea_fj_test(valid_rows) ;
-day_fj_test = day_fj(hel_idx) ;
-day_fj_test = day_fj_test(valid_rows) ;
+%day_fj_test = day_fj(hel_idx) ;
+%day_fj_test = day_fj_test(valid_rows) ;
 %Model
 run = 1 ;
 if run == 1
@@ -1887,8 +1902,8 @@ clear index
 %% Helheim Depth Dependent
 starting_depth = 31 ;
 ending_depth = 100 ;
-segment_length = 15 ; % how many meters you want considered per segment
-overlap = 10 ; % how much overlap you want per segment
+segment_length = 20 ; % how many meters you want considered per segment
+overlap = 15 ; % how much overlap you want per segment
 hel_idx = inpolygon(lon_fj,lat_fj,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
 fj_combined_hel = fj_anom_combined(hel_idx,:) ;
 fj_combined_test = fj_combined_hel(:,starting_depth:ending_depth) ; % reduced depths
@@ -1896,7 +1911,6 @@ fj_temp_hel = fj_temp_anom_combined(hel_idx,:) ;
 fj_temp_combined_test = fj_temp_hel(:,starting_depth:ending_depth) ;
 num_splits = 4 ; % should be evenly divisible by the total length
 disp([num2str(size(fj_combined_test, 2)/2) ' meter segments']); % length of depth segments (should be whole number)
-
 % PCA 
 % sal
 run = 1 ;
@@ -1904,7 +1918,6 @@ if run == 1
 valid_rows = all(~isnan(fj_combined_test), 2) & all(~isnan(fj_temp_combined_test), 2);
 sal_init = fj_combined_test(valid_rows,:) ; % should just be able to change this
 sal = interleave_overlap(sal_init,segment_length,overlap) ; % splits and interleaves collumns for depth dependent PCA with overlap
-
 % Find the first column where there are less then 3 non-nan values and
 % truncate
 last_nan_col = find(sum(~isnan(sal), 1) < 3, 1);
@@ -1915,7 +1928,7 @@ end
 mu_sal = mean(sal,1) ;
 std_sal = std(sal) ;
 sal_norm = (sal-mu_sal)./std_sal ;
-[coeff, score, latent , tsquared] = eof225(sal,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff, score, latent , tsquared] = eof225(sal_norm,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
@@ -1944,7 +1957,7 @@ end
 mu_temp = mean(temp,1) ;
 std_temp = std(temp) ;
 temp_norm = (temp-mu_temp)./std_temp ;
-[coeff, score, latent , tsquared] = eof225(temp,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff, score, latent , tsquared] = eof225(temp_norm,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
@@ -1974,7 +1987,7 @@ mon_fj_test = mon_fj_test(valid_rows') ;
 yea_fj_test = yea_fj(hel_idx) ;
 yea_fj_test = yea_fj_test(valid_rows) ;
 %Model
-options = statset('MaxIter', 1000, 'Display', 'final');  % Increase iterations to 500
+options = statset('MaxIter', 5000, 'Display', 'final');  % Increase iterations to 500
 depth_model = fitgmdist(feature_matrix, k, 'Options', options);
 clear index
 save depth_model.mat depth_model

@@ -1,6 +1,6 @@
 % Quickly Save every open figure
 figHandles = findall(0, 'Type', 'figure'); % Get all open figures
-saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-12-25\15-10';  % Set your desired directory
+saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-12-25\depth_independent';  % Set your desired directory
 
 for i = 1:length(figHandles)
     fig = figHandles(i);
@@ -1043,10 +1043,12 @@ for k = 1:numComponents
     % diag(sqrt(diag(D))) produces a 2x2 diagonal matrix with sqrt(eigenvalues)
     ellipse_coords = 1*(V * diag(sqrt(diag(D)))) * [cos(theta); sin(theta)];
     % In T-S space we typically plot salinity on the x-axis and temperature on the y-axis.
-    % Here, mu_TS(1) is salinity and mu_TS(2) is temperature.
+    plot(mu_TS{k}(1) + ellipse_coords(1, :), mu_TS{k}(2) + ellipse_coords(2, :), ...
+     'k', 'LineWidth', 3,'HandleVisibility', 'off'); % Thicker black outline
     plot(mu_TS{k}(1) + ellipse_coords(1, :), mu_TS{k}(2) + ellipse_coords(2, :), ...
          'Color', cmap(k, :), 'LineWidth', 2, 'DisplayName', sprintf('Cluster %d', k));
 end
+axis equal
 gscatter(feature_matrix(:,salinity_idx),feature_matrix(:,temperature_idx), cluster_labels, cmap, '.', 12);
 xlabel('Salinity Anomaly EOF 1');
 ylabel('Temperature Anomaly EOF 1');
@@ -1064,11 +1066,38 @@ axis ij
 %bottom right temp coefficient
 nexttile;
 plot(coeff_fj_temp(:,1),DepInterval_custom)
-xlabel('Salinity Anomaly')
+xlabel('Temperature Anomaly')
 title('1st Temp Coefficient')
 axis ij
-%% Animation of a single month
-yea_mon_day  = day_fj_test ; % should give only days of selected year & mon
+% plot x tiled figure, with each tile being a cluster location colored by month
+num_cluster = max(cluster_labels); % Number of clusters
+colors = jet(12); % Colormap for 12 months
+figure;
+tiledlayout('flow');
+
+for i = 1:num_cluster
+    nexttile;
+    hold on
+    % Get points for this cluster
+    idx = (cluster_labels == i);
+    scatter(lon_fj_test(idx), lat_fj_test(idx), 36, colors(mon_fj_test(idx), :), 'filled');
+
+    title(sprintf('Cluster %d', i));
+    plot(cx,cy,'k','HandleVisibility', 'off')
+    xlim([-39.5,-36.5])
+    ylim([65.1,66.6])
+    daspect([1 aspect_ratio 1])
+end
+ax = gca;
+hold on;
+leg_handles = gobjects(12,1);
+month_names = {'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'};
+for m = 1:12
+    leg_handles(m) = scatter(nan, nan, 36, colors(m, :), 'filled', 'DisplayName', month_names{m});
+end
+hold off;
+legend(leg_handles, 'Location', 'bestoutside'); 
+%% Apply depth independent model to another fjord
 
 %% GMM Cluster Prbabilities (Depth dependent)
 % plot representative cluster
@@ -1121,7 +1150,7 @@ axis ij
 %bottom right temp coefficient
 nexttile;
 plot(coeff_fj_temp(:,1),DepInterval_custom)
-xlabel('Salinity Anomaly')
+xlabel('Temperature Anomaly')
 title('1st Temp Coefficient')
 axis ij
 %xlim([-0.5,.5])
@@ -1171,14 +1200,21 @@ axis ij
 figure
 hold on
 for i = 1:length(sal)
+    if cluster_probs(i,cluster_labels(i)) > .90
 plot(sal(i,:),temp(i,:),'Color',cmap(cluster_labels(i),:))
+    end
 end
-xlabel('Salintiy')
-ylabel('Temperature')
+xlabel('Salintiy Anomaly')
+ylabel('Temperature Anomaly')
 title('T-S plot of Sermilik')
 hold off
+% plot represntative profiles (PCA of individual clusters)
+
+%% plot xth segment of depth dependent model 
+num_segement = 1 ; % first segment (30:50)
+
 %%
-target_cluster = 5 ; % this won't consistently be the same group I think
+target_cluster = 1 ; % this won't consistently be the same group I think
 target_probs = cluster_probs(:,target_cluster) ;
 figure;
 hold on
@@ -1247,32 +1283,6 @@ xlabel('Salinity')
 ylabel('Depth')
 title('Sal of Group 8 profiles')
 xlim([0,40])
-%% Depth Dependent GMM Plots
-% Temp Salinity Colored by cluster
-clf;
-hold on;
-cmap = jet(length(unique(cluster_labels)));
-
-%cluster_labels_inter = interleave_overlap(cluster_labels', segment_length, overlap); % not right
-sal_interleave = interleave_overlap(sal_init, segment_length, overlap);
-temp_interleave = interleave_overlap(temp_init, segment_length, overlap);
-
-% Select target cluster
-for i = 1:length(unique(cluster_labels))
-target_cluster = i; 
-
-for i = 1:size(cluster_labels,1)
-    if cluster_labels(i) == target_cluster
-        cluster_color = cmap(cluster_labels(i), :);
-        plot(sal_interleave(i,:), temp_interleave(i,:), 'Color', cluster_color);
-    end
-end
-end
-title('TS Anomalies of Fjord Profiles (30-100m)')
-%title(sprintf('TS of Group %d in Fjord Profiles', target_cluster));
-xlabel('Salinity Anomaly');
-ylabel('Temperature Anomaly');
-hold off;
 %% Plot the # of occurances for each cluster label and at each depth
 % # of occurances
 figure
