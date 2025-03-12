@@ -1640,8 +1640,7 @@ temp_anom_combined = [temp_anom_combined,fj_temp_anom_combined] ;
 
 lat_combined = [lat_open,coastal_lat,lat_fj] ; 
 lon_combined = [lon_open,coastal_lon,lon_fj ] ;
-yea_combined = [open_yea,coastal_yea,yea_fj] ;
-mon_combined = [open_mon,coastal_mon,mon_fj] ;
+
 
 clear top_most_value top10 nonNaN_values avg_value open_sal_anom coast_sal_anom coast_temp_anom open_temp_anom
 clear top_most_value_temp top10_temp nonNaN_temp_values nonNaN_temp
@@ -1687,7 +1686,7 @@ five_year_range = [year_selected - 0, year_selected + 0] ; % for scarcer fjord d
 % Invert for PCA
 if size(sal_anom_combined,2) > 301
 sal_anom_combined = sal_anom_combined' ;
-can_invert = canada' ;
+%can_invert = canada' ;
 end
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
@@ -1800,6 +1799,12 @@ yeamon_n_open = year_open_n & month_open_n ;
     %can_sal_anom = open_sal_anom(can_invert,:) ;
     %open_sal_anom = open_sal_anom(~can_invert,:) ;
     %open_sal = open_sal(~can_n_invert,:) ;
+
+% finishing combined variables
+yea_combined = [open_yea,coastal_yea,yea_fj] ;
+mon_combined = [open_mon,coastal_mon,mon_fj] ;
+
+
 clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
 clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s_fj
 clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_lat_n can_lon_n can_mon can_yea % clearing all canada variables (will get rid of them entirely eventually)
@@ -1808,6 +1813,7 @@ clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_
 % location index (helheim is fjord_vert{32}
 load hel_plus_cords.mat hel_plus_cords
 hel_plus_idx = inpolygon(lon_combined,lat_combined,hel_plus_cords(:,1),hel_plus_cords(:,2))' ;
+
 starting_depth = 30 ;
 ending_depth = 100 ;
 fj_combined_hel = sal_anom_combined(hel_plus_idx,:) ;
@@ -1829,7 +1835,7 @@ mu_sal = mean(sal,1) ;
 std_sal = std(sal) ;
 sal_norm = (sal-mu_sal)./std_sal ;
  % standard normalization of data
-[coeff, score, latent , tsquared] = eof225(sal_norm,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff, score, latent , tsquared] = pca(sal_norm); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
@@ -1859,7 +1865,7 @@ mu_temp = mean(temp,1) ;
 std_temp = std(temp) ;
 temp_norm = (temp-mu_temp)./std_temp ;
 % standard normalization of data
-[coeff, score, latent , tsquared] = eof225(temp_norm,NaN,50); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff, score, latent , tsquared] = pca(temp_norm); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second

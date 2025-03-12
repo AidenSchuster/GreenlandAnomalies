@@ -1,6 +1,6 @@
 % Quickly Save every open figure
 figHandles = findall(0, 'Type', 'figure'); % Get all open figures
-saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-12-25\depth_independent';  % Set your desired directory
+saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-12-25\scoresby';  % Set your desired directory
 
 for i = 1:length(figHandles)
     fig = figHandles(i);
@@ -898,30 +898,30 @@ plot(cx, cy, 'k')
 %ylim([55, 85])
 plot(cx,cy,'k')
 gscatter(lon_fj_test, lat_fj_test, cluster_labels', cmap, 'o','filled');
-xlim([-38.5,-36.5])
-ylim([65.5,66.6])
+xlim([-39.5,-35.5])
+ylim([65.1,66.6])
 xlabel('Lon')
 ylabel('Lat')
 
 % plot only a certain yea_mon
-month_select = 9 ;
-year_select = 2020 ;
-month_idx = mon_fj_test == month_select ;
-yea_idx = yea_fj_test == year_select ;
-yea_mon_fj = yea_idx & month_idx ;
-figure 
-hold on
+%month_select = 9 ;
+%year_select = 2020 ;
+%month_idx = mon_fj_test == month_select ;
+%yea_idx = yea_fj_test == year_select ;
+%yea_mon_fj = yea_idx & month_idx ;
+%figure 
+%hold on
 %cmap = jet(length(unique(cluster_labels(yea_mon_fj)))) ;
-daspect([1 aspect_ratio 1])
-plot(cx, cy, 'k')
+%daspect([1 aspect_ratio 1])
+%plot(cx, cy, 'k')
 %xlim([-100, -10])
 %ylim([55, 85])
-plot(cx,cy,'k')
-gscatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj), cluster_labels(yea_mon_fj)', cmap, 'o','filled');
-xlim([-38.5,-36.5])
-ylim([65.5,66.6])
-xlabel('Lon')
-ylabel('Lat')
+%plot(cx,cy,'k')
+%gscatter(lon_fj_test(yea_mon_fj), lat_fj_test(yea_mon_fj), cluster_labels(yea_mon_fj)', cmap, 'o','filled');
+%xlim([-39.5,-35.5])
+%ylim([65.1,66.6])
+%xlabel('Lon')
+%ylabel('Lat')
 
 % same thing as above but only if they have >90% probability
 for i = 1:length(cluster_labels)
@@ -937,24 +937,24 @@ hold on
 daspect([1 aspect_ratio 1])
 plot(cx, cy, 'k')
 gscatter(lon_fj_test(high_prob_idx), lat_fj_test(high_prob_idx), cluster_labels(high_prob_idx)', cmap, 'o','filled');
-xlim([-38.5,-36.5])
-ylim([65.5,66.6])
+xlim([-39.5,-35.5])
+ylim([65.1,66.6])
 xlabel('Lon')
 ylabel('Lat')
 title('Profiles with >90% of belonging to cluster')
 % yea_mon >90
-combined_idx = yea_mon_fj & high_prob_idx ;
-figure 
-hold on
-daspect([1 aspect_ratio 1])
-plot(cx, cy, 'k')
-plot(cx,cy,'k')
-gscatter(lon_fj_test(combined_idx), lat_fj_test(combined_idx), cluster_labels(combined_idx)', cmap, 'o','filled');
-xlim([-38.5,-36.5])
-ylim([65.5,66.6])
-xlabel('Lon')
-ylabel('Lat')
-title('Sept 2020 Profiles with >90% of belonging to cluster')
+%combined_idx = yea_mon_fj & high_prob_idx ;
+%figure 
+%hold on
+%daspect([1 aspect_ratio 1])
+%plot(cx, cy, 'k')
+%plot(cx,cy,'k')
+%gscatter(lon_fj_test(combined_idx), lat_fj_test(combined_idx), cluster_labels(combined_idx)', cmap, 'o','filled');
+%xlim([-39.5,-35.5])
+%ylim([65.1,66.6])
+%xlabel('Lon')
+%ylabel('Lat')
+%title('Sept 2020 Profiles with >90% of belonging to cluster')
 
 % plot corresponding temperature, colored by cluster labels
 figure
@@ -988,39 +988,39 @@ ylabel('Depth');
 title('Fjord Salinity Anomalies Clustered');
 hold off;
 %  plot corresponding salinity and temperature, colored by cluster label for yea_mon
-figure
+%figure
 %cmap = lines(max(cluster_labels(yea_mon_fj)));
-temperature = fj_temp_combined_test(valid_rows,:) ;
-temperature = temperature(yea_mon_fj,:) ;
-hold on
-for i = 1:size(temperature, 1) % Loop over profiles
-    cluster_yea_mon = cluster_labels(yea_mon_fj) ;
-    cluster_id = cluster_yea_mon(i);
-    color = cluster_color_map(cluster_id); % Get the correct color
-    plot(temperature(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
-end
-axis ij
-xlabel('Temperature Anomaly');
-ylabel('Depth');
-title('Fjord Temp Anomalies Clustered Sept 2020');
-hold off;
+%temperature = fj_temp_combined_test(valid_rows,:) ;
+%temperature = temperature(yea_mon_fj,:) ;
+%hold on
+%for i = 1:size(temperature, 1) % Loop over profiles
+%    cluster_yea_mon = cluster_labels(yea_mon_fj) ;
+%    cluster_id = cluster_yea_mon(i);
+%    color = cluster_color_map(cluster_id); % Get the correct color
+%    plot(temperature(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
+%end
+%axis ij
+%xlabel('Temperature Anomaly');
+%ylabel('Depth');
+%title('Fjord Temp Anomalies Clustered Sept 2020');
+%hold off;
 %Plot Salinity yea_mon
-figure
+%figure
 %cmap = lines(max(cluster_labels(yea_mon_fj)));
-sal = fj_combined_test(valid_rows,:) ;
-sal = sal(yea_mon_fj,:) ;
-hold on
-for i = 1:size(sal, 1) % Loop over profiles
-    cluster_yea_mon = cluster_labels(yea_mon_fj) ;
-    cluster_id = cluster_yea_mon(i);
-    color = cluster_color_map(cluster_id); % Get the correct color
-    plot(sal(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
-end
-axis ij
-xlabel('Salinity Anomaly');
-ylabel('Depth');
-title('Fjord Sal Anomalies Clustered Sept 2020');
-hold off;
+%sal = fj_combined_test(valid_rows,:) ;
+%sal = sal(yea_mon_fj,:) ;
+%hold on
+%for i = 1:size(sal, 1) % Loop over profiles
+%    cluster_yea_mon = cluster_labels(yea_mon_fj) ;
+%    cluster_id = cluster_yea_mon(i);
+%    color = cluster_color_map(cluster_id); % Get the correct color
+%    plot(sal(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
+%end
+%axis ij
+%xlabel('Salinity Anomaly');
+%ylabel('Depth');
+%title('Fjord Sal Anomalies Clustered Sept 2020');
+%hold off;
 % plot representative cluster
 salinity_idx = 4;     % e.g., first EOF for salinity
 temperature_idx = 1;  % e.g., first EOF for temperature
@@ -1033,6 +1033,7 @@ figure
 tiledlayout(2,2,'TileSpacing','compact'); % Use tiledlayout for better control
 nexttile([1 2]); % Span across both columns
 hold on
+gscatter(feature_matrix(:,salinity_idx),feature_matrix(:,temperature_idx), cluster_labels, cmap, '.', 12);
 for k = 1:numComponents
     % Extract the 2x2 sub-covariance matrix for the chosen T-S dimensions:
     Sigma_TS = squeeze(indepen_model.Sigma([salinity_idx,temperature_idx], [salinity_idx,temperature_idx], k));
@@ -1049,7 +1050,6 @@ for k = 1:numComponents
          'Color', cmap(k, :), 'LineWidth', 2, 'DisplayName', sprintf('Cluster %d', k));
 end
 axis equal
-gscatter(feature_matrix(:,salinity_idx),feature_matrix(:,temperature_idx), cluster_labels, cmap, '.', 12);
 xlabel('Salinity Anomaly EOF 1');
 ylabel('Temperature Anomaly EOF 1');
 title('First EOF Sermilik Training');
@@ -1084,7 +1084,7 @@ for i = 1:num_cluster
 
     title(sprintf('Cluster %d', i));
     plot(cx,cy,'k','HandleVisibility', 'off')
-    xlim([-39.5,-36.5])
+    xlim([-39.5,-35.5])
     ylim([65.1,66.6])
     daspect([1 aspect_ratio 1])
 end
@@ -1098,7 +1098,116 @@ end
 hold off;
 legend(leg_handles, 'Location', 'bestoutside'); 
 %% Apply depth independent model to another fjord
+load scoresby_plus scoresby_plus
 
+score_plus_idx = inpolygon(lon_combined,lat_combined,scoresby_plus(:,1),scoresby_plus(:,2))' ;
+score_sal = sal_anom_combined(score_plus_idx,:) ;
+score_sal_test = score_sal(:,starting_depth:ending_depth) ; % reduced depths
+
+score_temp = temp_anom_combined(score_plus_idx,:) ;
+score_temp_test = score_temp(:,starting_depth:ending_depth) ;
+
+valid_rows = all(~isnan(score_sal_test), 2) & all(~isnan(score_temp_test), 2);
+
+scoresby_sal = score_sal_test(valid_rows,:) ; % should just be able to change this
+scoresby_temp = score_temp_test(valid_rows,:) ;
+
+%sal
+last_nan_col = find(sum(~isnan(scoresby_sal), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    scoresby_sal = scoresby_sal(:, 1:last_nan_col-1);
+end
+
+%temp
+last_nan_col = find(sum(~isnan(scoresby_temp), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    scoresby_temp = scoresby_temp(:, 1:last_nan_col-1);
+end
+% subtract original mean and divide by original std
+scoresby_sal_norm = (scoresby_sal-mu_sal)./std_sal ;
+scoresby_temp_norm = (scoresby_temp - mu_temp)./std_temp ;
+
+scoresby_sal_score = scoresby_sal_norm * coeff_fj_sal(:, 1:2) ;
+scoresby_temp_score = scoresby_temp_norm * coeff_fj_temp(:,1:2) ;
+
+scoresby_feature_matrix = [scoresby_temp_score,scoresby_sal_score] ;
+scoresby_labels = cluster(indepen_model, scoresby_feature_matrix);
+scoresby_probs = posterior(indepen_model, scoresby_feature_matrix);
+
+lat_scoresby = lat_combined(score_plus_idx) ;
+lat_scoresby = lat_scoresby(valid_rows) ;
+lon_scoresby = lon_combined(score_plus_idx) ;
+lon_scoresby = lon_scoresby(valid_rows) ;
+mon_scoresby = mon_combined(score_plus_idx) ;
+mon_scoresby = mon_scoresby(valid_rows) ;
+
+% plot out the same figures 
+clf
+hold on
+unique_clusters = unique(scoresby_labels);
+cmap = lines(length(unique_clusters));  % Ensure same color mapping
+cluster_color_map = containers.Map(unique_clusters, num2cell(cmap, 2));
+daspect([1 aspect_ratio 1])
+plot(cx, cy, 'k')
+%xlim([-100, -10])
+%ylim([55, 85])
+plot(cx,cy,'k')
+gscatter(lon_scoresby, lat_scoresby, scoresby_labels', cmap, 'o','filled');
+xlim([-32,-18])
+ylim([67.3,72.5])
+xlabel('Lon')
+ylabel('Lat')
+
+% same thing as above but only if they have >90% probability
+for i = 1:length(scoresby_labels)
+    if scoresby_probs(i,scoresby_labels(i)) >= .90
+        high_prob_idx(i) = 1 ;
+    else
+        high_prob_idx(i) = 0 ;
+    end
+end
+high_prob_idx = logical(high_prob_idx) ;
+figure 
+hold on
+daspect([1 aspect_ratio 1])
+plot(cx, cy, 'k')
+gscatter(lon_scoresby(high_prob_idx), lat_scoresby(high_prob_idx), scoresby_labels(high_prob_idx)', cmap, 'o','filled');
+xlim([-32,-18])
+ylim([67.3,72.5])
+xlabel('Lon')
+ylabel('Lat')
+title('Profiles with >90% of belonging to cluster')
+
+% plot x tiled figure, with each tile being a cluster location colored by month
+num_cluster = max(scoresby_labels); % Number of clusters
+colors = jet(12); % Colormap for 12 months
+figure;
+tiledlayout('flow');
+
+for i = 1:num_cluster
+    nexttile;
+    hold on
+    % Get points for this cluster
+    idx = (scoresby_labels == i);
+    scatter(lon_scoresby(idx), lat_scoresby(idx), 36, colors(mon_scoresby(idx), :), 'filled');
+
+    title(sprintf('Cluster %d', i));
+    plot(cx,cy,'k','HandleVisibility', 'off')
+    xlim([-32,-18])
+    ylim([67.3,72.5])
+    daspect([1 aspect_ratio 1])
+end
+ax = gca;
+hold on;
+leg_handles = gobjects(12,1);
+month_names = {'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'};
+for m = 1:12
+    leg_handles(m) = scatter(nan, nan, 36, colors(m, :), 'filled', 'DisplayName', month_names{m});
+end
+hold off;
+legend(leg_handles, 'Location', 'bestoutside'); 
 %% GMM Cluster Prbabilities (Depth dependent)
 % plot representative cluster
 DepInterval_custom = DepInterval(1:segment_length) ;
