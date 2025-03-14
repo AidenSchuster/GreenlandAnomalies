@@ -1376,25 +1376,29 @@ for i = 1:length(fj_anom_idx)
         % Calculate salinity anomalies only for valid depths
         if any(valid_rows)
             % Mean and std of valid depths (row-wise), ignoring NaNs
-            mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');    
+            mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');
+            std_values = std(relevant_data(valid_rows,:),0,2) ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
-            fj_anoms{i}(valid_rows, j) = fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values;
+            fj_anoms{i}(valid_rows, j) = (fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values) ./ std_values;
         elseif any(valid_backup)
             mean_backup_values = mean(validity_sal(valid_backup,:),2,'omitnan') ;
+            std_backup_values = std(validity_sal(valid_backup,:),0,2) ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
-            fj_anoms{i}(valid_backup, j) = fjord_sal_mat_fj(valid_backup, fj_profile_back{i}(j)) - mean_backup_values;
+            fj_anoms{i}(valid_backup, j) = (fjord_sal_mat_fj(valid_backup, fj_profile_back{i}(j)) - mean_backup_values) ./ std_backup_values ;
         end
 
         % same for temp anoms
         if any(valid_rows)
             % Mean of valid depths (row-wise), ignoring NaNs
-            mean_temp_values = mean(relevant_temp_data(valid_temp_rows, :), 2, 'omitnan');            
+            mean_temp_values = mean(relevant_temp_data(valid_temp_rows, :), 2, 'omitnan');  
+            std_values = std(relevant_temp_data(valid_temp_rows,:),0,2) ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
-            fj_temp_anoms{i}(valid_temp_rows, j) = fjord_temp_mat_fj(valid_temp_rows, fj_profile_back{i}(j)) - mean_temp_values;
+            fj_temp_anoms{i}(valid_temp_rows, j) = (fjord_temp_mat_fj(valid_temp_rows, fj_profile_back{i}(j)) - mean_temp_values) ./ std_values ;
         elseif any(valid_backup_temp)
         mean_backup_temp_values = mean(validitiy_temp(valid_backup_temp,:),2,'omitnan') ;
+        std_backup_values = std(validitiy_temp(valid_backup_temp,:),0,2) ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
-            fj_temp_anoms{i}(valid_backup_temp, j) = fjord_temp_mat_fj(valid_backup_temp, fj_profile_back{i}(j)) - mean_backup_temp_values;    
+            fj_temp_anoms{i}(valid_backup_temp, j) = (fjord_temp_mat_fj(valid_backup_temp, fj_profile_back{i}(j)) - mean_backup_temp_values) ./ std_backup_values ;    
         end
     end
 end
@@ -1684,10 +1688,6 @@ month_selected = 9 ; % for sprintf
 year_selected = 2012 ; % for sprintf, replace with desired year
 five_year_range = [year_selected - 0, year_selected + 0] ; % for scarcer fjord data
 % Invert for PCA
-if size(sal_anom_combined,2) > 301
-sal_anom_combined = sal_anom_combined' ;
-%can_invert = canada' ;
-end
 if size(coastal_sal,2) > 301
 coastal_sal = coastal_sal' ;
 open_sal = open_sal' ;
