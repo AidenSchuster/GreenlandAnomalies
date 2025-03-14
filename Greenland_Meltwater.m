@@ -1188,8 +1188,8 @@ for i = 1:1
     coastal_sal_mat = interp_sal_mat(:,coast_find{j}) ;
     coastal_sal_mean{j} = mean(coastal_sal_mat,2,'omitnan') ; 
     coastal_temp_mean{j} = mean(coastal_temp_mat,2,'omitnan') ;
-    coastal_temp_std{j} = std(coastal_temp_mat,0,2,'omitnan') ;
-    coastal_sal_std{j} = std(coastal_sal_mat,0,2,'omitnan') ;
+    temp_std{j} = std(coastal_temp_mat,0,2,'omitnan') ;
+    sal_std{j} = std(coastal_sal_mat,0,2,'omitnan') ;
     end
 end
 % Expand
@@ -1200,13 +1200,18 @@ coast_sal_avg =  zeros(rows, numCells) ;
 for i = 1:length(coastal_sal_mean) 
 insidearray1 = coastal_temp_mean{i}' ;
 insidearray2 = coastal_sal_mean{i}' ;
+insidearray3 = temp_std{i} ;
+insidearray4 = sal_std{i} ;
+
 coast_temp_avg(:,i) = insidearray1 ;
+coastal_temp_std(:,i) = insidearray3 ;
 coast_sal_avg(:,i) = insidearray2 ;
+coastal_sal_std(:,i) = insidearray4 ;
 end
-clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean insidearray2 insidearray1
+clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean insidearray2 insidearray1 insidearray3 insidearray4
 for i = 1:length(coast_sal_avg(1,:)) 
-coast_sal_anom(:,i) = coastal_sal(:,i) - coast_sal_avg(:,i) ;
-coast_temp_anom(:,i) = coastal_temp(:,i) - coast_temp_avg(:,i) ;
+coast_sal_anom(:,i) = (coastal_sal(:,i) - coast_sal_avg(:,i)) ./ coastal_sal_std(:,i) ;
+coast_temp_anom(:,i) = coastal_temp(:,i) - coast_temp_avg(:,i) ./ coastal_temp_std(:,i) ;
 end
 save coast_sal_anom.mat coast_sal_anom
 save coast_temp_anom.mat coast_temp_anom
@@ -1243,16 +1248,13 @@ if run == 1
     open_sal_mat = interp_sal_mat(:,open_find{j}) ;
     open_sal_mean = mean(open_sal_mat,2,'omitnan') ; 
     open_temp_mean = mean(open_temp_mat,2,'omitnan') ;
-    open_sal_anom(:,j) = open_sal(:,j) - open_sal_mean ;
-    open_temp_anom(:,j) = open_temp(:,j) - open_temp_mean ;
-    %open_temp_std{j} = std(open_temp_mat,0,2,'omitnan') ;
-    %open_sal_std{j} = std(open_sal_mat,0,2,'omitnan') ; %only run either
-    %anomaly or std at a time
+    open_temp_std = std(open_temp_mat,0,2,'omitnan') ;
+    open_sal_std = std(open_sal_mat,0,2,'omitnan') ; %only run either
+    open_sal_anom(:,j) = (open_sal(:,j) - open_sal_mean) ./ open_sal_std ;
+    open_temp_anom(:,j) = (open_temp(:,j) - open_temp_mean) ./ open_temp_std ;
         end
    save("open_temp_anom.mat",'open_temp_anom','-v7.3')
    save("open_sal_anom.mat",'open_sal_anom','-v7.3')
-  % save("open_temp_std.mat",'open_temp_std')
-   %save("open_sal_std",'open_sal_std')
 end
 load("open_temp_anom.mat") 
 load("open_sal_anom.mat")
@@ -1377,12 +1379,12 @@ for i = 1:length(fj_anom_idx)
         if any(valid_rows)
             % Mean and std of valid depths (row-wise), ignoring NaNs
             mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');
-            std_values = std(relevant_data(valid_rows,:),0,2) ;
+            std_values = std(relevant_data(valid_rows,:),0,2,'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_anoms{i}(valid_rows, j) = (fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values) ./ std_values;
         elseif any(valid_backup)
             mean_backup_values = mean(validity_sal(valid_backup,:),2,'omitnan') ;
-            std_backup_values = std(validity_sal(valid_backup,:),0,2) ;
+            std_backup_values = std(validity_sal(valid_backup,:),0,2,'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_anoms{i}(valid_backup, j) = (fjord_sal_mat_fj(valid_backup, fj_profile_back{i}(j)) - mean_backup_values) ./ std_backup_values ;
         end
@@ -1391,12 +1393,12 @@ for i = 1:length(fj_anom_idx)
         if any(valid_rows)
             % Mean of valid depths (row-wise), ignoring NaNs
             mean_temp_values = mean(relevant_temp_data(valid_temp_rows, :), 2, 'omitnan');  
-            std_values = std(relevant_temp_data(valid_temp_rows,:),0,2) ;
+            std_values = std(relevant_temp_data(valid_temp_rows,:),0,2,'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_temp_anoms{i}(valid_temp_rows, j) = (fjord_temp_mat_fj(valid_temp_rows, fj_profile_back{i}(j)) - mean_temp_values) ./ std_values ;
         elseif any(valid_backup_temp)
         mean_backup_temp_values = mean(validitiy_temp(valid_backup_temp,:),2,'omitnan') ;
-        std_backup_values = std(validitiy_temp(valid_backup_temp,:),0,2) ;
+        std_backup_values = std(validitiy_temp(valid_backup_temp,:),0,2,'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
             fj_temp_anoms{i}(valid_backup_temp, j) = (fjord_temp_mat_fj(valid_backup_temp, fj_profile_back{i}(j)) - mean_backup_temp_values) ./ std_backup_values ;    
         end
@@ -1808,6 +1810,12 @@ mon_combined = [open_mon,coastal_mon,mon_fj] ;
 clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
 clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s_fj
 clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_lat_n can_lon_n can_mon can_yea % clearing all canada variables (will get rid of them entirely eventually)
+clear XX YY ZZ reclength recwidth temp_sal temp_mat_fj x_reff y_reff yea_mon_n_open yea_mon_n_coast anom_mon anom_yea coastal_temp coastal_sal
+clear copy datenum_a datenum_coast datenum_open day_fj day_range day_range_2 five_yea_s_fj five_year_range fj_combined fj_find_combined fj_temp_anoms_mat fj_anoms_mat
+clear fjord_sal_mat_fj fjord_temp_mat_fj i in_idx in_a interp_sal_a interp_temp_a interp_sal_mat interp_temp_mat lat lat_a lon lon_a lat_coast_n lat_coastal lat_fj lat_open
+clear lat_open_n lon_coast_n lon_coastal lon_fj lon_open coastal_lat coastal_lon coastal_mon coastal_sal coastal_temp coastal_yea lon_open_n min_count mon_a
+clear mon_box mon_comb mon_fj month_all month_s month_selected open open_idx open_lat open_lon open_mon open_sal open_temp_open_yea open_temp open_yea remove_fj
+clear run s sal_combined x_canada y_canada yea_a yea_fj yeamon_n_coast yeamon_n_open year year_mon year_mon_coast year_mon_fj year_mon_open year_selected
 %% Helheim (or other restricted region anom PCA) PCA and GMM
 % sal
 % location index (helheim is fjord_vert{32}
