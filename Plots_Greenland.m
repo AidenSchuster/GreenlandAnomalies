@@ -1,6 +1,6 @@
 % Quickly Save every open figure
 figHandles = findall(0, 'Type', 'figure'); % Get all open figures
-saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-12-25\scoresby';  % Set your desired directory
+saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-19-25\not_right2';  % Set your desired directory
 
 for i = 1:length(figHandles)
     fig = figHandles(i);
@@ -1091,7 +1091,7 @@ end
 ax = gca;
 hold on;
 leg_handles = gobjects(12,1);
-month_names = {'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'};
+month_names = {'November', 'December','January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'};
 for m = 1:12
     leg_handles(m) = scatter(nan, nan, 36, colors(m, :), 'filled', 'DisplayName', month_names{m});
 end

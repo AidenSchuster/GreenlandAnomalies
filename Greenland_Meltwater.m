@@ -1210,9 +1210,44 @@ coastal_sal_std(:,i) = insidearray4 ;
 end
 clear coastal_sal_mat coastal_temp_mat clear coastal_sal_mean coastal_temp_mean insidearray2 insidearray1 insidearray3 insidearray4
 for i = 1:length(coast_sal_avg(1,:)) 
-coast_sal_anom(:,i) = (coastal_sal(:,i) - coast_sal_avg(:,i)) ./ coastal_sal_std(:,i) ;
-coast_temp_anom(:,i) = coastal_temp(:,i) - coast_temp_avg(:,i) ./ coastal_temp_std(:,i) ;
+coast_sal_anom(:,i) = (coastal_sal(:,i) - coast_sal_avg(:,i)) ./ max(coastal_sal_std(:,i), 1);
+coast_temp_anom(:,i) = (coastal_temp(:,i) - coast_temp_avg(:,i)) ./ max(coastal_temp_std(:,i), 1) ;
 end
+
+%derivative cleaning
+diff_result = NaN(size(coast_sal_anom)) ;
+    for i  = 1:length(coast_sal_anom)
+    non_nan = find(~isnan(coast_sal_anom(:,i))) ;
+    non_nan_store{i} = non_nan ;
+    temporary = coast_sal_anom(:,i) ;
+    diff_sal = diff(temporary(non_nan),1,1) ;
+    diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
+    end
+   threshold_25 = 12 ; % 0-25 m
+   threshold_50 = 2 ; % 0-50 m
+   threshold = 0.1 ; % 50-end m
+     top_25 = diff_result(1:25,:) ;
+     top_50 = diff_result(26:90,:) ;
+     bottom = diff_result(91:end,:) ;
+     top_25_remove = top_25 >= threshold_25 ; % index of top 25 m that has derivatives greater than threshold
+     top_50_remove = top_50 >= threshold_50 ; % idx of bottom that has derivatives greater than threshold
+     bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
+     remove_anom = [top_25_remove;top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     for i = 1:length(remove_anom) 
+     idx = find(remove_anom(:,i) == 1) ;
+        for j = 1:length(idx)
+            if size(idx) >= 1
+        value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
+        value_below = non_nan_store{i}(value_below_idx) ;
+        remove_anom(value_below, i) = 1; % Mark the value from non_nan_store for removal
+            end
+        end
+     end
+%remove those anomaly points that fail the threshold
+%remove_anom = logical(remove_anom) ;
+coast_sal_anom(remove_anom) = NaN ;
+coast_temp_anom(remove_anom) = NaN ;
+
 save coast_sal_anom.mat coast_sal_anom
 save coast_temp_anom.mat coast_temp_anom
 end
@@ -1230,29 +1265,115 @@ clear coast_sal_avg coast_temp_avg range_open range coastal_sal_std coastal_temp
 %% Open casts
 % Coast means/std
 in_a = inpolygon(lon_a,lat_a,combined_x,combined_y) ; % All coasts within coastal section 
-open_sal = interp_sal_mat(:,~in_a) ;
-open_temp = interp_temp_mat(:,~in_a) ;
-[~, col] = find(open_sal <= 30| open_sal >= 40);
-unique_col = unique(col, 'stable');
-unique_col_idx_open = false(1,length(open_sal)) ;
-unique_col_idx_open(unique_col) = true ;
+open_sal = interp_sal_mat(1:1000,~in_a) ; % restricting to only 1000 m for computational optimization
+open_temp = interp_temp_mat(1:1000,~in_a) ;
+%[~, col] = find(open_sal <= 28| open_sal >= 40);
+%unique_col = unique(col, 'stable');
+%unique_col_idx_open = false(1,length(open_sal)) ;
+%unique_col_idx_open(unique_col) = true ;
+
+
 
 run = 2 ;
-if run == 1
+if run == 1    
     % clear for open_find run (everything thats not needed)
-    clearvars -except open_find interp_sal_mat interp_temp_mat open_sal open_temp
+    clearvars -except open_find interp_sal_mat open_sal open_sal_anom open_temp_anom open_temp
+    
+    % Initialize the anomaly matrix with NaN
+    open_sal_anom = NaN(size(open_sal,1), size(open_find,2));
+
+        for j = 1:length(open_find)
+    open_sal_mat = [] ;
+    open_sal_mat = interp_sal_mat(:,open_find{j}) ;
+
+    valid_rows_1_149 = (sum(~isnan(open_sal_mat(1:149, :)), 2) >= 4); % should be obsolete 
+
+    % Check validity of rows 100:end (at least 3 non-NaN values)
+    valid_rows_150_end = (sum(~isnan(open_sal_mat(150:size(open_sal,1), :)), 2) >= 4);
+
+    % Combine row validity
+    valid_rows = [valid_rows_1_149; valid_rows_150_end];           
+
+    % mean and std calcs
+    open_sal_mean = mean(open_sal_mat(valid_rows,:),2,'omitnan') ; 
+    open_sal_std = std(open_sal_mat(valid_rows,:),0,2,'omitnan') ; 
+    open_sal_anom(valid_rows,j) = (open_sal(valid_rows,j) - open_sal_mean) ./ max(open_sal_std, 1) ;
+        end
+    clear interp_sal_mat open_sal_mean open_sal_std
+
+%make into a mat
+%valid_anoms = open_sal_anom(~cellfun('isempty', open_sal_anom));
+%open_anoms_mat = horzcat(valid_anoms{:});
+
+%open_temp_anom = open_temp_anoms_mat ;
+%open_sal_anom = open_anoms_mat ;
+
+save("open_sal_anom.mat",'open_sal_anom','-v7.3')
+clear open_sal_anom open_sal open_sal_mat valid_rows valid_rows_150_end valid_rows_1_149 j
+
+% Open temp anom
+
+load interp_temp_mat
+
+    % initilizae with nan matrix
+    open_temp_anom = NaN(size(open_temp,1), size(open_find,2));
+
         for j = 1:length(open_find)
     open_temp_mat = [] ;
-    open_sal_mat = [] ;
     open_temp_mat = interp_temp_mat(:,open_find{j}) ;
-    open_sal_mat = interp_sal_mat(:,open_find{j}) ;
-    open_sal_mean = mean(open_sal_mat,2,'omitnan') ; 
-    open_temp_mean = mean(open_temp_mat,2,'omitnan') ;
-    open_temp_std = std(open_temp_mat,0,2,'omitnan') ;
-    open_sal_std = std(open_sal_mat,0,2,'omitnan') ; %only run either
-    open_sal_anom(:,j) = (open_sal(:,j) - open_sal_mean) ./ open_sal_std ;
-    open_temp_anom(:,j) = (open_temp(:,j) - open_temp_mean) ./ open_temp_std ;
+
+    %check validity
+    valid_rows_1_149_temp = (sum(~isnan(open_temp_mat(1:149, :)), 2) >= 4); % should be obsolete 
+    valid_rows_150_end_temp = (sum(~isnan(open_temp_mat(150:size(open_temp,1), :)), 2) >= 4);
+    valid_temp_rows = [valid_rows_1_149_temp; valid_rows_150_end_temp];     
+
+
+    % mean and std calc
+    open_temp_mean = mean(open_temp_mat(valid_temp_rows,:),2,'omitnan') ;
+    open_temp_std = std(open_temp_mat(valid_temp_rows,:),0,2,'omitnan') ;
+    open_temp_anom(valid_temp_rows,j) = (open_temp(valid_temp_rows,j) - open_temp_mean) ./ max(open_temp_std, 1) ;
         end
+    clear interp_temp_mat open_temp_mean open_temp_std
+
+    save("open_temp_anom.mat",'open_temp_anom','-v7.3')
+
+% derivative cleaning for open anomalies (only replace failed points with NaN)
+clearvars -except open_temp_anom
+load open_sal_anom.mat open_sal_anom
+
+diff_result = NaN(size(open_sal_anom)) ;
+    for i  = 1:length(open_sal_anom)
+    non_nan = find(~isnan(open_sal_anom(:,i))) ;
+    non_nan_store{i} = non_nan ;
+    temporary = open_sal_anom(:,i) ;
+    diff_sal = diff(temporary(non_nan),1,1) ;
+    diff_result(non_nan(1:end-1),i) = abs(diff_sal ./ diff(non_nan,1,1)) ;
+    end
+   threshold_25 = 12 ; % 0-25 m
+   threshold_50 = 2 ; % 0-50 m
+   threshold = 0.1 ; % 50-end m
+     top_25 = diff_result(1:25,:) ;
+     top_50 = diff_result(26:90,:) ;
+     bottom = diff_result(91:end,:) ;
+     top_25_remove = top_25 >= threshold_25 ; % index of top 25 m that has derivatives greater than threshold
+     top_50_remove = top_50 >= threshold_50 ; % idx of bottom that has derivatives greater than threshold
+     bottom_remove = bottom >= threshold ; % idx of bottom that has derivatives greater than threshold
+     remove_anom = [top_25_remove;top_50_remove;bottom_remove] ; % need to account for both points that create a true remove value
+     for i = 1:length(remove_anom) 
+     idx = find(remove_anom(:,i) == 1) ;
+        for j = 1:length(idx)
+            if size(idx) >= 1
+        value_below_idx = find(non_nan_store{i} == idx(j,:)) + 1 ;
+        value_below = non_nan_store{i}(value_below_idx) ;
+        remove_anom(value_below, i) = 1; % Mark the value from non_nan_store for removal
+            end
+        end
+     end
+%remove those anomaly points that fail the threshold
+%remove_anom = logical(remove_anom) ;
+open_sal_anom(remove_anom) = NaN ;
+open_temp_anom(remove_anom) = NaN ;
+
    save("open_temp_anom.mat",'open_temp_anom','-v7.3')
    save("open_sal_anom.mat",'open_sal_anom','-v7.3')
 end
@@ -1260,11 +1381,10 @@ load("open_temp_anom.mat")
 load("open_sal_anom.mat")
 
 clear col unique_col
-%load("open_temp_std.mat")
-%load("open_sal_std.mat")
 clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
+clear valid_rows valid_temp_rows valid_rows_1_149 valid_rows_1_149_temp  valid_rows_150_end valid_rows_150_end_temp
 %% Fjord Anomaly Calculations (include profiles + or - 15 days)
-run = 2 ;
+run = 1 ;
 if run == 1
 
 % Generate backup variables for easier indexing later
@@ -1377,16 +1497,17 @@ for i = 1:length(fj_anom_idx)
 
         % Calculate salinity anomalies only for valid depths
         if any(valid_rows)
+            thresh = 1 ; 
             % Mean and std of valid depths (row-wise), ignoring NaNs
             mean_values = mean(relevant_data(valid_rows, :), 2, 'omitnan');
-            std_values = std(relevant_data(valid_rows,:),0,2,'omitnan') ;
+            std_values = std(relevant_data(valid_rows, :), 0, 2, 'omitnan');
             % Subtract the mean from fjord_sal_mat_fj for valid depths
-            fj_anoms{i}(valid_rows, j) = (fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values) ./ std_values;
+            fj_anoms{i}(valid_rows, j) = (fjord_sal_mat_fj(valid_rows, fj_profile_back{i}(j)) - mean_values) ./ max(std_values, 1);
         elseif any(valid_backup)
             mean_backup_values = mean(validity_sal(valid_backup,:),2,'omitnan') ;
             std_backup_values = std(validity_sal(valid_backup,:),0,2,'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
-            fj_anoms{i}(valid_backup, j) = (fjord_sal_mat_fj(valid_backup, fj_profile_back{i}(j)) - mean_backup_values) ./ std_backup_values ;
+            fj_anoms{i}(valid_backup, j) = (fjord_sal_mat_fj(valid_backup, fj_profile_back{i}(j)) - mean_backup_values) ./ max(std_backup_values, 1) ;
         end
 
         % same for temp anoms
@@ -1395,12 +1516,12 @@ for i = 1:length(fj_anom_idx)
             mean_temp_values = mean(relevant_temp_data(valid_temp_rows, :), 2, 'omitnan');  
             std_values = std(relevant_temp_data(valid_temp_rows,:),0,2,'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
-            fj_temp_anoms{i}(valid_temp_rows, j) = (fjord_temp_mat_fj(valid_temp_rows, fj_profile_back{i}(j)) - mean_temp_values) ./ std_values ;
+            fj_temp_anoms{i}(valid_temp_rows, j) = (fjord_temp_mat_fj(valid_temp_rows, fj_profile_back{i}(j)) - mean_temp_values) ./ max(std_values, 1) ;
         elseif any(valid_backup_temp)
         mean_backup_temp_values = mean(validitiy_temp(valid_backup_temp,:),2,'omitnan') ;
         std_backup_values = std(validitiy_temp(valid_backup_temp,:),0,2,'omitnan') ;
             % Subtract the mean from fjord_sal_mat_fj for valid depths
-            fj_temp_anoms{i}(valid_backup_temp, j) = (fjord_temp_mat_fj(valid_backup_temp, fj_profile_back{i}(j)) - mean_backup_temp_values) ./ std_backup_values ;    
+            fj_temp_anoms{i}(valid_backup_temp, j) = (fjord_temp_mat_fj(valid_backup_temp, fj_profile_back{i}(j)) - mean_backup_temp_values) ./ max(std_backup_values, 1) ;    
         end
     end
 end
@@ -1499,12 +1620,12 @@ end
 clear press_a press_fj spice_1 spice_2 sal_1 sal_2 press_1 press_1
 %%
 %top 300 m of both open and coastal
-sal_combined = [open_sal,coastal_sal] ;
 coastal_sal = coastal_sal(1:300,:) ;
 coastal_temp = coastal_temp(1:300,:) ;
 open_sal = open_sal(1:300,:) ;
 open_temp = open_temp(1:300,:) ;
 length_open = length(open_sal) ;
+sal_combined = [open_sal,coastal_sal] ;
 sal_combined = sal_combined(1:300,:) ;
 fj_anom_combined = fj_anoms_mat(1:300,:) ;
 fj_temp_anom_combined = fj_temp_anoms_mat(1:300,:) ;
@@ -1522,7 +1643,8 @@ fj_temp_combined = fjord_temp_mat_fj(1:300,:) ;
 %Sep_fj = mon_fj == 9 ;
 %Oct_a = mon_a == 10 ;
 %Oct_fj = mon_fj == 10 ;
-
+coast_sal_anom = coast_sal_anom(1:1000,:) ;
+coast_temp_anom = coast_temp_anom(1:1000,:) ;
 sal_anom_combined = [open_sal_anom,coast_sal_anom] ;
 sal_anom_combined = sal_anom_combined(1:300, :);
 sal_anom_combined = [sal_anom_combined,fj_anom_combined] ;
@@ -1821,7 +1943,7 @@ clear run s sal_combined x_canada y_canada yea_a yea_fj yeamon_n_coast yeamon_n_
 % location index (helheim is fjord_vert{32}
 load hel_plus_cords.mat hel_plus_cords
 hel_plus_idx = inpolygon(lon_combined,lat_combined,hel_plus_cords(:,1),hel_plus_cords(:,2))' ;
-
+%hel_plus_idx = inpolygon(lon_combined,lat_combined,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
 starting_depth = 30 ;
 ending_depth = 100 ;
 fj_combined_hel = sal_anom_combined(hel_plus_idx,:) ;
@@ -1839,11 +1961,8 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal = sal(:, 1:last_nan_col-1);
 end
-mu_sal = mean(sal,1) ;
-std_sal = std(sal) ;
-sal_norm = (sal-mu_sal)./std_sal ;
- % standard normalization of data
-[coeff, score, latent , tsquared] = pca(sal_norm); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+% already normalized data
+[coeff, score, latent , tsquared] = pca(sal); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
@@ -1869,11 +1988,11 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     temp = temp(:, 1:last_nan_col-1);
 end
-mu_temp = mean(temp,1) ;
-std_temp = std(temp) ;
-temp_norm = (temp-mu_temp)./std_temp ;
+%mu_temp = mean(temp,1) ;
+%std_temp = std(temp) ;
+%temp_norm = (temp-mu_temp)./std_temp ;
 % standard normalization of data
-[coeff, score, latent , tsquared] = pca(temp_norm); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff, score, latent , tsquared] = pca(temp); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
@@ -1890,8 +2009,8 @@ end
 % Train GMM on PCA Data (Depth Indepdent)
 %depth independent
 % select random training data (wasn't working right, do later) 
-k = 5 ; % number of clusters
-feature_matrix = [score_fj_temp(:,1:2),score_fj_sal(:,1:2)] ;
+k = 4 ; % number of clusters
+feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
 lat_fj_test = lat_combined(hel_plus_idx) ;
 lat_fj_test = lat_fj_test(valid_rows') ;
 lon_fj_test = lon_combined(hel_plus_idx) ;
