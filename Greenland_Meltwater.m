@@ -1384,7 +1384,7 @@ clear col unique_col
 clear coast_find open_find open_temp_mat open_sal_mat % will need these back eventually
 clear valid_rows valid_temp_rows valid_rows_1_149 valid_rows_1_149_temp  valid_rows_150_end valid_rows_150_end_temp
 %% Fjord Anomaly Calculations (include profiles + or - 15 days)
-run = 1 ;
+run = 2 ;
 if run == 1
 
 % Generate backup variables for easier indexing later
@@ -1845,19 +1845,27 @@ lat_open_n = lat_a(~in_a) ;
 lon_open_n = lon_a(~in_a) ;
 % month and year idx's
 coastal_mon = mon_a(in_a) ;
+coastal_mon_all = coastal_mon ; % for all_combined
 coastal_mon = coastal_mon(coast_idx) ;
 open_mon = mon_a(~in_a) ;
+open_mon_all = open_mon ; % for all_combined
 open_mon = open_mon(open_idx);
 %can_mon = open_mon(canada) ;
 %open_mon = open_mon(~canada) ;
 coastal_yea = yea_a(in_a) ;
+coastal_yea_all = coastal_yea ;
 coastal_yea = coastal_yea(coast_idx) ;
 open_yea = yea_a(~in_a) ;
+open_yea_all = open_yea ;
 open_yea = open_yea(open_idx) ;
 %can_yea = open_yea(canada) ;
 %open_yea = open_yea(~canada) ;
 all_mon = [open_mon,coastal_mon,mon_fj] ;
 all_yea = [open_yea,coastal_yea,yea_fj] ;
+
+all_mon_real = [open_mon_all,coastal_mon_all,mon_fj] ;
+all_yea_real = [open_yea_all,coastal_yea_all,yea_fj];
+
 anom_mon = [];
 anom_yea = [];
 % month
@@ -1924,7 +1932,7 @@ yeamon_n_open = year_open_n & month_open_n ;
     %open_sal_anom = open_sal_anom(~can_invert,:) ;
     %open_sal = open_sal(~can_n_invert,:) ;
 
-% finishing combined variables
+% finishing combined variables (anomaly sized)
 yea_combined = [open_yea,coastal_yea,yea_fj] ;
 mon_combined = [open_mon,coastal_mon,mon_fj] ;
 
@@ -1937,13 +1945,13 @@ clear copy datenum_a datenum_coast datenum_open day_fj day_range day_range_2 fiv
 clear fjord_sal_mat_fj fjord_temp_mat_fj i in_idx in_a interp_sal_a interp_temp_a interp_sal_mat interp_temp_mat lat lat_a lon lon_a lat_coast_n lat_coastal lat_fj lat_open
 clear lat_open_n lon_coast_n lon_coastal lon_fj lon_open coastal_lat coastal_lon coastal_mon coastal_sal coastal_temp coastal_yea lon_open_n min_count mon_a
 clear mon_box mon_comb mon_fj month_all month_s month_selected open open_idx open_lat open_lon open_mon open_sal open_temp_open_yea open_temp open_yea remove_fj
-clear run s sal_combined x_canada y_canada yea_a yea_fj yeamon_n_coast yeamon_n_open year year_mon year_mon_coast year_mon_fj year_mon_open year_selected
+clear run s x_canada y_canada yea_a yea_fj yeamon_n_coast yeamon_n_open year year_mon year_mon_coast year_mon_fj year_mon_open year_selected
 %% Helheim (or other restricted region anom PCA) PCA and GMM
 % sal
 % location index (helheim is fjord_vert{32}
 load hel_plus_cords.mat hel_plus_cords
 hel_plus_idx = inpolygon(lon_combined,lat_combined,hel_plus_cords(:,1),hel_plus_cords(:,2))' ;
-%hel_plus_idx = inpolygon(lon_combined,lat_combined,fjord_vert{32}(:,1),fjord_vert{32}(:,2))' ;
+%hel_plus_idx = inpolygon(lon_combined,lat_combined,fjord_vert{32}(:,1),fjord_vert{32}(:,2))'; % only for Sermilik
 starting_depth = 30 ;
 ending_depth = 100 ;
 fj_combined_hel = sal_anom_combined(hel_plus_idx,:) ;
@@ -1961,14 +1969,25 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     sal = sal(:, 1:last_nan_col-1);
 end
+
+diff_result = NaN(size(sal)) ;
+    for i  = 1:length(sal)
+    %non_nan = find(~isnan(coast_sal_anom(:,i))) ; % should already have no nans here
+    %non_nan_store{i} = non_nan ;
+    temporary = sal(i,:) ;
+    diff_sal = diff(temporary,1,2) ;
+    diff_result(i, 1:end-1) = diff_sal ./ diff(1:size(sal,2), 1, 2); % abs(diff_sal ./ diff(1:size(sal,2), 1, 2)) for absolute
+    end
+diff_result = diff_result(:,1:end-1) ;
+
 % already normalized data
-[coeff, score, latent , tsquared] = pca(sal); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff, score, latent , tsquared] = pca(diff_result); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
 third_PC = score(:,3) ;
 explained = 100 * latent / sum(latent);
-clear last_nan_col
+clear last_nan_col diff_sal temporary
 
 coeff_fj_sal = coeff ;
 score_fj_sal = score ;
@@ -1988,17 +2007,27 @@ if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     temp = temp(:, 1:last_nan_col-1);
 end
+
+diff_result_temp = NaN(size(temp)) ;
+    for i  = 1:length(temp)
+    %non_nan = find(~isnan(coast_sal_anom(:,i))) ; % should already have no nans here
+    %non_nan_store{i} = non_nan ;
+    temporary = temp(i,:) ;
+    diff_temp = diff(temporary,1,2) ;
+    diff_result_temp(i, 1:end-1) = diff_temp ./ diff(1:size(temp,2), 1, 2); % abs(diff_sal ./ diff(1:size(sal,2), 1, 2)) for absolute
+    end
+diff_result_temp = diff_result_temp(:,1:end-1) ;
 %mu_temp = mean(temp,1) ;
 %std_temp = std(temp) ;
 %temp_norm = (temp-mu_temp)./std_temp ;
 % standard normalization of data
-[coeff, score, latent , tsquared] = pca(temp); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+[coeff, score, latent , tsquared] = pca(diff_result_temp); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
 first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
 third_PC = score(:,3) ;
 explained = 100 * latent / sum(latent);
-clear last_nan_col
+clear last_nan_col diff_temp temporary
 
 coeff_fj_temp = coeff ;
 score_fj_temp = score ;
@@ -2009,8 +2038,9 @@ end
 % Train GMM on PCA Data (Depth Indepdent)
 %depth independent
 % select random training data (wasn't working right, do later) 
-k = 4 ; % number of clusters
-feature_matrix = [score_fj_temp(:,1:3),score_fj_sal(:,1:3)] ;
+k = 3 ; % number of clusters
+num_eofs = 1 ;
+feature_matrix = [score_fj_temp(:,1:num_eofs),score_fj_sal(:,1:num_eofs)] ;
 lat_fj_test = lat_combined(hel_plus_idx) ;
 lat_fj_test = lat_fj_test(valid_rows') ;
 lon_fj_test = lon_combined(hel_plus_idx) ;
@@ -2026,6 +2056,106 @@ run = 1 ;
 if run == 1
 options = statset('MaxIter', 500, 'Display', 'final');  % Increase iterations to 500
 indepen_model = fitgmdist(feature_matrix, k, 'Options', options);
+%save indepen_model.mat indepen_model
+end
+%load indepen_model
+cluster_labels = cluster(indepen_model, feature_matrix);
+cluster_probs = posterior(indepen_model, feature_matrix);
+clear index
+%% dt/ds PCA GMM (depth independent)
+load hel_plus_cords.mat hel_plus_cords
+hel_plus_idx = inpolygon(lon_combined,lat_combined,hel_plus_cords(:,1),hel_plus_cords(:,2))' ;
+%hel_plus_idx = inpolygon(lon_combined,lat_combined,fjord_vert{32}(:,1),fjord_vert{32}(:,2))'; % only for Sermilik
+starting_depth = 30 ;
+ending_depth = 100 ;
+fj_combined_hel = sal_anom_combined(hel_plus_idx,:) ;
+fj_combined_test = fj_combined_hel(:,starting_depth:ending_depth) ; % reduced depths
+fj_temp_hel = temp_anom_combined(hel_plus_idx,:) ;
+fj_temp_combined_test = fj_temp_hel(:,starting_depth:ending_depth) ;
+valid_rows = all(~isnan(fj_combined_test), 2) & all(~isnan(fj_temp_combined_test), 2);
+sal = fj_combined_test(valid_rows,:) ; % should just be able to change this
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(sal), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    sal = sal(:, 1:last_nan_col-1);
+end
+
+diff_result = NaN(size(sal)) ;
+    for i  = 1:length(sal)
+    %non_nan = find(~isnan(coast_sal_anom(:,i))) ; % should already have no nans here
+    %non_nan_store{i} = non_nan ;
+    temporary = sal(i,:) ;
+    diff_sal = diff(temporary,1,2) ;
+    diff_result(i, 1:end-1) = diff_sal ./ diff(1:size(sal,2), 1, 2); % abs(diff_sal ./ diff(1:size(sal,2), 1, 2)) for absolute
+    end
+diff_result = diff_result(:,1:end-1) ;
+
+% Temperature
+temp = fj_temp_combined_test(valid_rows,:) ; 
+% Find the first column where there are less then 3 non-nan values and
+% truncate
+last_nan_col = find(sum(~isnan(temp), 1) < 3, 1);
+if ~isempty(last_nan_col)
+    % Cut off the columns from the first NaN column onwards
+    temp = temp(:, 1:last_nan_col-1);
+end
+
+diff_result_temp = NaN(size(temp)) ;
+    for i  = 1:length(temp)
+    %non_nan = find(~isnan(coast_sal_anom(:,i))) ; % should already have no nans here
+    %non_nan_store{i} = non_nan ;
+    temporary = temp(i,:) ;
+    diff_temp = diff(temporary,1,2) ;
+    diff_result_temp(i, 1:end-1) = diff_temp ./ diff(1:size(temp,2), 1, 2); % abs(diff_sal ./ diff(1:size(sal,2), 1, 2)) for absolute
+    end
+diff_result_temp = diff_result_temp(:,1:end-1) ;
+dT_dS = diff(temp, 1, 2) ./ diff(sal, 1, 2);
+dT_dS(isinf(dT_dS) | isnan(dT_dS)) = NaN; % Replace infinities with NaNs
+nan_rows = any(isnan(dT_dS), 2); % True for rows with at least one NaN
+dT_dS = dT_dS(~nan_rows, :);
+
+[coeff, score, latent , tsquared] = pca(dT_dS); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
+first_PC = score(:,1) ; % first principal component
+first_coeff = coeff(:,1); % first pc coeff
+second_PC = score(:,2) ; % second
+third_PC = score(:,3) ;
+explained = 100 * latent / sum(latent);
+clear last_nan_col diff_sal temporary
+
+coeff_fj_sal = coeff ;
+score_fj_sal = score ;
+latent_fj_sal = latent ;
+tsqaured_fj_sal = tsquared ;
+explained_fj_sal = explained ;
+
+
+% Train GMM on PCA Data (Depth Indepdent)
+%depth independent
+% select random training data (wasn't working right, do later) 
+k = 4 ; % number of clusters
+num_eofs = 1 ;
+feature_matrix = [score_fj_sal(:,1:num_eofs)] ;
+lat_fj_test = lat_combined(hel_plus_idx) ;
+lat_fj_test = lat_fj_test(valid_rows') ;
+lat_fj_test = lat_fj_test(~nan_rows) ;
+
+lon_fj_test = lon_combined(hel_plus_idx) ;
+lon_fj_test = lon_fj_test(valid_rows') ;
+lon_fj_test = lon_fj_test(~nan_rows) ;
+
+mon_fj_test = mon_combined(hel_plus_idx) ;
+mon_fj_test = mon_fj_test(valid_rows') ;
+yea_fj_test = yea_combined(hel_plus_idx) ;
+yea_fj_test = yea_fj_test(valid_rows) ;
+%day_fj_test = day_fj(hel_idx) ;
+%day_fj_test = day_fj_test(valid_rows) ;
+%Model
+run = 1 ;
+if run == 1
+options = statset('MaxIter', 500, 'Display', 'final');  % Increase iterations to 500
+indepen_model = fitgmdist(feature_matrix, k,'Options', options, 'RegularizationValue', 1e-6);
 %save indepen_model.mat indepen_model
 end
 %load indepen_model

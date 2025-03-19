@@ -1,6 +1,6 @@
 % Quickly Save every open figure
 figHandles = findall(0, 'Type', 'figure'); % Get all open figures
-saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-19-25\not_right2';  % Set your desired directory
+saveDir = 'C:\Users\ajs82292\Desktop\Research\Weekly Meeting\Images\03-19-25\derivatives_2';  % Set your desired directory
 
 for i = 1:length(figHandles)
     fig = figHandles(i);
@@ -898,8 +898,8 @@ plot(cx, cy, 'k')
 %ylim([55, 85])
 plot(cx,cy,'k')
 gscatter(lon_fj_test, lat_fj_test, cluster_labels', cmap, 'o','filled');
-xlim([-39.5,-35.5])
-ylim([65.1,66.6])
+xlim([-39.7,-33.5])
+ylim([63.5,66.6])
 xlabel('Lon')
 ylabel('Lat')
 
@@ -937,8 +937,8 @@ hold on
 daspect([1 aspect_ratio 1])
 plot(cx, cy, 'k')
 gscatter(lon_fj_test(high_prob_idx), lat_fj_test(high_prob_idx), cluster_labels(high_prob_idx)', cmap, 'o','filled');
-xlim([-39.5,-35.5])
-ylim([65.1,66.6])
+xlim([-39.7,-33.5])
+ylim([63.5,66.6])
 xlabel('Lon')
 ylabel('Lat')
 title('Profiles with >90% of belonging to cluster')
@@ -1022,11 +1022,11 @@ hold off;
 %title('Fjord Sal Anomalies Clustered Sept 2020');
 %hold off;
 % plot representative cluster
-salinity_idx = 4;     % e.g., first EOF for salinity
-temperature_idx = 1;  % e.g., first EOF for temperature
-numComponents = indepen_model.NumComponents;  % gm is your gmdistribution object
-%cmap = lines(numComponents);         % Choose colors for each component
-theta = linspace(0, 2*pi, 100);        % 100 points to define the ellipse
+salinity_idx = num_eofs + 1;     %first EOF for salinity
+temperature_idx = num_eofs - num_eofs +1;  %first EOF for temperature
+numComponents = indepen_model.NumComponents; 
+%cmap = lines(numComponents);  % colors for each component
+theta = linspace(0, 2*pi, 100); % 100 points to define the ellipse
 [~, sorted_cluster_indices] = sort(indepen_model.mu(:, [temperature_idx, salinity_idx]), 'ascend');
 sorted_cmap = cmap(sorted_cluster_indices, :);
 figure 
@@ -1058,14 +1058,14 @@ axis equal
 hold off;
 %bottom left sal coeff
 nexttile;
-plot(coeff_fj_sal(:,1),DepInterval_custom)
+plot(coeff_fj_sal(:,1),DepInterval_custom(1:end-1))
 xlabel('Salinity Anomaly')
 ylabel('Depth')
 title('1st Sal Coefficient')
 axis ij
 %bottom right temp coefficient
 nexttile;
-plot(coeff_fj_temp(:,1),DepInterval_custom)
+plot(coeff_fj_temp(:,1),DepInterval_custom(1:end-1))
 xlabel('Temperature Anomaly')
 title('1st Temp Coefficient')
 axis ij
@@ -1084,8 +1084,8 @@ for i = 1:num_cluster
 
     title(sprintf('Cluster %d', i));
     plot(cx,cy,'k','HandleVisibility', 'off')
-    xlim([-39.5,-35.5])
-    ylim([65.1,66.6])
+xlim([-39.7,-33.5])
+ylim([63.5,66.6])
     daspect([1 aspect_ratio 1])
 end
 ax = gca;
@@ -1097,7 +1097,124 @@ for m = 1:12
 end
 hold off;
 legend(leg_handles, 'Location', 'bestoutside'); 
+%% Regular PCA plot of Fjord +
+%sal
+hold on
+scatter(lon_fj_test, lat_fj_test,20, score_fj_sal(:,1), 'filled');
+colorbar;
+ daspect([1 aspect_ratio 1])
+% caxis([-3 3]);
+colormap('jet')
+plot(cx,cy,'k') ;
+    xlim([-39.5,-35.5])
+    ylim([65.1,66.6])
+xlabel('Longitude');
+ylabel('Latitude');
+title('First Principal Component Fjord Salinity Anomaly');
+hold off
+figure
+plot(coeff_fj_sal(:,1),DepInterval_custom)
+xlabel('Salinity Anomaly')
+ylabel('Depth')
+title('1st Sal Coefficient')
+axis ij
+
+%temp
+figure
+hold on
+scatter(lon_fj_test, lat_fj_test,20, score_fj_temp(:,1), 'filled');
+colorbar;
+ daspect([1 aspect_ratio 1])
+% caxis([-3 3]);
+colormap('jet')
+plot(cx,cy,'k') ;
+    xlim([-39.5,-35.5])
+    ylim([65.1,66.6])
+xlabel('Longitude');
+ylabel('Latitude');
+title('First Principal Component Fjord Temperature Anomaly');
+hold off
+figure
+plot(coeff_fj_temp(:,1),DepInterval_custom)
+xlabel('Temp Anomaly')
+ylabel('Depth')
+title('1st Temp Coefficient')
+axis ij
+%% dT_dS plotting
+% search for duplicates using lon;lat;yea;mon;day
+
+
+clear all_combined
+clf
+hold on
+unique_clusters = unique(cluster_labels);
+cmap = lines(length(unique_clusters));  % Ensure same color mapping
+cluster_color_map = containers.Map(unique_clusters, num2cell(cmap, 2));
+daspect([1 aspect_ratio 1])
+plot(cx, cy, 'k')
+%xlim([-100, -10])
+%ylim([55, 85])
+plot(cx,cy,'k')
+gscatter(lon_fj_test, lat_fj_test, cluster_labels', cmap, 'o','filled');
+xlim([-39.7,-33.5])
+ylim([63.5,66.6])
+xlabel('Lon')
+ylabel('Lat')
+
+% TS plot
+figure
+cmap = lines(max(cluster_labels));
+sal = fj_combined_test(valid_rows,:) ;
+sal = sal(~nan_rows, :) ;
+temp = fj_temp_combined_test(valid_rows,:) ; 
+temp = temp(~nan_rows, :) ;
+hold on
+for i = 1:size(sal, 1) % Loop over profiles
+    cluster_id = cluster_labels(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(sal(i, :), temp(i,:), 'Color', color, 'LineWidth', 1.5);
+end
+%axis ij
+xlabel('Salinity Anomaly');
+ylabel('Temperature Anomaly');
+title('Fjord T/S Anomalies Clustered');
+hold off;
+
+% plot x tiled figure, with each tile being a cluster location colored by month
+num_cluster = max(cluster_labels); % Number of clusters
+colors = jet(12); % Colormap for 12 months
+figure;
+tiledlayout('flow');
+
+for i = 1:num_cluster
+    nexttile;
+    hold on
+    % Get points for this cluster
+    idx = (cluster_labels == i);
+    scatter(lon_fj_test(idx), lat_fj_test(idx), 36, colors(mon_fj_test(idx), :), 'filled');
+
+    title(sprintf('Cluster %d', i));
+    plot(cx,cy,'k','HandleVisibility', 'off')
+xlim([-39.7,-33.5])
+ylim([63.5,66.6])
+    daspect([1 aspect_ratio 1])
+end
+ax = gca;
+hold on;
+leg_handles = gobjects(12,1);
+month_names = {'November', 'December','January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'};
+for m = 1:12
+    leg_handles(m) = scatter(nan, nan, 36, colors(m, :), 'filled', 'DisplayName', month_names{m});
+end
+hold off;
+legend(leg_handles, 'Location', 'bestoutside'); 
+
+
+
+
+
 %% Apply depth independent model to another fjord
+clear high_prob_idx
 load scoresby_plus scoresby_plus
 
 score_plus_idx = inpolygon(lon_combined,lat_combined,scoresby_plus(:,1),scoresby_plus(:,2))' ;
@@ -1119,18 +1236,42 @@ if ~isempty(last_nan_col)
     scoresby_sal = scoresby_sal(:, 1:last_nan_col-1);
 end
 
+
+diff_result_scores = NaN(size(scoresby_sal)) ;
+    for i  = 1:length(scoresby_sal)
+    %non_nan = find(~isnan(coast_sal_anom(:,i))) ; % should already have no nans here
+    %non_nan_store{i} = non_nan ;
+    temporary = scoresby_sal(i,:) ;
+    diff_sal = diff(temporary,1,2) ;
+    diff_result_scores(i, 1:end-1) = diff_sal ./ diff(1:size(scoresby_sal,2), 1, 2); % abs(diff_sal ./ diff(1:size(sal,2), 1, 2)) for absolute
+    end
+diff_result_scores = diff_result_scores(:,1:end-1) ;
+
 %temp
 last_nan_col = find(sum(~isnan(scoresby_temp), 1) < 3, 1);
 if ~isempty(last_nan_col)
     % Cut off the columns from the first NaN column onwards
     scoresby_temp = scoresby_temp(:, 1:last_nan_col-1);
 end
-% subtract original mean and divide by original std
-scoresby_sal_norm = (scoresby_sal-mu_sal)./std_sal ;
-scoresby_temp_norm = (scoresby_temp - mu_temp)./std_temp ;
 
-scoresby_sal_score = scoresby_sal_norm * coeff_fj_sal(:, 1:2) ;
-scoresby_temp_score = scoresby_temp_norm * coeff_fj_temp(:,1:2) ;
+diff_result_temp_scores = NaN(size(scoresby_temp)) ;
+    for i  = 1:length(scoresby_temp)
+    %non_nan = find(~isnan(coast_sal_anom(:,i))) ; % should already have no nans here
+    %non_nan_store{i} = non_nan ;
+    temporary = scoresby_temp(i,:) ;
+    diff_temp = diff(temporary,1,2) ;
+    diff_result_temp_scores(i, 1:end-1) = diff_temp ./ diff(1:size(temp,2), 1, 2); % abs(diff_sal ./ diff(1:size(sal,2), 1, 2)) for absolute
+    end
+diff_result_temp_scores = diff_result_temp_scores(:,1:end-1) ;
+
+clear diff_temp diff_sal temporary
+
+% subtract original mean and divide by original std
+%scoresby_sal_norm = (scoresby_sal-mu_sal)./std_sal ;
+%scoresby_temp_norm = (scoresby_temp - mu_temp)./std_temp ;
+
+scoresby_sal_score = diff_result_scores * coeff_fj_sal(:, 1:num_eofs) ;
+scoresby_temp_score = diff_result_temp_scores * coeff_fj_temp(:,1:num_eofs) ;
 
 scoresby_feature_matrix = [scoresby_temp_score,scoresby_sal_score] ;
 scoresby_labels = cluster(indepen_model, scoresby_feature_matrix);
@@ -1208,6 +1349,38 @@ for m = 1:12
 end
 hold off;
 legend(leg_handles, 'Location', 'bestoutside'); 
+
+% plot corresponding temperature, colored by cluster labels
+figure
+DepInterval_custom = DepInterval(starting_depth:size(scoresby_temp,2)+starting_depth-1) ;
+%cmap = lines(max(cluster_labels));
+temperature = scoresby_temp ;
+hold on
+for i = 1:size(temperature, 1) % Loop over profiles
+    cluster_id = cluster_labels(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(temperature(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Temperature Anomaly');
+ylabel('Depth');
+title('Fjord Temperature Anomalies Clustered');
+hold off;
+% Plot Salinity
+figure
+cmap = lines(max(cluster_labels));
+sal = scoresby_sal ;
+hold on
+for i = 1:size(sal, 1) % Loop over profiles
+    cluster_id = cluster_labels(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(scoresby_sal(i, :), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Salinity Anomaly');
+ylabel('Depth');
+title('Fjord Salinity Anomalies Clustered');
+hold off;
 %% GMM Cluster Prbabilities (Depth dependent)
 % plot representative cluster
 DepInterval_custom = DepInterval(1:segment_length) ;
