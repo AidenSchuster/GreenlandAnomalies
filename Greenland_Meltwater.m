@@ -1933,12 +1933,24 @@ yeamon_n_open = year_open_n & month_open_n ;
     %open_sal = open_sal(~can_n_invert,:) ;
 
 % finishing combined variables (anomaly sized)
+nan_rows = all(isnan(fj_anom_combined), 2);
+fjord_sal = fjord_sal_mat_fj' ;
+fjord_sal = fjord_sal(~nan_rows,1:300) ;
+fjord_temp = fjord_temp_mat_fj' ;
+fjord_temp = fjord_temp(~nan_rows,1:300) ;
+fjord_sal = fjord_sal'; % should now only contain columns with at least some anomaly values attached to them
+fjord_temp = fjord_temp' ;
+
+
+with_sal = [interp_sal_mat(1:300,open_idx),interp_sal_mat(1:300,coast_idx),fjord_sal] ;
+with_temp = [interp_temp_mat(1:300,open_idx),interp_temp_mat(1:300,coast_idx),fjord_temp] ;
+ 
 yea_combined = [open_yea,coastal_yea,yea_fj] ;
 mon_combined = [open_mon,coastal_mon,mon_fj] ;
 
 
 clear length_open yea year_coast month_coast month_open year_open year_coast_n year_open_n month_coast_n month_open_n month_coast_n_test year_open_n_test year_coast_n_test
-clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s_fj
+clear month_open_n_test canada canada_n can_invert can_n_invert yea_s_fj month_s_fj fjord_sal fjord_temp nan_rows
 clear can_sal can_sal_anom can_invert can_n_invert can_lon can_lat canada_n can_lat_n can_lon_n can_mon can_yea % clearing all canada variables (will get rid of them entirely eventually)
 clear XX YY ZZ reclength recwidth temp_sal temp_mat_fj x_reff y_reff yea_mon_n_open yea_mon_n_coast anom_mon anom_yea coastal_temp coastal_sal
 clear copy datenum_a datenum_coast datenum_open day_fj day_range day_range_2 five_yea_s_fj five_year_range fj_combined fj_find_combined fj_temp_anoms_mat fj_anoms_mat
@@ -2111,10 +2123,44 @@ diff_result_temp = NaN(size(temp)) ;
     diff_result_temp(i, 1:end-1) = diff_temp ./ diff(1:size(temp,2), 1, 2); % abs(diff_sal ./ diff(1:size(sal,2), 1, 2)) for absolute
     end
 diff_result_temp = diff_result_temp(:,1:end-1) ;
-dT_dS = diff(temp, 1, 2) ./ diff(sal, 1, 2);
-dT_dS(isinf(dT_dS) | isnan(dT_dS)) = NaN; % Replace infinities with NaNs
-nan_rows = any(isnan(dT_dS), 2); % True for rows with at least one NaN
-dT_dS = dT_dS(~nan_rows, :);
+
+% Compute dT/dS
+dT_dS = diff_result_temp ./ diff_result;
+dT_dS(isinf(dT_dS) | isnan(dT_dS)) = NaN; % Replace infinities and NaNs
+
+% Initialize smoothed version
+smoothed_dT_dS = NaN(size(dT_dS));
+window_max = 7; % maximum window size for smoothing
+% Apply linear regression smoothing
+for i = 1:size(dT_dS,1) % Loop over profiles
+    for j = 1:size(dT_dS,2) % Loop over depths
+        
+        % Determine window range
+        if j < window_max
+            idx_range = 1:min(j + floor((window_max-1)/2), size(dT_dS,2));
+        elseif j > size(dT_dS,2) - window_max
+            idx_range = max(1, j - floor((window_max-1)/2)):size(dT_dS,2);
+        else
+            idx_range = max(1, j - floor((window_max-1)/2)):min(j + floor((window_max-1)/2), size(dT_dS,2));
+        end
+        
+        % Extract data within the window
+        x = idx_range'; % Depth idx
+        y = dT_dS(i, idx_range)'; % dT/dS values
+
+        valid_idx = ~isnan(y);
+        x_valid = x(valid_idx);
+        y_valid = y(valid_idx);
+        
+        if length(x_valid) > 1 % Only fit if there's enough data
+            p = polyfit(x_valid, y_valid, 1); % Fit a 1st-degree poly line
+            smoothed_dT_dS(i, j) = p(1); % Store the slope
+        end
+    end
+end
+
+nan_rows = any(isnan(smoothed_dT_dS), 2); % True for rows with at least one NaN
+dT_dS = smoothed_dT_dS(~nan_rows, :); % remove those rows
 
 [coeff, score, latent , tsquared] = pca(dT_dS); % Renato's Function (50 is number he gave) (very slow so reduce NaN's as much as possible)
 first_PC = score(:,1) ; % first principal component
@@ -2122,7 +2168,7 @@ first_coeff = coeff(:,1); % first pc coeff
 second_PC = score(:,2) ; % second
 third_PC = score(:,3) ;
 explained = 100 * latent / sum(latent);
-clear last_nan_col diff_sal temporary
+clear last_nan_col diff_sal temporary smoother_dT_dS p x_valid y_valid valid_idx x y idx_range window_max diff_result diff_result_temp
 
 coeff_fj_sal = coeff ;
 score_fj_sal = score ;
@@ -2135,7 +2181,7 @@ explained_fj_sal = explained ;
 %depth independent
 % select random training data (wasn't working right, do later) 
 k = 4 ; % number of clusters
-num_eofs = 1 ;
+num_eofs = 2 ;
 feature_matrix = [score_fj_sal(:,1:num_eofs)] ;
 lat_fj_test = lat_combined(hel_plus_idx) ;
 lat_fj_test = lat_fj_test(valid_rows') ;
@@ -2149,6 +2195,18 @@ mon_fj_test = mon_combined(hel_plus_idx) ;
 mon_fj_test = mon_fj_test(valid_rows') ;
 yea_fj_test = yea_combined(hel_plus_idx) ;
 yea_fj_test = yea_fj_test(valid_rows) ;
+
+% raw temp and sal for corresponding anomalies
+with_temp_test = with_temp(:,hel_plus_idx') ;
+with_temp_test = with_temp_test(:,valid_rows') ;
+with_temp_test = with_temp_test(:,~nan_rows) ;
+with_temp_test = with_temp_test(starting_depth:end,:) ;
+
+with_sal_test = with_sal(:,hel_plus_idx') ;
+with_sal_test = with_sal_test(:,valid_rows') ;
+with_sal_test = with_sal_test(:,~nan_rows) ;
+with_sal_test = with_sal_test(starting_depth:end,:) ;
+
 %day_fj_test = day_fj(hel_idx) ;
 %day_fj_test = day_fj_test(valid_rows) ;
 %Model

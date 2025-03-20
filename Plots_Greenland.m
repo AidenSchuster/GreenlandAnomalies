@@ -1143,7 +1143,16 @@ axis ij
 %% dT_dS plotting
 % search for duplicates using lon;lat;yea;mon;day
 
+%find raw and sal that correlates to the anomalies
+%all_coords = [all_lat; all_lon];
+%fj_coords = [lat_fj_test; lon_fj_test];
 
+% Find matching indices
+%idx = ismember(all_coords,fj_coords);
+%result = all(idx == 1, 1);  % Check if all values in each column are 1
+%test = all_lat(result) ;
+
+DepInterval_custom = DepInterval(30:300) ;
 clear all_combined
 clf
 hold on
@@ -1169,15 +1178,45 @@ sal = sal(~nan_rows, :) ;
 temp = fj_temp_combined_test(valid_rows,:) ; 
 temp = temp(~nan_rows, :) ;
 hold on
-for i = 1:size(sal, 1) % Loop over profiles
+for i = 1:size(with_sal_test, 1) % Loop over profiles
     cluster_id = cluster_labels(i);
     color = cluster_color_map(cluster_id); % Get the correct color
-    plot(sal(i, :), temp(i,:), 'Color', color, 'LineWidth', 1.5);
+    plot(with_sal_test(:,i), with_temp_test(:,i), 'Color', color, 'LineWidth', 1.5);
 end
 %axis ij
-xlabel('Salinity Anomaly');
-ylabel('Temperature Anomaly');
-title('Fjord T/S Anomalies Clustered');
+xlabel('Salinity');
+ylabel('Temperature');
+title('Fjord T/S Clustered');
+hold off;
+
+% T plot
+figure
+cmap = lines(max(cluster_labels));
+hold on
+for i = 1:size(with_sal_test, 1) % Loop over profiles
+    cluster_id = cluster_labels(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(with_temp_test(:,i), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Temperature');
+ylabel('Depth');
+title('Fjord Temp Clustered');
+hold off;
+
+% S plot
+figure
+cmap = lines(max(cluster_labels));
+hold on
+for i = 1:size(with_sal_test, 1) % Loop over profiles
+    cluster_id = cluster_labels(i);
+    color = cluster_color_map(cluster_id); % Get the correct color
+    plot(with_sal_test(:,i), DepInterval_custom, 'Color', color, 'LineWidth', 1.5);
+end
+axis ij
+xlabel('Salinity');
+ylabel('Depth');
+title('Fjord Sal Clustered');
 hold off;
 
 % plot x tiled figure, with each tile being a cluster location colored by month
