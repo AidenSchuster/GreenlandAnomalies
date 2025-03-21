@@ -1943,7 +1943,9 @@ fjord_temp = fjord_temp' ;
 
 
 with_sal = [interp_sal_mat(1:300,open_idx),interp_sal_mat(1:300,coast_idx),fjord_sal] ;
+with_sal = double(with_sal) ;
 with_temp = [interp_temp_mat(1:300,open_idx),interp_temp_mat(1:300,coast_idx),fjord_temp] ;
+with_temp = double(with_temp) ;
  
 yea_combined = [open_yea,coastal_yea,yea_fj] ;
 mon_combined = [open_mon,coastal_mon,mon_fj] ;
@@ -2079,7 +2081,7 @@ load hel_plus_cords.mat hel_plus_cords
 hel_plus_idx = inpolygon(lon_combined,lat_combined,hel_plus_cords(:,1),hel_plus_cords(:,2))' ;
 %hel_plus_idx = inpolygon(lon_combined,lat_combined,fjord_vert{32}(:,1),fjord_vert{32}(:,2))'; % only for Sermilik
 starting_depth = 30 ;
-ending_depth = 100 ;
+ending_depth = 300 ;
 fj_combined_hel = sal_anom_combined(hel_plus_idx,:) ;
 fj_combined_test = fj_combined_hel(:,starting_depth:ending_depth) ; % reduced depths
 fj_temp_hel = temp_anom_combined(hel_plus_idx,:) ;
@@ -2207,6 +2209,12 @@ with_sal_test = with_sal_test(:,valid_rows') ;
 with_sal_test = with_sal_test(:,~nan_rows) ;
 with_sal_test = with_sal_test(starting_depth:end,:) ;
 
+% Fit exponential and take difference (raw temp and salinity)
+test = cell(1, size(with_sal_test, 2));
+for i = 1:size(with_sal_test, 2)
+    fitted_line = fit(with_sal_test(:, i), with_temp_test(:, i), 'exp1');
+    
+end
 %day_fj_test = day_fj(hel_idx) ;
 %day_fj_test = day_fj_test(valid_rows) ;
 %Model
